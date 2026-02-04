@@ -3,30 +3,21 @@ package com.example.marthianclean
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
-            App()
+            MaterialTheme {
+                Surface(color = Color(0xFF0E0E0E)) {
+                    DispatchMatrixScreen()
+                }
+            }
         }
     }
-}
-
-@Composable
-fun App() {
-    MaterialTheme {
-        Surface {
-            Text("Hello Marthian 🚀")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewApp() {
-    App()
 }
