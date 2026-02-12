@@ -1,16 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"
-        android:label="MarthianClean">
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Marthian">
 
-        <!-- Google Maps API Key (지금은 사용 안 해도 OK) -->
+        <!-- Google Maps API Key (형님 기존 키/리소스 그대로 유지) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="여기에_본인_API_KEY" />
+            android:value="@string/google_maps_key" />
 
         <activity
             android:name=".MainActivity"

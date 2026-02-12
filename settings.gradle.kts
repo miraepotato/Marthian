@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MarthianClean"
+rootProject.name = "Marthian"
 include(":app")
  

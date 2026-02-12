@@ -1,0 +1,9 @@
+<resources>
+
+    <!-- No ActionBar, No Title -->
+    <style name="Theme.Marthian.NoActionBar"
+        parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- 완전 무상단 UI -->
+    </style>
+
+</resources>
