@@ -14,7 +14,7 @@
             android:value="@string/google_maps_key" />
         <meta-data
             android:name="com.naver.maps.map.NCP_KEY_ID"
-            android:value="YOUR_NCP_KEY_ID_HERE" />
+            android:value="@string/naver_map_key" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

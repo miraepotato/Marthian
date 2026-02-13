@@ -4,8 +4,11 @@ package com.example.marthianclean.ui.situation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -26,7 +29,11 @@ fun SituationBoardScreen(
     val cameraPositionState = rememberCameraPositionState()
     val markerState = remember { MarkerState() }
 
-    // ✅ Incident가 들어오면 카메라 이동 + 마커 위치 세팅
+    var mapLoaded by remember { mutableStateOf(false) }
+
+    // ✅ 위성/일반 토글 (기본: 위성)
+    var isSatellite by remember { mutableStateOf(true) }
+
     LaunchedEffect(incident) {
         incident?.let { inc ->
             val pos = LatLng(inc.latitude, inc.longitude)
@@ -41,9 +48,19 @@ fun SituationBoardScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // ✅ compose MapType을 써야 타입이 맞습니다!
         NaverMap(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                mapType = if (isSatellite) MapType.Satellite else MapType.Basic
+            ),
+            uiSettings = MapUiSettings(
+                isZoomControlEnabled = true,
+                isCompassEnabled = false,
+                isLocationButtonEnabled = false
+            ),
+            onMapLoaded = { mapLoaded = true }
         ) {
             if (incident != null) {
                 Marker(
@@ -53,12 +70,38 @@ fun SituationBoardScreen(
             }
         }
 
+        // ✅ 로딩 오버레이
+        if (!mapLoaded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "지도 로딩 중…", color = Color.White)
+            }
+        }
+
+        // ✅ 상단 우측: 위성 토글 + EXIT
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Button(
+                onClick = { isSatellite = !isSatellite },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1C1C1C),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(if (isSatellite) "SAT" else "BASIC")
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
             Button(
                 onClick = {
                     incidentViewModel.clearIncident()

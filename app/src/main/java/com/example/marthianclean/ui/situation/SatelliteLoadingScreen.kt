@@ -2,40 +2,25 @@ package com.example.marthianclean.ui.situation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlin.random.Random
 
 @Composable
 fun SatelliteLoadingScreen(
     onFinished: () -> Unit
 ) {
-
-    var dots by remember { mutableStateOf("") }
-
-    // 랜덤 3~5초 후 이동
     LaunchedEffect(Unit) {
-        val randomDelay = Random.nextLong(3000L, 5000L)
-        delay(randomDelay)
+        // 위성 타일/지도 로딩 체감용 (너무 길면 답답하니 600~1200ms 권장)
+        delay(900)
         onFinished()
-    }
-
-    // ... 애니메이션
-    LaunchedEffect(Unit) {
-        while (true) {
-            dots = when (dots) {
-                "" -> "."
-                "." -> ".."
-                ".." -> "..."
-                else -> ""
-            }
-            delay(400)
-        }
     }
 
     Box(
@@ -44,10 +29,14 @@ fun SatelliteLoadingScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "SATELLITE LOADING$dots",
-            color = Color.White,
-            fontSize = 18.sp
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator()
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "위성 지도 불러오는 중…",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }

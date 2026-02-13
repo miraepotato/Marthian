@@ -5,5 +5,6 @@
 
     <!-- Google Maps API Key -->
     <string name="google_maps_key">AIzaSyB6m8pdvOrVjugbKryp6_-Y3hYzewar3co</string>
+    <string name="naver_map_key">dmqal51igv</string>
 
 </resources>
