@@ -1,31 +1,53 @@
 package com.example.marthianclean.ui.situation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 @Composable
 fun SatelliteLoadingScreen(
     onFinished: () -> Unit
 ) {
+
+    var dots by remember { mutableStateOf("") }
+
+    // 랜덤 3~5초 후 이동
     LaunchedEffect(Unit) {
-        delay(700) // 0.7초 정도 문구 보여주고
+        val randomDelay = Random.nextLong(3000L, 5000L)
+        delay(randomDelay)
         onFinished()
     }
 
+    // ... 애니메이션
+    LaunchedEffect(Unit) {
+        while (true) {
+            dots = when (dots) {
+                "" -> "."
+                "." -> ".."
+                ".." -> "..."
+                else -> ""
+            }
+            delay(400)
+        }
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "SATELLITE LOADING...",
-            color = Color.White
+            text = "SATELLITE LOADING$dots",
+            color = Color.White,
+            fontSize = 18.sp
         )
     }
 }

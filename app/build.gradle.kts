@@ -45,6 +45,16 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:20.0.0")
     implementation("com.google.maps.android:maps-compose:8.0.0")
     implementation("androidx.compose.material:material-icons-extended")
+    // ✅ Naver Map SDK
+    implementation("com.naver.maps:map-sdk:3.23.1")
+
+    // ✅ Naver Map Compose wrapper
+    implementation("io.github.fornewid:naver-map-compose:1.9.0")
+
+    // ✅ ViewModel + StateFlow 사용(없으면 추가)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling")
