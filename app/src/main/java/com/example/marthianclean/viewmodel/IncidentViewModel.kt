@@ -2,6 +2,7 @@ package com.example.marthianclean.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.marthianclean.BuildConfig
 import com.example.marthianclean.model.Incident
 import com.example.marthianclean.network.GeocodingRepository
 import com.example.marthianclean.network.RetrofitClient
@@ -18,9 +19,14 @@ class IncidentViewModel : ViewModel() {
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
 
     init {
-        // ✅ 키는 1회 세팅 (형님이 실제 값으로 넣어둔 그대로 유지)
-        RetrofitClient.NCP_KEY_ID = "co0lx901ha"
-        RetrofitClient.NCP_KEY = "6wvwEgXvUY0D5BfUFNMOrxzXVvExdI5aiyQP89dx"
+        // ✅ local.properties -> BuildConfig 로 주입된 값을 1회 세팅
+        RetrofitClient.NCP_KEY_ID = BuildConfig.NCP_MAPS_CLIENT_ID
+        RetrofitClient.NCP_KEY = BuildConfig.NCP_MAPS_CLIENT_SECRET
+
+        // (선택) 혹시 키가 비어있으면 로그로만 알려주기 (크래시 방지)
+        if (BuildConfig.NCP_MAPS_CLIENT_ID.isBlank() || BuildConfig.NCP_MAPS_CLIENT_SECRET.isBlank()) {
+            android.util.Log.e("NCP_KEY", "NCP keys are blank. Check local.properties & Gradle sync.")
+        }
     }
 
     fun setIncident(value: Incident) {

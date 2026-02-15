@@ -13,14 +13,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Marthian">
 
+        <!-- Google Maps -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
+        <!-- Naver Map (local.properties -> manifestPlaceholders) -->
         <meta-data
             android:name="com.naver.maps.map.NCP_KEY_ID"
-            android:value="@string/naver_client_id" />
-
+            android:value="${NAVER_MAP_CLIENT_ID}" />
 
         <activity
             android:name=".MainActivity"

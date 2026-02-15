@@ -6,8 +6,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.marthianclean.ui.banner.BannerScreen
+import com.example.marthianclean.ui.dispatch.DispatchMatrixScreen
 import com.example.marthianclean.ui.field.AddressSearchScreen
 import com.example.marthianclean.ui.field.FieldSelectScreen
+import com.example.marthianclean.ui.field.IncidentEditHubScreen
 import com.example.marthianclean.ui.situation.SatelliteLoadingScreen
 import com.example.marthianclean.ui.situation.SituationBoardScreen
 import com.example.marthianclean.viewmodel.IncidentViewModel
@@ -18,6 +20,12 @@ object Routes {
     const val AddressSearch = "address_search"
     const val SatelliteLoading = "satellite_loading"
     const val SituationBoard = "situation_board"
+
+    // ✅ 좌슬라이딩 허브
+    const val IncidentEditHub = "incident_edit_hub"
+
+    // ✅ 출동대 편성(매트릭스) 화면
+    const val DispatchMatrix = "dispatch_matrix"
 }
 
 @Composable
@@ -38,6 +46,7 @@ fun MarthianNavHost() {
             )
         }
 
+        // ✅ 새 현장 시작/지난 현장 선택 화면
         composable(Routes.FieldSelect) {
             FieldSelectScreen(
                 onNewIncident = { navController.navigate(Routes.AddressSearch) },
@@ -68,15 +77,38 @@ fun MarthianNavHost() {
             )
         }
 
+        // ✅ 상황판
         composable(Routes.SituationBoard) {
             SituationBoardScreen(
                 incidentViewModel = incidentViewModel,
+                onEdit = { navController.navigate(Routes.IncidentEditHub) },
                 onExit = {
                     navController.navigate(Routes.Banner) {
                         popUpTo(Routes.Banner) { inclusive = true }
                     }
                 }
             )
+        }
+
+        // ✅ 좌슬라이딩 허브
+        composable(Routes.IncidentEditHub) {
+            IncidentEditHubScreen(
+                onEditMatrix = {
+                    // 🔥 여기서 진짜 매트릭스 화면으로 이동
+                    navController.navigate(Routes.DispatchMatrix)
+                },
+                onEditInfo = {
+                    navController.navigate(Routes.AddressSearch)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ✅ 출동대 편성(매트릭스)
+        composable(Routes.DispatchMatrix) {
+            DispatchMatrixScreen()
         }
     }
 }
