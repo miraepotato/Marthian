@@ -34,12 +34,28 @@ fun SituationBoardScreen(
     // ✅ 위성/일반 토글 (기본: 위성)
     var isSatellite by remember { mutableStateOf(true) }
 
-    LaunchedEffect(incident) {
-        incident?.let { inc ->
-            val pos = LatLng(inc.latitude, inc.longitude)
+    // ✅ 핵심: 좌표 변화에 정확히 반응 (incident 객체 자체가 아니라 lat/lng)
+    val lat = incident?.latitude
+    val lng = incident?.longitude
+
+    LaunchedEffect(lat, lng) {
+        if (lat != null && lng != null) {
+            val pos = LatLng(lat, lng)
+
+            // 마커 위치 갱신
             markerState.position = pos
-            cameraPositionState.move(CameraUpdate.scrollTo(pos))
-            cameraPositionState.move(CameraUpdate.zoomTo(16.0))
+
+            // ✅ 카메라 이동은 animate가 더 안정적
+            cameraPositionState.animate(
+                update = CameraUpdate.scrollTo(pos),
+                durationMs = 700
+            )
+            cameraPositionState.animate(
+                update = CameraUpdate.zoomTo(16.0),
+                durationMs = 300
+            )
+
+            android.util.Log.e("MAP_DEBUG", "CAMERA MOVED to lat=$lat lng=$lng")
         }
     }
 
@@ -48,7 +64,6 @@ fun SituationBoardScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // ✅ compose MapType을 써야 타입이 맞습니다!
         NaverMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
@@ -62,7 +77,8 @@ fun SituationBoardScreen(
             ),
             onMapLoaded = { mapLoaded = true }
         ) {
-            if (incident != null) {
+            // ✅ incident 있을 때만 마커 표시
+            if (lat != null && lng != null) {
                 Marker(
                     state = markerState,
                     captionText = "현장"

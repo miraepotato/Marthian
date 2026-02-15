@@ -1,131 +1,146 @@
 package com.example.marthianclean.ui.field
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marthianclean.model.Incident
+import com.example.marthianclean.viewmodel.IncidentViewModel
 
 private val MarsOrange = Color(0xFFFF8C00)
+private val MarsDark = Color(0xFF1C1C1C)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressSearchScreen(
     onDone: (Incident) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    incidentViewModel: IncidentViewModel = viewModel()
 ) {
-    var addressText by remember { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
+    var query by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun doSearch() {
-        // ✅ TODO: 나중에 Google Places/Geocoding으로 위경도 교체
-        val mockLat = 37.566535
-        val mockLng = 126.9779692
+        errorMessage = null
+        keyboardController?.hide()
 
-        val incident = Incident(
-            address = if (addressText.isBlank()) "서울시청(임시)" else addressText.trim(),
-            latitude = mockLat,
-            longitude = mockLng
+        val q = query.trim()
+        if (q.isEmpty()) {
+            errorMessage = "검색어를 입력해 주세요."
+            return
+        }
+
+        // ✅ A 방식: 키는 ViewModel init에서 이미 1회 세팅됨
+        incidentViewModel.geocodeAndApply(
+            query = q,
+            onSuccess = {
+                val inc = incidentViewModel.incident.value
+                if (inc != null) onDone(inc) else errorMessage = "Incident 생성에 실패했습니다."
+            },
+            onFail = { msg -> errorMessage = msg }
         )
-
-        // ✅ 검색 후 키보드 내리기
-        focusManager.clearFocus(force = true)
-
-        onDone(incident)
     }
 
-    Scaffold(
-        containerColor = Color.Black,
-        topBar = {
-            TopAppBar(
-                title = {},
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
-
-        // ✅ 검색바 위 빈 공간 터치 시 키보드 자동 숨김
-        Box(
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.Black
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .padding(padding)
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = {
-                        focusManager.clearFocus(force = true)
-                    })
-                },
-            contentAlignment = Alignment.Center
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Top
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            Text(
+                text = "주소 검색",
+                color = MarsOrange,
+                style = MaterialTheme.typography.headlineSmall
+            )
 
-                OutlinedTextField(
-                    value = addressText,
-                    onValueChange = { addressText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("주소/상호를 입력하세요", color = Color.Gray) },
-                    singleLine = true,
+            Spacer(modifier = Modifier.height(16.dp))
 
-                    // ✅ 엔터(검색) 누르면 바로 검색
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = { doSearch() }
-                    ),
-
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedContainerColor = Color(0xFF121212),
-                        unfocusedContainerColor = Color(0xFF121212),
-                        focusedBorderColor = Color(0xFF2A2A2A),
-                        unfocusedBorderColor = Color(0xFF2A2A2A),
-                        cursorColor = MarsOrange
-                    )
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("주소 또는 장소명 입력", color = Color.Gray) },
+                singleLine = true,
+                textStyle = TextStyle(color = Color.White),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { doSearch() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MarsOrange,
+                    unfocusedBorderColor = Color.DarkGray,
+                    cursorColor = MarsOrange,
+                    focusedLabelColor = MarsOrange,
+                    unfocusedLabelColor = Color.Gray,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = MarsDark,
+                    unfocusedContainerColor = MarsDark
                 )
+            )
 
-                Button(
-                    onClick = { doSearch() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1C),
-                        contentColor = MarsOrange
-                    )
-                ) {
-                    Text("검색")
-                }
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { doSearch() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MarsDark,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("검색")
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onBack() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MarsDark,
+                    contentColor = MarsOrange
+                )
+            ) {
+                Text("뒤로")
+            }
+
+            errorMessage?.let { msg ->
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

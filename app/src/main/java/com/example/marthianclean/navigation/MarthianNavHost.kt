@@ -32,14 +32,12 @@ fun MarthianNavHost() {
         startDestination = Routes.Banner
     ) {
 
-        // 1) 배너 -> 현장 선택
         composable(Routes.Banner) {
             BannerScreen(
                 onFinished = { navController.navigate(Routes.FieldSelect) }
             )
         }
 
-        // 2) 현장 선택 -> (새로운 현장: 주소검색) / (지난 현장: 상황판)
         composable(Routes.FieldSelect) {
             FieldSelectScreen(
                 onNewIncident = { navController.navigate(Routes.AddressSearch) },
@@ -48,7 +46,7 @@ fun MarthianNavHost() {
             )
         }
 
-        // 3) 주소 검색 -> 완료 시 Incident 생성 후 위성로딩으로
+        // ✅ 주소 검색 -> onDone(incident)으로 받는 구조 유지
         composable(Routes.AddressSearch) {
             AddressSearchScreen(
                 onDone = { incident ->
@@ -59,7 +57,7 @@ fun MarthianNavHost() {
             )
         }
 
-        // 4) 위성 로딩(문구) -> 상황판
+        // ✅ 위성 로딩 -> 최소 1.2초 보장 후 상황판
         composable(Routes.SatelliteLoading) {
             SatelliteLoadingScreen(
                 onFinished = {
@@ -70,7 +68,6 @@ fun MarthianNavHost() {
             )
         }
 
-        // 5) 상황판 -> 나가기 시 배너로
         composable(Routes.SituationBoard) {
             SituationBoardScreen(
                 incidentViewModel = incidentViewModel,
