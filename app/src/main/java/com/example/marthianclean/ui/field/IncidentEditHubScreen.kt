@@ -5,14 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-private val MarsOrange = Color(0xFFFF8C00)
+private val BgBlack = Color(0xFF0E0E0E)
+private val CardDark = Color(0xFF151515)
+private val BorderGray = Color(0xFF2E2E2E)
+private val TextPrimary = Color(0xFFF0F0F0)
+private val AccentOrange = Color(0xFFFF9800)
 
 @Composable
 fun IncidentEditHubScreen(
@@ -20,62 +25,71 @@ fun IncidentEditHubScreen(
     onEditInfo: () -> Unit,
     onBack: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .padding(20.dp)
+            .background(BgBlack)
+            .padding(16.dp)
     ) {
-        // ✅ TopAppBar 대신 수동 헤더 (Experimental API 불필요)
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .align(Alignment.Center)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "현장 편집", color = Color.White)
+            Text(
+                text = "현장 편집",
+                color = TextPrimary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            TextButton(onClick = onBack) {
-                Text(text = "닫기", color = MarsOrange)
+            Spacer(Modifier.height(18.dp))
+
+            Button(
+                onClick = onEditMatrix,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentOrange,
+                    contentColor = Color.Black
+                )
+            ) {
+                Text("출동대 편성(매트릭스)", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Button(
+                onClick = onEditInfo,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CardDark,
+                    contentColor = TextPrimary
+                )
+            ) {
+                Text("현장 정보 수정", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // ✅ 닫기 버튼 크게
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BorderGray,
+                    contentColor = TextPrimary
+                )
+            ) {
+                Text("닫기", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = onEditMatrix,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1C),
-                contentColor = Color.White
-            )
-        ) {
-            Text("출동대 편성 (매트릭스)")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onEditInfo,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1C),
-                contentColor = Color.White
-            )
-        ) {
-            Text("현장 정보 수정")
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "왼쪽 가장자리에서 오른쪽으로 슬라이드하면 이 화면이 열립니다.",
-            color = Color.White.copy(alpha = 0.7f)
-        )
     }
 }

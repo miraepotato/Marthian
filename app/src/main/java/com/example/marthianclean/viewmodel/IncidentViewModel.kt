@@ -11,6 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class PlaceCandidate(
+    val title: String,
+    val address: String
+)
+
 class IncidentViewModel : ViewModel() {
 
     private val _incident = MutableStateFlow<Incident?>(null)
@@ -18,16 +23,15 @@ class IncidentViewModel : ViewModel() {
 
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
 
-    init {
-        // ✅ local.properties -> BuildConfig 로 주입된 값을 1회 세팅
-        RetrofitClient.NCP_KEY_ID = BuildConfig.NCP_MAPS_CLIENT_ID
-        RetrofitClient.NCP_KEY = BuildConfig.NCP_MAPS_CLIENT_SECRET
+    // ✅ 장소 후보(최대 10개)
+    private val _candidates = MutableStateFlow<List<PlaceCandidate>>(emptyList())
+    val candidates: StateFlow<List<PlaceCandidate>> = _candidates.asStateFlow()
 
-        // (선택) 혹시 키가 비어있으면 로그로만 알려주기 (크래시 방지)
-        if (BuildConfig.NCP_MAPS_CLIENT_ID.isBlank() || BuildConfig.NCP_MAPS_CLIENT_SECRET.isBlank()) {
-            android.util.Log.e("NCP_KEY", "NCP keys are blank. Check local.properties & Gradle sync.")
-        }
-    }
+    private val _searchLoading = MutableStateFlow(false)
+    val searchLoading: StateFlow<Boolean> = _searchLoading.asStateFlow()
+
+    private val _searchError = MutableStateFlow<String?>(null)
+    val searchError: StateFlow<String?> = _searchError.asStateFlow()
 
     fun setIncident(value: Incident) {
         _incident.value = value
@@ -37,6 +41,67 @@ class IncidentViewModel : ViewModel() {
         _incident.value = null
     }
 
+    fun clearCandidates() {
+        _candidates.value = emptyList()
+        _searchError.value = null
+    }
+
+    // ✅ 1) "화성소방서" 같은 장소명 검색 -> 후보 최대 10개
+    fun searchPlaceCandidates(
+        query: String,
+        onDone: () -> Unit = {}
+    ) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            _searchError.value = "검색어가 비어 있습니다."
+            _candidates.value = emptyList()
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _searchLoading.value = true
+                _searchError.value = null
+                _candidates.value = emptyList()
+
+                val res = RetrofitClient.localSearchService.searchLocal(
+                    clientId = BuildConfig.NAVER_SEARCH_CLIENT_ID,
+                    clientSecret = BuildConfig.NAVER_SEARCH_CLIENT_SECRET,
+                    query = trimmed,
+                    display = 10 // 🔥 5 -> 10
+                )
+
+                val out = res.items.mapNotNull { item ->
+                    val addr = item.roadAddress?.takeIf { it.isNotBlank() }
+                        ?: item.address?.takeIf { it.isNotBlank() }
+                        ?: return@mapNotNull null
+
+                    val cleanTitle = (item.title ?: trimmed)
+                        .replace("<b>", "")
+                        .replace("</b>", "")
+
+                    PlaceCandidate(
+                        title = cleanTitle,
+                        address = addr
+                    )
+                }
+
+                if (out.isEmpty()) {
+                    _searchError.value = "검색 결과가 없습니다. (주소로도 한 번 시도해보세요)"
+                }
+
+                _candidates.value = out
+                onDone()
+            } catch (e: Exception) {
+                _searchError.value = "장소 검색 실패: ${e.message ?: "unknown"}"
+                _candidates.value = emptyList()
+            } finally {
+                _searchLoading.value = false
+            }
+        }
+    }
+
+    // ✅ 2) 선택된 후보의 "주소"로 지오코딩해서 incident에 반영
     fun geocodeAndApply(
         query: String,
         onSuccess: () -> Unit,
@@ -53,10 +118,6 @@ class IncidentViewModel : ViewModel() {
                 is GeocodingRepository.Outcome.Fail -> onFail(out.reason)
                 is GeocodingRepository.Outcome.Ok -> {
                     val data = out.data
-                    android.util.Log.e(
-                        "MAP_DEBUG",
-                        "GEOCODE OK addr=${data.resolvedAddress}, lat=${data.latitude}, lng=${data.longitude}"
-                    )
 
                     val current = _incident.value
                     val updated = current?.copy(
@@ -70,8 +131,6 @@ class IncidentViewModel : ViewModel() {
                     )
 
                     _incident.value = updated
-                    android.util.Log.e("MAP_DEBUG", "INCIDENT UPDATED=${_incident.value}")
-
                     onSuccess()
                 }
             }
