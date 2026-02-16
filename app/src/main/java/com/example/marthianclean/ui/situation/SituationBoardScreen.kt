@@ -11,7 +11,10 @@ import android.os.VibratorManager
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -26,6 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -43,18 +50,26 @@ import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.compose.*
 import com.naver.maps.map.overlay.OverlayImage
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 private val MarsOrange = Color(0xFFFF8C00)
-private val BorderGray = Color(0xFF2E2E2E)
 private val TextPrimary = Color(0xFFF0F0F0)
 
-private data class DragStickerState(
+private data class DragPayload(
+    val id: String,
+    val department: String,
+    val equipment: String
+)
+
+private data class DragState(
     val active: Boolean = false,
-    val item: IncidentViewModel.StickerItem? = null,
-    val windowPos: Offset = Offset.Zero
+    val payload: DragPayload? = null,
+    val windowPos: Offset = Offset.Zero,
+    val wobble: Boolean = false
 )
 
 private fun strongVibrate(context: Context) {
@@ -69,7 +84,6 @@ private fun strongVibrate(context: Context) {
     vibrator ?: return
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        // 35~45ms 정도가 “확실한 진입감” 좋음
         vibrator.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
     } else {
         @Suppress("DEPRECATION")
@@ -101,11 +115,11 @@ fun SituationBoardScreen(
     var naverMapObj by remember { mutableStateOf<com.naver.maps.map.NaverMap?>(null) }
     var mapRectInWindow by remember { mutableStateOf<Rect?>(null) }
 
-    var dragState by remember { mutableStateOf(DragStickerState()) }
+    var dragState by remember { mutableStateOf(DragState()) }
 
-    // ===== 좌슬라이딩 엣지: 더 쉽게 =====
-    val triggerPx = with(density) { 80.dp.toPx() } // ✅ 130 -> 80
-    val edgeWidth = 28.dp                         // ✅ 20 -> 28
+    // ===== 좌슬라이딩 엣지 =====
+    val triggerPx = with(density) { 80.dp.toPx() }
+    val edgeWidth = 28.dp
     var dragAccumX by remember { mutableStateOf(0f) }
     var dragAccumY by remember { mutableStateOf(0f) }
     var lastPos by remember { mutableStateOf(Offset.Zero) }
@@ -131,25 +145,16 @@ fun SituationBoardScreen(
     val placedCount = incidentViewModel.placedVehicles.size
     val totalToPlace = stickerQueue.size
     val remainingToPlace = max(0, totalToPlace - placedCount)
-
     val showTray = remainingToPlace > 0
 
-    // ✅ 트레이가 “처음” 등장하면 줌인 1회
-    var didZoomForTray by remember { mutableStateOf(false) }
-    LaunchedEffect(showTray, mapLoaded, lat, lng) {
-        if (!didZoomForTray && showTray && mapLoaded && lat != null && lng != null) {
-            didZoomForTray = true
-            cameraPositionState.animate(
-                update = CameraUpdate.zoomTo(18.0), // ✅ 16 -> 18 (체감 2배 느낌)
-                durationMs = 450
-            )
-        }
-    }
-
+    // ✅ 심벌 크기 고정
     val iconSize: Dp = 42.dp
 
-    LaunchedEffect(lat, lng) {
-        if (lat != null && lng != null) {
+    // ✅ 초기 카메라: 트레이 있으면 줌18, 아니면 줌16
+    var didInitialCam by remember { mutableStateOf(false) }
+    LaunchedEffect(lat, lng, mapLoaded, showTray) {
+        if (!didInitialCam && mapLoaded && lat != null && lng != null) {
+            didInitialCam = true
             val pos = LatLng(lat, lng)
             markerState.position = pos
 
@@ -158,16 +163,39 @@ fun SituationBoardScreen(
                 durationMs = 700
             )
             cameraPositionState.animate(
-                update = CameraUpdate.zoomTo(16.0),
-                durationMs = 300
+                update = CameraUpdate.zoomTo(if (showTray) 18.0 else 16.0),
+                durationMs = 320
             )
         }
     }
 
-    fun dropCurrentStickerIfPossible() {
+    // ✅ 트레이 등장 시 마지막으로 줌18 1회(이미 만족한다고 하신 그 동작 유지)
+    var didZoomForTray by remember { mutableStateOf(false) }
+    LaunchedEffect(showTray) {
+        if (!showTray) didZoomForTray = false
+    }
+    LaunchedEffect(showTray, mapLoaded, didInitialCam) {
+        if (!didZoomForTray && showTray && mapLoaded && didInitialCam) {
+            didZoomForTray = true
+            delay(120)
+            cameraPositionState.animate(
+                update = CameraUpdate.zoomTo(18.0),
+                durationMs = 450
+            )
+        }
+    }
+
+    fun hapticArm() {
+        // ✅ 지금까지 적용한 것 그대로 유지(더 변경 X)
+        strongVibrate(context)
+        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        view.performHapticFeedback(HapticFeedbackConstants.DRAG_START)
+    }
+
+    fun dropPayloadIfPossible() {
         val mapRect = mapRectInWindow ?: return
         val mapObj = naverMapObj ?: return
-        val item = dragState.item ?: return
+        val payload = dragState.payload ?: return
 
         val dropPos = dragState.windowPos
         val insideMap =
@@ -177,18 +205,39 @@ fun SituationBoardScreen(
 
         val localX = (dropPos.x - mapRect.left).toFloat()
         val localY = (dropPos.y - mapRect.top).toFloat()
-
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
+        // ✅ 신규/재배치 모두 placeVehicle로 저장(id 동일이면 업데이트)
         incidentViewModel.placeVehicle(
-            id = item.id,
-            department = item.department,
-            equipment = item.equipment,
+            id = payload.id,
+            department = payload.department,
+            equipment = payload.equipment,
             latLng = latLng
         )
 
-        // ✅ 드롭 순간: 확인감
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+    }
+
+    // ✅ 지도 위 가까운 배치 차량 찾기(롱프레스 위치 기준)
+    fun findNearestPlacedPayload(localPosInMap: Offset): DragPayload? {
+        val mapObj = naverMapObj ?: return null
+        val threshold = with(density) { 52.dp.toPx() }
+
+        var best: DragPayload? = null
+        var bestDist = Float.MAX_VALUE
+
+        for (pv in incidentViewModel.placedVehicles) {
+            val pt = mapObj.projection.toScreenLocation(pv.position)
+            val dx = pt.x - localPosInMap.x
+            val dy = pt.y - localPosInMap.y
+            val dist = sqrt(dx * dx + dy * dy)
+            if (dist < bestDist) {
+                bestDist = dist
+                best = DragPayload(pv.id, pv.department, pv.equipment)
+            }
+        }
+
+        return if (bestDist <= threshold) best else null
     }
 
     Box(
@@ -197,13 +246,62 @@ fun SituationBoardScreen(
             .background(Color.Black)
     ) {
         // =============================
-        // 1) 지도
+        // 1) 지도 (핵심: 오버레이 Box 삭제, 컨테이너에 pointerInput 부착)
         // =============================
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .onGloballyPositioned { coords ->
                     mapRectInWindow = coords.boundsInWindow()
+                }
+                .pointerInput(mapLoaded, incidentViewModel.placedVehicles) {
+                    // ✅ 롱프레스 전에는 consume 절대 안 함 → 지도 이동/핀치줌 정상
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+
+                        val longPressChange = awaitLongPressOrCancellation(down.id)
+                            ?: return@awaitEachGesture
+
+                        val payload = findNearestPlacedPayload(longPressChange.position)
+                            ?: return@awaitEachGesture
+
+                        val mapRect = mapRectInWindow ?: return@awaitEachGesture
+
+                        hapticArm()
+                        dragState = DragState(
+                            active = true,
+                            payload = payload,
+                            windowPos = Offset(
+                                mapRect.left + longPressChange.position.x,
+                                mapRect.top + longPressChange.position.y
+                            ),
+                            wobble = true
+                        )
+
+                        // ✅ 롱프레스 성립 이후 = 재배치 중 → 이때만 지도 제스처 막고 우리가 드래그 처리
+                        while (true) {
+                            val event = awaitPointerEvent(pass = PointerEventPass.Main)
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                            if (change.changedToUp()) {
+                                dropPayloadIfPossible()
+                                dragState = DragState(active = false)
+                                break
+                            }
+
+                            // ✅✅✅ 형님 요청: 이 부분 확실히!
+                            change.consumeAllChanges()
+
+                            val mapRect2 = mapRectInWindow ?: continue
+                            dragState = dragState.copy(
+                                windowPos = Offset(
+                                    mapRect2.left + change.position.x,
+                                    mapRect2.top + change.position.y
+                                ),
+                                wobble = true
+                            )
+                        }
+                    }
                 }
         ) {
             NaverMap(
@@ -225,7 +323,6 @@ fun SituationBoardScreen(
                     naverMapObj = map
                 }
 
-                // 현장 마커
                 if (lat != null && lng != null) {
                     Marker(
                         state = markerState,
@@ -233,35 +330,40 @@ fun SituationBoardScreen(
                     )
                 }
 
-                // ✅ 배치된 차량: 아이콘 + "(부서)" 캡션
+                // ✅✅ 배치 차량 마커는 position 변경을 반드시 반영
                 incidentViewModel.placedVehicles.forEach { pv ->
-                    val iconRes = VehicleIconMapper.iconResForEquip(pv.equipment)
-                    val label = VehicleIconMapper.deptLabel(pv.department)
+                    key(pv.id) {
+                        val st = rememberMarkerState(position = pv.position)
+                        LaunchedEffect(pv.position) { st.position = pv.position }
 
-                    if (iconRes != 0) {
-                        Marker(
-                            state = rememberMarkerState(position = pv.position),
-                            icon = OverlayImage.fromResource(iconRes),
-                            width = iconSize,
-                            height = iconSize,
-                            captionText = label,
-                            captionColor = Color.White,
-                            captionHaloColor = Color.Black
-                        )
-                    } else {
-                        Marker(
-                            state = rememberMarkerState(position = pv.position),
-                            captionText = label,
-                            captionColor = Color.White,
-                            captionHaloColor = Color.Black
-                        )
+                        val iconRes = VehicleIconMapper.iconResForEquip(pv.equipment)
+                        val label = VehicleIconMapper.deptLabel(pv.department) // 예: (향남)
+
+                        if (iconRes != 0) {
+                            Marker(
+                                state = st,
+                                icon = OverlayImage.fromResource(iconRes),
+                                width = iconSize,
+                                height = iconSize,
+                                captionText = label,
+                                captionColor = Color.White,
+                                captionHaloColor = Color.Black
+                            )
+                        } else {
+                            Marker(
+                                state = st,
+                                captionText = label,
+                                captionColor = Color.White,
+                                captionHaloColor = Color.Black
+                            )
+                        }
                     }
                 }
             }
         }
 
         // =============================
-        // 2) 좌슬라이딩 엣지 레이어 (더 쉽게)
+        // 2) 좌슬라이딩 엣지
         // =============================
         Box(
             modifier = Modifier
@@ -281,7 +383,6 @@ fun SituationBoardScreen(
                             dragAccumY += dy
                             lastPos = change.position
 
-                            // ✅ 판정 완화: 2.0 -> 1.3
                             val isMostlyHorizontal = dragAccumX > dragAccumY * 1.3f
                             if (isMostlyHorizontal && dragAccumX >= triggerPx) {
                                 dragAccumX = 0f
@@ -349,7 +450,7 @@ fun SituationBoardScreen(
         }
 
         // =============================
-        // 5) 하단 트레이: ✅ 아이콘 + (부서)만
+        // 5) 하단 트레이
         // =============================
         if (showTray) {
             val scroll = rememberScrollState()
@@ -371,7 +472,7 @@ fun SituationBoardScreen(
                     Text(text = "(${placedCount}/${totalToPlace})", color = MarsOrange)
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier
@@ -379,30 +480,28 @@ fun SituationBoardScreen(
                         .horizontalScroll(scroll),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    notPlaced.forEach { item: IncidentViewModel.StickerItem ->
-                        DraggableTraySticker(
+                    notPlaced.forEach { item ->
+                        TrayChipDraggableAfterLongPress(
                             item = item,
                             deptLabel = VehicleIconMapper.deptLabel(item.department),
                             iconRes = VehicleIconMapper.iconResForEquip(item.equipment),
-                            onDragStart = { windowPos: Offset ->
-                                // ✅ “진입” 확실하게: 진동 + 하프틱 2연타
-                                strongVibrate(context)
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                view.performHapticFeedback(HapticFeedbackConstants.DRAG_START)
-
-                                dragState = DragStickerState(
+                            onLift = { windowPos ->
+                                hapticArm()
+                                dragState = DragState(
                                     active = true,
-                                    item = item,
-                                    windowPos = windowPos
+                                    payload = DragPayload(item.id, item.department, item.equipment),
+                                    windowPos = windowPos,
+                                    wobble = true
                                 )
                             },
-                            onDragMove = { windowPos: Offset ->
-                                dragState = dragState.copy(windowPos = windowPos)
+                            onMove = { windowPos ->
+                                if (dragState.active && dragState.payload?.id == item.id) {
+                                    dragState = dragState.copy(windowPos = windowPos, wobble = true)
+                                }
                             },
-                            onDragEnd = {
-                                dropCurrentStickerIfPossible()
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                dragState = DragStickerState(active = false)
+                            onDrop = {
+                                dropPayloadIfPossible()
+                                dragState = DragState(active = false)
                             },
                             modifier = Modifier.padding(end = 8.dp)
                         )
@@ -412,11 +511,13 @@ fun SituationBoardScreen(
         }
 
         // =============================
-        // 6) 드래그 중 공중 프리뷰: ✅ 아이콘 + (부서)
+        // 6) 드래그 공중 프리뷰(여기만 떨림)
         // =============================
-        if (dragState.active && dragState.item != null) {
-            val item = dragState.item!!
-            val iconRes = VehicleIconMapper.iconResForEquip(item.equipment)
+        if (dragState.active && dragState.payload != null) {
+            val payload = dragState.payload!!
+            val iconRes = VehicleIconMapper.iconResForEquip(payload.equipment)
+            val label = VehicleIconMapper.deptLabel(payload.department)
+
             Box(
                 modifier = Modifier.offset {
                     IntOffset(
@@ -425,23 +526,24 @@ fun SituationBoardScreen(
                     )
                 }
             ) {
-                TrayChip(
-                    iconRes = iconRes,
-                    text = VehicleIconMapper.deptLabel(item.department)
-                )
+                TrayChip(iconRes = iconRes, text = label, wobble = true)
             }
         }
     }
+
+    // ✅ 형님 요청(미룸): 출동대 편성 매트릭스
+    // - 좌상단: 나가기 / 우상단: 완료
+    // - 완료 누르면 허브 없이 바로 지도(트레이)로
 }
 
 @Composable
-private fun DraggableTraySticker(
+private fun TrayChipDraggableAfterLongPress(
     item: IncidentViewModel.StickerItem,
     deptLabel: String,
     iconRes: Int,
-    onDragStart: (windowPos: Offset) -> Unit,
-    onDragMove: (windowPos: Offset) -> Unit,
-    onDragEnd: () -> Unit,
+    onLift: (Offset) -> Unit,
+    onMove: (Offset) -> Unit,
+    onDrop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var chipTopLeftInWindow by remember { mutableStateOf(Offset.Zero) }
@@ -453,31 +555,49 @@ private fun DraggableTraySticker(
                 chipTopLeftInWindow = Offset(rect.left, rect.top)
             }
             .pointerInput(item.id) {
-                detectDragGestures(
-                    onDragStart = { startOffset ->
-                        onDragStart(chipTopLeftInWindow + startOffset)
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { localStart ->
+                        onLift(chipTopLeftInWindow + localStart)
                     },
                     onDrag = { change, _ ->
-                        onDragMove(chipTopLeftInWindow + change.position)
+                        onMove(chipTopLeftInWindow + change.position)
                     },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragEnd() }
+                    onDragEnd = { onDrop() },
+                    onDragCancel = { onDrop() }
                 )
             }
     ) {
-        TrayChip(iconRes = iconRes, text = deptLabel)
+        // ✅ 트레이 칩은 절대 안 떨림
+        TrayChip(iconRes = iconRes, text = deptLabel, wobble = false)
     }
 }
 
 @Composable
 private fun TrayChip(
     iconRes: Int,
-    text: String
+    text: String,
+    wobble: Boolean
 ) {
+    // ✅ 애니메이션 의존 0: 수동 토글로 떨림
+    var sign by remember { mutableStateOf(1f) }
+    LaunchedEffect(wobble) {
+        if (!wobble) {
+            sign = 1f
+            return@LaunchedEffect
+        }
+        while (true) {
+            sign *= -1f
+            delay(90)
+        }
+    }
+
+    val rot = if (wobble) 4f * sign else 0f
+
     Row(
         modifier = Modifier
             .height(40.dp)
             .wrapContentWidth()
+            .graphicsLayer { rotationZ = rot }
             .background(Color(0xFF0E0E0E), RoundedCornerShape(6.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
