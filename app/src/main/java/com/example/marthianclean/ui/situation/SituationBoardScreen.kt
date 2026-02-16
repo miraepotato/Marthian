@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.marthianclean.model.FireType
+import com.example.marthianclean.model.MarkerIconMapper
 import com.example.marthianclean.ui.sticker.VehicleIconMapper
 import com.example.marthianclean.viewmodel.IncidentViewModel
 import com.naver.maps.geometry.LatLng
@@ -55,6 +57,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import com.naver.maps.map.CameraAnimation
 
 private val MarsOrange = Color(0xFFFF8C00)
 private val TextPrimary = Color(0xFFF0F0F0)
@@ -104,7 +107,7 @@ fun SituationBoardScreen(
     val incident by incidentViewModel.incident.collectAsState()
 
     val cameraPositionState = rememberCameraPositionState()
-    val markerState = remember { MarkerState() }
+    val markerState = remember { MarkerState() } // ✅ 현장 마커 state
     var mapLoaded by remember { mutableStateOf(false) }
 
     var isSatellite by remember { mutableStateOf(true) }
@@ -115,7 +118,12 @@ fun SituationBoardScreen(
     var naverMapObj by remember { mutableStateOf<com.naver.maps.map.NaverMap?>(null) }
     var mapRectInWindow by remember { mutableStateOf<Rect?>(null) }
 
+    // ===== 차량 드래그 =====
     var dragState by remember { mutableStateOf(DragState()) }
+
+    // ✅ 현장 마커 드래그
+    var sceneDragActive by remember { mutableStateOf(false) }
+    var sceneDragWindowPos by remember { mutableStateOf(Offset.Zero) }
 
     // ===== 좌슬라이딩 엣지 =====
     val triggerPx = with(density) { 80.dp.toPx() }
@@ -124,16 +132,12 @@ fun SituationBoardScreen(
     var dragAccumY by remember { mutableStateOf(0f) }
     var lastPos by remember { mutableStateOf(Offset.Zero) }
 
-    // =============================
     // 트레이 큐
-    // =============================
     val stickerQueue = remember(
         incidentViewModel.dispatchMatrix,
         incidentViewModel.dispatchDepartments,
         incidentViewModel.dispatchEquipments
-    ) {
-        incidentViewModel.buildStickerQueue()
-    }
+    ) { incidentViewModel.buildStickerQueue() }
 
     val placedIds = remember(incidentViewModel.placedVehicles) {
         incidentViewModel.placedVehicles.map { it.id }.toSet()
@@ -147,10 +151,9 @@ fun SituationBoardScreen(
     val remainingToPlace = max(0, totalToPlace - placedCount)
     val showTray = remainingToPlace > 0
 
-    // ✅ 심벌 크기 고정
     val iconSize: Dp = 42.dp
+    val sceneIconSize: Dp = 50.dp // 형님이 맞다고 한 크기 유지
 
-    // ✅ 초기 카메라: 트레이 있으면 줌18, 아니면 줌16
     var didInitialCam by remember { mutableStateOf(false) }
     LaunchedEffect(lat, lng, mapLoaded, showTray) {
         if (!didInitialCam && mapLoaded && lat != null && lng != null) {
@@ -160,26 +163,26 @@ fun SituationBoardScreen(
 
             cameraPositionState.animate(
                 update = CameraUpdate.scrollTo(pos),
+                animation = CameraAnimation.Easing,
                 durationMs = 700
             )
             cameraPositionState.animate(
                 update = CameraUpdate.zoomTo(if (showTray) 18.0 else 16.0),
+                animation = CameraAnimation.Easing,
                 durationMs = 320
             )
         }
     }
 
-    // ✅ 트레이 등장 시 마지막으로 줌18 1회
     var didZoomForTray by remember { mutableStateOf(false) }
-    LaunchedEffect(showTray) {
-        if (!showTray) didZoomForTray = false
-    }
+    LaunchedEffect(showTray) { if (!showTray) didZoomForTray = false }
     LaunchedEffect(showTray, mapLoaded, didInitialCam) {
         if (!didZoomForTray && showTray && mapLoaded && didInitialCam) {
             didZoomForTray = true
             delay(120)
             cameraPositionState.animate(
                 update = CameraUpdate.zoomTo(18.0),
+                animation = CameraAnimation.Easing,
                 durationMs = 450
             )
         }
@@ -192,7 +195,6 @@ fun SituationBoardScreen(
     }
 
     fun persistNow() {
-        // ✅ 배치/편성 변경 시 즉시 저장 (선택사항이지만 형님 요구 기능에 유리)
         incidentViewModel.saveCurrentIncident(context)
     }
 
@@ -211,7 +213,6 @@ fun SituationBoardScreen(
         val localY = (dropPos.y - mapRect.top).toFloat()
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
-        // ✅✅ 핵심: upsertPlacement 같은 함수 쓰지 말고, 현재 VM의 placeVehicle로 통일
         incidentViewModel.placeVehicle(
             id = payload.id,
             department = payload.department,
@@ -223,7 +224,6 @@ fun SituationBoardScreen(
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
-    // ✅ 지도 위 가까운 배치 차량 찾기(롱프레스 위치 기준)
     fun findNearestPlacedPayload(localPosInMap: Offset): DragPayload? {
         val mapObj = naverMapObj ?: return null
         val threshold = with(density) { 52.dp.toPx() }
@@ -241,8 +241,43 @@ fun SituationBoardScreen(
                 best = DragPayload(pv.id, pv.department, pv.equipment)
             }
         }
-
         return if (bestDist <= threshold) best else null
+    }
+
+    // ✅ 현장 마커 근처 롱프레스인지 판별
+    fun isNearSceneMarker(localPosInMap: Offset): Boolean {
+        val mapObj = naverMapObj ?: return false
+        val ilat = incident?.latitude ?: return false
+        val ilng = incident?.longitude ?: return false
+        val scenePos = LatLng(ilat, ilng)
+        val pt = mapObj.projection.toScreenLocation(scenePos)
+
+        val dx = pt.x - localPosInMap.x
+        val dy = pt.y - localPosInMap.y
+        val dist = sqrt(dx * dx + dy * dy)
+
+        val threshold = with(density) { 60.dp.toPx() } // 현장 마커 판정 여유
+        return dist <= threshold
+    }
+
+    // ✅ 현장 마커 드롭(주소까지 연동)
+    fun dropSceneIfPossible() {
+        val mapRect = mapRectInWindow ?: return
+        val mapObj = naverMapObj ?: return
+
+        val dropPos = sceneDragWindowPos
+        val insideMap =
+            dropPos.x in mapRect.left..mapRect.right &&
+                    dropPos.y in mapRect.top..mapRect.bottom
+        if (!insideMap) return
+
+        val localX = (dropPos.x - mapRect.left).toFloat()
+        val localY = (dropPos.y - mapRect.top).toFloat()
+        val newLatLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
+
+        // ✅ 핵심: VM에서 reverse geocode → incident.address + meta.재난발생위치 동시 갱신
+        incidentViewModel.updateSceneLocationFromDrag(context, newLatLng)
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
     Box(
@@ -250,25 +285,49 @@ fun SituationBoardScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // =============================
         // 1) 지도
-        // =============================
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .onGloballyPositioned { coords ->
-                    mapRectInWindow = coords.boundsInWindow()
-                }
-                .pointerInput(mapLoaded, incidentViewModel.placedVehicles) {
+                .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
+                .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
+                        val longPressChange = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
 
-                        val longPressChange = awaitLongPressOrCancellation(down.id)
-                            ?: return@awaitEachGesture
+                        // ✅ 1) 현장 마커 드래그 우선
+                        val isScene = isNearSceneMarker(longPressChange.position)
+                        if (isScene) {
+                            val mapRect = mapRectInWindow ?: return@awaitEachGesture
+                            hapticArm()
+                            sceneDragActive = true
+                            sceneDragWindowPos = Offset(
+                                mapRect.left + longPressChange.position.x,
+                                mapRect.top + longPressChange.position.y
+                            )
 
-                        val payload = findNearestPlacedPayload(longPressChange.position)
-                            ?: return@awaitEachGesture
+                            while (true) {
+                                val event = awaitPointerEvent(pass = PointerEventPass.Main)
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
+                                if (change.changedToUp()) {
+                                    dropSceneIfPossible()
+                                    sceneDragActive = false
+                                    break
+                                }
+
+                                change.consumeAllChanges()
+                                val mapRect2 = mapRectInWindow ?: continue
+                                sceneDragWindowPos = Offset(
+                                    mapRect2.left + change.position.x,
+                                    mapRect2.top + change.position.y
+                                )
+                            }
+                            return@awaitEachGesture
+                        }
+
+                        // ✅ 2) 아니면 차량 드래그
+                        val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
                         val mapRect = mapRectInWindow ?: return@awaitEachGesture
 
                         hapticArm()
@@ -293,7 +352,6 @@ fun SituationBoardScreen(
                             }
 
                             change.consumeAllChanges()
-
                             val mapRect2 = mapRectInWindow ?: continue
                             dragState = dragState.copy(
                                 windowPos = Offset(
@@ -309,9 +367,7 @@ fun SituationBoardScreen(
             NaverMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    mapType = if (isSatellite) MapType.Satellite else MapType.Basic
-                ),
+                properties = MapProperties(mapType = if (isSatellite) MapType.Satellite else MapType.Basic),
                 uiSettings = MapUiSettings(
                     isZoomControlEnabled = true,
                     isCompassEnabled = false,
@@ -321,17 +377,40 @@ fun SituationBoardScreen(
                 ),
                 onMapLoaded = { mapLoaded = true }
             ) {
-                MapEffect(Unit) { map ->
-                    naverMapObj = map
-                }
+                MapEffect(Unit) { map -> naverMapObj = map }
 
+                // ✅ 현장 마커(처종)
                 if (lat != null && lng != null) {
+                    val fireType = FireType.from(incident?.meta?.fireType)
+                    val markerRes = MarkerIconMapper.markerResFor(fireType)
+
+                    // ✅ 드래그 중에는 markerState.position을 임시로 따라가게(시각 피드백)
+                    LaunchedEffect(sceneDragActive, sceneDragWindowPos) {
+                        if (!sceneDragActive) return@LaunchedEffect
+                        val mapRect = mapRectInWindow ?: return@LaunchedEffect
+                        val mapObj = naverMapObj ?: return@LaunchedEffect
+                        val localX = (sceneDragWindowPos.x - mapRect.left).toFloat()
+                        val localY = (sceneDragWindowPos.y - mapRect.top).toFloat()
+                        markerState.position = mapObj.projection.fromScreenLocation(PointF(localX, localY))
+                    }
+                    LaunchedEffect(lat, lng, sceneDragActive) {
+                        if (!sceneDragActive) {
+                            markerState.position = LatLng(lat, lng)
+                        }
+                    }
+
                     Marker(
                         state = markerState,
-                        captionText = "현장"
+                        icon = OverlayImage.fromResource(markerRes),
+                        width = sceneIconSize,
+                        height = sceneIconSize,
+                        captionText = "현장",
+                        captionColor = Color.White,
+                        captionHaloColor = Color.Black
                     )
                 }
 
+                // 배치 차량 마커
                 incidentViewModel.placedVehicles.forEach { pv ->
                     key(pv.id) {
                         val st = rememberMarkerState(position = pv.position)
@@ -363,9 +442,7 @@ fun SituationBoardScreen(
             }
         }
 
-        // =============================
         // 2) 좌슬라이딩 엣지
-        // =============================
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -391,21 +468,13 @@ fun SituationBoardScreen(
                                 onEdit()
                             }
                         },
-                        onDragEnd = {
-                            dragAccumX = 0f
-                            dragAccumY = 0f
-                        },
-                        onDragCancel = {
-                            dragAccumX = 0f
-                            dragAccumY = 0f
-                        }
+                        onDragEnd = { dragAccumX = 0f; dragAccumY = 0f },
+                        onDragCancel = { dragAccumX = 0f; dragAccumY = 0f }
                     )
                 }
         )
 
-        // =============================
         // 3) 로딩 오버레이
-        // =============================
         if (!mapLoaded) {
             Box(
                 modifier = Modifier
@@ -417,9 +486,7 @@ fun SituationBoardScreen(
             }
         }
 
-        // =============================
         // 4) 상단 우측 버튼
-        // =============================
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -439,7 +506,6 @@ fun SituationBoardScreen(
 
             Button(
                 onClick = {
-                    // ✅ clearPlacements() 같은 미존재 함수 금지 → clearPlacedVehicles()
                     incidentViewModel.clearIncident()
                     incidentViewModel.clearPlacedVehicles()
                     persistNow()
@@ -452,9 +518,7 @@ fun SituationBoardScreen(
             ) { Text("EXIT") }
         }
 
-        // =============================
         // 5) 하단 트레이
-        // =============================
         if (showTray) {
             val scroll = rememberScrollState()
 
@@ -513,9 +577,7 @@ fun SituationBoardScreen(
             }
         }
 
-        // =============================
-        // 6) 드래그 공중 프리뷰(여기만 떨림)
-        // =============================
+        // 6) 드래그 공중 프리뷰(차량)
         if (dragState.active && dragState.payload != null) {
             val payload = dragState.payload!!
             val iconRes = VehicleIconMapper.iconResForEquip(payload.equipment)
@@ -555,12 +617,8 @@ private fun TrayChipDraggableAfterLongPress(
             }
             .pointerInput(item.id) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = { localStart ->
-                        onLift(chipTopLeftInWindow + localStart)
-                    },
-                    onDrag = { change, _ ->
-                        onMove(chipTopLeftInWindow + change.position)
-                    },
+                    onDragStart = { localStart -> onLift(chipTopLeftInWindow + localStart) },
+                    onDrag = { change, _ -> onMove(chipTopLeftInWindow + change.position) },
                     onDragEnd = { onDrop() },
                     onDragCancel = { onDrop() }
                 )

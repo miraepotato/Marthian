@@ -12,20 +12,39 @@ data class DispatchPlan(
 
 @Serializable
 data class IncidentMeta(
-    val reportedAtMillis: Long? = null,     // 신고 시각
-    val dispatchAtMillis: Long? = null,     // 출동 시각
-    val firstArriveAtMillis: Long? = null,  // 선착대 도착 시각
-    val fireType: String = "",              // 처종(아이콘/마킹 등에 사용)
-    val memo: String = ""                   // 메모
+    val reportedAtMillis: Long? = null,
+    val dispatchAtMillis: Long? = null,
+    val firstArriveAtMillis: Long? = null,
+    val fireType: String = "",
+    val memo: String = "",
+
+    val 신고접수: String = "",
+    val 재난발생위치: String = "",
+
+    val 화재원인: String = "",
+
+    val 초진시간: String = "",
+    val 완진시간: String = "",
+
+    val 기상_날씨: String = "",
+    val 기상_기온: String = "",
+    val 기상_풍향풍속: String = "",
+
+    val 선착대도착시간: String = "",
+
+    val 인명피해현황: String = "",
+    val 재산피해현황: String = "",
+    val 대원피해현황: String = "",
+
+    val 유관기관_경찰: String = "",
+    val 유관기관_시청: String = "",
+    val 유관기관_한전: String = "",
+    val 유관기관_도시가스: String = ""
 )
 
-/**
- * ✅ 배치 저장용
- * - LatLng 자체는 직렬화가 안 되니까 lat/lng로 저장
- */
 @Serializable
 data class VehiclePlacement(
-    val id: String,          // rX_cY
+    val id: String,
     val department: String,
     val equipment: String,
     val lat: Double,

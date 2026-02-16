@@ -9,8 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.marthianclean.BuildConfig
 import com.example.marthianclean.data.IncidentStore
 import com.example.marthianclean.model.Incident
+import com.example.marthianclean.model.IncidentMeta
 import com.example.marthianclean.model.VehiclePlacement
 import com.example.marthianclean.network.GeocodingRepository
+import com.example.marthianclean.network.ReverseGeocodingRepository
 import com.example.marthianclean.network.RetrofitClient
 import com.naver.maps.geometry.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,16 +35,14 @@ data class PlacedVehicle(
 
 class IncidentViewModel : ViewModel() {
 
-    /* =========================
-       기존: Incident / 검색 상태
-       ========================= */
-
     private val _incident = MutableStateFlow<Incident?>(null)
     val incident: StateFlow<Incident?> = _incident.asStateFlow()
 
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
 
-    // ✅ 장소 후보(최대 10개)
+    // ✅ 추가: ReverseGeocoding
+    private val reverseRepo = ReverseGeocodingRepository(RetrofitClient.reverseGeocodingService)
+
     private val _candidates = MutableStateFlow<List<PlaceCandidate>>(emptyList())
     val candidates: StateFlow<List<PlaceCandidate>> = _candidates.asStateFlow()
 
@@ -54,19 +54,18 @@ class IncidentViewModel : ViewModel() {
 
     fun setIncident(value: Incident) {
         _incident.value = value
+        // ✅ 주소검색으로 들어온 주소를 현장정보수정에 “자동 표시”되게 싱크
+        syncMetaAddressIfBlank()
     }
 
-    /**
-     * ✅ A안 핵심: Incident를 세팅하면서
-     * - incident.placements -> placedVehicles 복원
-     * - incident.dispatchPlan -> 매트릭스/메타 복원
-     *
-     * ⚠️ VehiclePlacement 좌표 필드는 lat/lng 기준
-     */
+    fun updateIncidentMeta(newMeta: IncidentMeta) {
+        val cur = _incident.value ?: return
+        _incident.value = cur.copy(meta = newMeta)
+    }
+
     fun setIncidentAndRestoreAll(value: Incident) {
         _incident.value = value
 
-        // 1) 배치 복원
         placedVehicles = value.placements.map { p ->
             PlacedVehicle(
                 id = p.id,
@@ -76,10 +75,25 @@ class IncidentViewModel : ViewModel() {
             )
         }
 
-        // 2) 출동대 편성 복원(있으면)
         dispatchMatrix = value.dispatchPlan.matrix
         dispatchDepartments = value.dispatchPlan.departments
         dispatchEquipments = value.dispatchPlan.equipments
+
+        // ✅ 지난현장 불러와도 “현장정보수정” 주소 자동 표출 싱크
+        syncMetaAddressIfBlank()
+    }
+
+    private fun syncMetaAddressIfBlank() {
+        val cur = _incident.value ?: return
+        val addr = cur.address.trim()
+        if (addr.isBlank()) return
+
+        val meta = cur.meta
+        if (meta.재난발생위치.isNotBlank()) return
+
+        _incident.value = cur.copy(
+            meta = meta.copy(재난발생위치 = addr)
+        )
     }
 
     fun clearIncident() {
@@ -91,11 +105,7 @@ class IncidentViewModel : ViewModel() {
         _searchError.value = null
     }
 
-    // ✅ 1) 장소명 검색 -> 후보 최대 10개
-    fun searchPlaceCandidates(
-        query: String,
-        onDone: () -> Unit = {}
-    ) {
+    fun searchPlaceCandidates(query: String, onDone: () -> Unit = {}) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
             _searchError.value = "검색어가 비어 있습니다."
@@ -125,10 +135,7 @@ class IncidentViewModel : ViewModel() {
                         .replace("<b>", "")
                         .replace("</b>", "")
 
-                    PlaceCandidate(
-                        title = cleanTitle,
-                        address = addr
-                    )
+                    PlaceCandidate(title = cleanTitle, address = addr)
                 }
 
                 if (out.isEmpty()) {
@@ -146,7 +153,6 @@ class IncidentViewModel : ViewModel() {
         }
     }
 
-    // ✅ 2) 주소로 지오코딩해서 incident에 반영
     fun geocodeAndApply(
         query: String,
         onSuccess: () -> Unit,
@@ -176,7 +182,49 @@ class IncidentViewModel : ViewModel() {
                     )
 
                     _incident.value = updated
+                    // ✅ 주소검색 성공 시 meta.재난발생위치 자동 채움(비어있을 때만)
+                    syncMetaAddressIfBlank()
+
                     onSuccess()
+                }
+            }
+        }
+    }
+
+    // =========================
+    // ✅ 현장 마커 이동 → 좌표/주소/메타 연동
+    // =========================
+    fun updateSceneLocationFromDrag(context: Context, latLng: LatLng) {
+        val cur = _incident.value ?: return
+
+        // 1) 좌표는 즉시 갱신
+        _incident.value = cur.copy(
+            latitude = latLng.latitude,
+            longitude = latLng.longitude
+        )
+
+        // 2) reverse geocode로 주소 갱신 후 incident.address + meta.재난발생위치 같이 갱신
+        viewModelScope.launch {
+            when (val out = reverseRepo.reverse(latLng.latitude, latLng.longitude)) {
+                is ReverseGeocodingRepository.Outcome.Fail -> {
+                    // 실패해도 좌표는 이미 반영됨 (운영상 유리)
+                    saveCurrentIncident(context)
+                }
+                is ReverseGeocodingRepository.Outcome.Ok -> {
+                    val now = _incident.value ?: return@launch
+                    val addr = out.address
+
+                    val meta = now.meta
+                    val newMeta = meta.copy(
+                        재난발생위치 = addr
+                    )
+
+                    _incident.value = now.copy(
+                        address = addr,
+                        meta = newMeta
+                    )
+
+                    saveCurrentIncident(context)
                 }
             }
         }
@@ -199,10 +247,7 @@ class IncidentViewModel : ViewModel() {
     var dispatchEquipments by mutableStateOf<List<String>>(emptyList())
         private set
 
-    fun updateDispatchMeta(
-        departments: List<String>,
-        equipments: List<String>
-    ) {
+    fun updateDispatchMeta(departments: List<String>, equipments: List<String>) {
         dispatchDepartments = departments
         dispatchEquipments = equipments
     }
@@ -273,12 +318,7 @@ class IncidentViewModel : ViewModel() {
         placedVehicles = emptyList()
     }
 
-    fun placeVehicle(
-        id: String,
-        department: String,
-        equipment: String,
-        latLng: LatLng
-    ) {
+    fun placeVehicle(id: String, department: String, equipment: String, latLng: LatLng) {
         val current = placedVehicles
         val idx = current.indexOfFirst { it.id == id }
         placedVehicles = if (idx >= 0) {
@@ -312,10 +352,6 @@ class IncidentViewModel : ViewModel() {
         placedVehicles = placedVehicles.filterNot { it.id == id }
     }
 
-    /* =========================
-       A안 핵심: UI 배치 -> Incident.placements 로 저장
-       ========================= */
-
     private fun buildPlacementsForSave(): List<VehiclePlacement> {
         return placedVehicles.map { pv ->
             VehiclePlacement(
@@ -340,10 +376,6 @@ class IncidentViewModel : ViewModel() {
         )
     }
 
-    /* =========================
-       지난 현장 저장/로드/삭제
-       ========================= */
-
     fun saveCurrentIncident(context: Context) {
         val snap = snapshotIncidentForSave() ?: return
         viewModelScope.launch {
@@ -351,36 +383,14 @@ class IncidentViewModel : ViewModel() {
         }
     }
 
-    fun saveIncident(context: Context, incident: Incident) {
-        val snap = incident.copy(
-            dispatchPlan = incident.dispatchPlan.copy(
-                matrix = dispatchMatrix,
-                departments = dispatchDepartments,
-                equipments = dispatchEquipments
-            ),
-            placements = buildPlacementsForSave()
-        )
-
-        viewModelScope.launch {
-            IncidentStore.upsert(context, snap)
-        }
-    }
-
-    fun loadPastIncidents(
-        context: Context,
-        onLoaded: (List<Incident>) -> Unit
-    ) {
+    fun loadPastIncidents(context: Context, onLoaded: (List<Incident>) -> Unit) {
         viewModelScope.launch {
             val list = IncidentStore.loadAll(context)
             onLoaded(list)
         }
     }
 
-    fun deletePastIncidents(
-        context: Context,
-        ids: List<String>,
-        onDone: () -> Unit = {}
-    ) {
+    fun deletePastIncidents(context: Context, ids: List<String>, onDone: () -> Unit = {}) {
         viewModelScope.launch {
             IncidentStore.deleteMany(context, ids)
             onDone()

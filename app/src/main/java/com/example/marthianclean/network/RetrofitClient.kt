@@ -9,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     // =========================
-    // 1) NCP Geocoding (maps.apigw.ntruss.com)
+    // 1) NCP Geocoding / ReverseGeocoding 공용 OkHttp
     // =========================
     private val ncpOkHttp: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
@@ -19,7 +19,6 @@ object RetrofitClient {
         OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val req = chain.request().newBuilder()
-                    // ✅ NCP Geocoding 인증 헤더
                     .addHeader("x-ncp-apigw-api-key-id", BuildConfig.NCP_MAPS_CLIENT_ID)
                     .addHeader("x-ncp-apigw-api-key", BuildConfig.NCP_MAPS_CLIENT_SECRET)
                     .build()
@@ -29,6 +28,9 @@ object RetrofitClient {
             .build()
     }
 
+    // =========================
+    // 2) Forward Geocoding (형님 기존)
+    // =========================
     private val ncpRetrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://maps.apigw.ntruss.com/")
@@ -37,13 +39,28 @@ object RetrofitClient {
             .build()
     }
 
-    // ✅ 형님 기존 코드가 이 이름을 사용 중
     val geocodingService: NaverGeocodingService by lazy {
         ncpRetrofit.create(NaverGeocodingService::class.java)
     }
 
     // =========================
-    // 2) Naver OpenAPI Local Search (openapi.naver.com)
+    // ✅ 3) Reverse Geocoding
+    // =========================
+    private val reverseRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            // Reverse는 보통 이 도메인으로 제공됩니다.
+            .baseUrl("https://naveropenapi.apigw.ntruss.com/")
+            .client(ncpOkHttp)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    val reverseGeocodingService: NaverReverseGeocodingService by lazy {
+        reverseRetrofit.create(NaverReverseGeocodingService::class.java)
+    }
+
+    // =========================
+    // 4) Naver OpenAPI Local Search (openapi.naver.com)
     // =========================
     private val openApiRetrofit: Retrofit by lazy {
         Retrofit.Builder()
