@@ -169,7 +169,7 @@ fun SituationBoardScreen(
         }
     }
 
-    // ✅ 트레이 등장 시 마지막으로 줌18 1회(이미 만족한다고 하신 그 동작 유지)
+    // ✅ 트레이 등장 시 마지막으로 줌18 1회
     var didZoomForTray by remember { mutableStateOf(false) }
     LaunchedEffect(showTray) {
         if (!showTray) didZoomForTray = false
@@ -186,10 +186,14 @@ fun SituationBoardScreen(
     }
 
     fun hapticArm() {
-        // ✅ 지금까지 적용한 것 그대로 유지(더 변경 X)
         strongVibrate(context)
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         view.performHapticFeedback(HapticFeedbackConstants.DRAG_START)
+    }
+
+    fun persistNow() {
+        // ✅ 배치/편성 변경 시 즉시 저장 (선택사항이지만 형님 요구 기능에 유리)
+        incidentViewModel.saveCurrentIncident(context)
     }
 
     fun dropPayloadIfPossible() {
@@ -207,7 +211,7 @@ fun SituationBoardScreen(
         val localY = (dropPos.y - mapRect.top).toFloat()
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
-        // ✅ 신규/재배치 모두 placeVehicle로 저장(id 동일이면 업데이트)
+        // ✅✅ 핵심: upsertPlacement 같은 함수 쓰지 말고, 현재 VM의 placeVehicle로 통일
         incidentViewModel.placeVehicle(
             id = payload.id,
             department = payload.department,
@@ -215,6 +219,7 @@ fun SituationBoardScreen(
             latLng = latLng
         )
 
+        persistNow()
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
@@ -246,7 +251,7 @@ fun SituationBoardScreen(
             .background(Color.Black)
     ) {
         // =============================
-        // 1) 지도 (핵심: 오버레이 Box 삭제, 컨테이너에 pointerInput 부착)
+        // 1) 지도
         // =============================
         Box(
             modifier = Modifier
@@ -255,7 +260,6 @@ fun SituationBoardScreen(
                     mapRectInWindow = coords.boundsInWindow()
                 }
                 .pointerInput(mapLoaded, incidentViewModel.placedVehicles) {
-                    // ✅ 롱프레스 전에는 consume 절대 안 함 → 지도 이동/핀치줌 정상
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
 
@@ -278,7 +282,6 @@ fun SituationBoardScreen(
                             wobble = true
                         )
 
-                        // ✅ 롱프레스 성립 이후 = 재배치 중 → 이때만 지도 제스처 막고 우리가 드래그 처리
                         while (true) {
                             val event = awaitPointerEvent(pass = PointerEventPass.Main)
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -289,7 +292,6 @@ fun SituationBoardScreen(
                                 break
                             }
 
-                            // ✅✅✅ 형님 요청: 이 부분 확실히!
                             change.consumeAllChanges()
 
                             val mapRect2 = mapRectInWindow ?: continue
@@ -330,14 +332,13 @@ fun SituationBoardScreen(
                     )
                 }
 
-                // ✅✅ 배치 차량 마커는 position 변경을 반드시 반영
                 incidentViewModel.placedVehicles.forEach { pv ->
                     key(pv.id) {
                         val st = rememberMarkerState(position = pv.position)
                         LaunchedEffect(pv.position) { st.position = pv.position }
 
                         val iconRes = VehicleIconMapper.iconResForEquip(pv.equipment)
-                        val label = VehicleIconMapper.deptLabel(pv.department) // 예: (향남)
+                        val label = VehicleIconMapper.deptLabel(pv.department)
 
                         if (iconRes != 0) {
                             Marker(
@@ -438,8 +439,10 @@ fun SituationBoardScreen(
 
             Button(
                 onClick = {
+                    // ✅ clearPlacements() 같은 미존재 함수 금지 → clearPlacedVehicles()
                     incidentViewModel.clearIncident()
                     incidentViewModel.clearPlacedVehicles()
+                    persistNow()
                     onExit()
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -530,10 +533,6 @@ fun SituationBoardScreen(
             }
         }
     }
-
-    // ✅ 형님 요청(미룸): 출동대 편성 매트릭스
-    // - 좌상단: 나가기 / 우상단: 완료
-    // - 완료 누르면 허브 없이 바로 지도(트레이)로
 }
 
 @Composable
@@ -567,7 +566,6 @@ private fun TrayChipDraggableAfterLongPress(
                 )
             }
     ) {
-        // ✅ 트레이 칩은 절대 안 떨림
         TrayChip(iconRes = iconRes, text = deptLabel, wobble = false)
     }
 }
@@ -578,7 +576,6 @@ private fun TrayChip(
     text: String,
     wobble: Boolean
 ) {
-    // ✅ 애니메이션 의존 0: 수동 토글로 떨림
     var sign by remember { mutableStateOf(1f) }
     LaunchedEffect(wobble) {
         if (!wobble) {

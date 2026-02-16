@@ -9,4 +9,5 @@ object Routes {
     const val PAST_INCIDENTS = "past_incidents"
     const val IncidentEditHub = "incident_edit_hub"
     const val MatrixEdit = "matrix_edit"
+    const val PastIncidents = "past_incidents"
 }

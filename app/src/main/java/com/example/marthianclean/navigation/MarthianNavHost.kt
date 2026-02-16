@@ -10,6 +10,7 @@ import com.example.marthianclean.ui.dispatch.DispatchMatrixScreen
 import com.example.marthianclean.ui.field.AddressSearchScreen
 import com.example.marthianclean.ui.field.FieldSelectScreen
 import com.example.marthianclean.ui.field.IncidentEditHubScreen
+import com.example.marthianclean.ui.field.PastIncidentsScreen
 import com.example.marthianclean.ui.situation.SatelliteLoadingScreen
 import com.example.marthianclean.ui.situation.SituationBoardScreen
 import com.example.marthianclean.viewmodel.IncidentViewModel
@@ -20,6 +21,9 @@ object Routes {
     const val AddressSearch = "address_search"
     const val SatelliteLoading = "satellite_loading"
     const val SituationBoard = "situation_board"
+
+    // ✅ 지난 현장 목록
+    const val PastIncidents = "past_incidents"
 
     // ✅ 좌슬라이딩 허브
     const val IncidentEditHub = "incident_edit_hub"
@@ -50,8 +54,19 @@ fun MarthianNavHost() {
         composable(Routes.FieldSelect) {
             FieldSelectScreen(
                 onNewIncident = { navController.navigate(Routes.AddressSearch) },
-                onPastIncidents = { navController.navigate(Routes.SituationBoard) },
+                onPastIncidents = { navController.navigate(Routes.PastIncidents) },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ✅ 지난 현장 목록
+        composable(Routes.PastIncidents) {
+            PastIncidentsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenIncident = { inc ->
+                    incidentViewModel.setIncidentAndRestoreAll(inc)
+                    navController.navigate(Routes.SatelliteLoading)
+                }
             )
         }
 
@@ -112,7 +127,6 @@ fun MarthianNavHost() {
                 onBack = { navController.popBackStack() },
                 onDone = {
                     // ✅ 허브 안 거치고 바로 상황판으로
-                    // (스택에 상황판이 있으면 그걸로 이동, 없으면 새로 navigate)
                     val popped = navController.popBackStack(Routes.SituationBoard, inclusive = false)
                     if (!popped) {
                         navController.navigate(Routes.SituationBoard)

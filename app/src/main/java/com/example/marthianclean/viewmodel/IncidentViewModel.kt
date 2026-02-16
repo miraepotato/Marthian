@@ -1,12 +1,15 @@
 package com.example.marthianclean.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marthianclean.BuildConfig
+import com.example.marthianclean.data.IncidentStore
 import com.example.marthianclean.model.Incident
+import com.example.marthianclean.model.VehiclePlacement
 import com.example.marthianclean.network.GeocodingRepository
 import com.example.marthianclean.network.RetrofitClient
 import com.naver.maps.geometry.LatLng
@@ -20,7 +23,7 @@ data class PlaceCandidate(
     val address: String
 )
 
-// ✅ 지도 배치(스티커)용
+// ✅ 지도 배치(스티커)용 (UI에서 쓰는 상태)
 data class PlacedVehicle(
     val id: String,
     val department: String,
@@ -51,6 +54,32 @@ class IncidentViewModel : ViewModel() {
 
     fun setIncident(value: Incident) {
         _incident.value = value
+    }
+
+    /**
+     * ✅ A안 핵심: Incident를 세팅하면서
+     * - incident.placements -> placedVehicles 복원
+     * - incident.dispatchPlan -> 매트릭스/메타 복원
+     *
+     * ⚠️ VehiclePlacement 좌표 필드는 lat/lng 기준
+     */
+    fun setIncidentAndRestoreAll(value: Incident) {
+        _incident.value = value
+
+        // 1) 배치 복원
+        placedVehicles = value.placements.map { p ->
+            PlacedVehicle(
+                id = p.id,
+                department = p.department,
+                equipment = p.equipment,
+                position = LatLng(p.lat, p.lng)
+            )
+        }
+
+        // 2) 출동대 편성 복원(있으면)
+        dispatchMatrix = value.dispatchPlan.matrix
+        dispatchDepartments = value.dispatchPlan.departments
+        dispatchEquipments = value.dispatchPlan.equipments
     }
 
     fun clearIncident() {
@@ -154,23 +183,16 @@ class IncidentViewModel : ViewModel() {
     }
 
     /* =========================
-       신규: 매트릭스(출동대 편성) + 메타(부서/장비) 승격
+       출동대 편성(매트릭스) + 메타
        ========================= */
 
-    /**
-     * 0 = 공란
-     * 1 = 출동(오렌지)
-     * 2 = "2"(초록)
-     */
     var dispatchMatrix by mutableStateOf<List<List<Int>>>(emptyList())
         private set
 
-    // ✅ JVM 시그니처 충돌 방지: setDispatchMatrix 금지 -> updateDispatchMatrix 사용
     fun updateDispatchMatrix(matrix: List<List<Int>>) {
         dispatchMatrix = matrix
     }
 
-    // ✅ 매트릭스의 행/열 이름도 VM이 소유해야 상황판에서 스티커를 만들 수 있음
     var dispatchDepartments by mutableStateOf<List<String>>(emptyList())
         private set
 
@@ -205,18 +227,12 @@ class IncidentViewModel : ViewModel() {
         return if (remaining < 0) 0 else remaining
     }
 
-    // ✅ 스티커 생성용 아이템
     data class StickerItem(
-        val id: String,          // 안정적인 키 (rX_cY)
+        val id: String,
         val department: String,
         val equipment: String
     )
 
-    /**
-     * ✅ 매트릭스(value==1) 기반 스티커 큐 생성
-     * - 1(출동)인 셀만 스티커 1개 생성
-     * - 부서/장비 메타가 비어있으면 빈 리스트 반환
-     */
     fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
         val depts = dispatchDepartments
         val equips = dispatchEquipments
@@ -247,7 +263,7 @@ class IncidentViewModel : ViewModel() {
     }
 
     /* =========================
-       신규: 지도 스티커 배치 상태
+       지도 스티커 배치 상태 (UI)
        ========================= */
 
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
@@ -294,5 +310,80 @@ class IncidentViewModel : ViewModel() {
 
     fun removeVehicle(id: String) {
         placedVehicles = placedVehicles.filterNot { it.id == id }
+    }
+
+    /* =========================
+       A안 핵심: UI 배치 -> Incident.placements 로 저장
+       ========================= */
+
+    private fun buildPlacementsForSave(): List<VehiclePlacement> {
+        return placedVehicles.map { pv ->
+            VehiclePlacement(
+                id = pv.id,
+                department = pv.department,
+                equipment = pv.equipment,
+                lat = pv.position.latitude,
+                lng = pv.position.longitude
+            )
+        }
+    }
+
+    fun snapshotIncidentForSave(): Incident? {
+        val cur = _incident.value ?: return null
+        return cur.copy(
+            dispatchPlan = cur.dispatchPlan.copy(
+                matrix = dispatchMatrix,
+                departments = dispatchDepartments,
+                equipments = dispatchEquipments
+            ),
+            placements = buildPlacementsForSave()
+        )
+    }
+
+    /* =========================
+       지난 현장 저장/로드/삭제
+       ========================= */
+
+    fun saveCurrentIncident(context: Context) {
+        val snap = snapshotIncidentForSave() ?: return
+        viewModelScope.launch {
+            IncidentStore.upsert(context, snap)
+        }
+    }
+
+    fun saveIncident(context: Context, incident: Incident) {
+        val snap = incident.copy(
+            dispatchPlan = incident.dispatchPlan.copy(
+                matrix = dispatchMatrix,
+                departments = dispatchDepartments,
+                equipments = dispatchEquipments
+            ),
+            placements = buildPlacementsForSave()
+        )
+
+        viewModelScope.launch {
+            IncidentStore.upsert(context, snap)
+        }
+    }
+
+    fun loadPastIncidents(
+        context: Context,
+        onLoaded: (List<Incident>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val list = IncidentStore.loadAll(context)
+            onLoaded(list)
+        }
+    }
+
+    fun deletePastIncidents(
+        context: Context,
+        ids: List<String>,
+        onDone: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            IncidentStore.deleteMany(context, ids)
+            onDone()
+        }
     }
 }
