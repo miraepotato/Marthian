@@ -1,11 +1,15 @@
 package com.example.marthianclean.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marthianclean.BuildConfig
 import com.example.marthianclean.model.Incident
 import com.example.marthianclean.network.GeocodingRepository
 import com.example.marthianclean.network.RetrofitClient
+import com.naver.maps.geometry.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +20,19 @@ data class PlaceCandidate(
     val address: String
 )
 
+// ✅ 지도 배치(스티커)용
+data class PlacedVehicle(
+    val id: String,
+    val department: String,
+    val equipment: String,
+    val position: LatLng
+)
+
 class IncidentViewModel : ViewModel() {
+
+    /* =========================
+       기존: Incident / 검색 상태
+       ========================= */
 
     private val _incident = MutableStateFlow<Incident?>(null)
     val incident: StateFlow<Incident?> = _incident.asStateFlow()
@@ -46,7 +62,7 @@ class IncidentViewModel : ViewModel() {
         _searchError.value = null
     }
 
-    // ✅ 1) "화성소방서" 같은 장소명 검색 -> 후보 최대 10개
+    // ✅ 1) 장소명 검색 -> 후보 최대 10개
     fun searchPlaceCandidates(
         query: String,
         onDone: () -> Unit = {}
@@ -68,7 +84,7 @@ class IncidentViewModel : ViewModel() {
                     clientId = BuildConfig.NAVER_SEARCH_CLIENT_ID,
                     clientSecret = BuildConfig.NAVER_SEARCH_CLIENT_SECRET,
                     query = trimmed,
-                    display = 10 // 🔥 5 -> 10
+                    display = 10
                 )
 
                 val out = res.items.mapNotNull { item ->
@@ -101,7 +117,7 @@ class IncidentViewModel : ViewModel() {
         }
     }
 
-    // ✅ 2) 선택된 후보의 "주소"로 지오코딩해서 incident에 반영
+    // ✅ 2) 주소로 지오코딩해서 incident에 반영
     fun geocodeAndApply(
         query: String,
         onSuccess: () -> Unit,
@@ -135,5 +151,92 @@ class IncidentViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    /* =========================
+       신규: 매트릭스(출동대 편성) 상태 (충돌 없는 버전)
+       ========================= */
+
+    /**
+     * 0 = 공란
+     * 1 = 출동(오렌지)
+     * 2 = "2"(초록)
+     */
+    var dispatchMatrix by mutableStateOf<List<List<Int>>>(emptyList())
+        private set
+
+    // ✅ JVM 시그니처 충돌 방지: setDispatchMatrix 금지 -> updateDispatchMatrix 사용
+    fun updateDispatchMatrix(matrix: List<List<Int>>) {
+        dispatchMatrix = matrix
+    }
+
+    fun getDispatchCount(valueToCount: Int = 1): Int {
+        val m = dispatchMatrix
+        if (m.isEmpty()) return 0
+        var sum = 0
+        for (r in m.indices) {
+            val row = m[r]
+            for (c in row.indices) {
+                if (row[c] == valueToCount) sum += 1
+            }
+        }
+        return sum
+    }
+
+    fun getPlacedCount(): Int = placedVehicles.size
+
+    fun getRemainingToPlace(): Int {
+        val remaining = getDispatchCount(1) - getPlacedCount()
+        return if (remaining < 0) 0 else remaining
+    }
+
+    /* =========================
+       신규: 지도 스티커 배치 상태
+       ========================= */
+
+    var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
+        private set
+
+    fun clearPlacedVehicles() {
+        placedVehicles = emptyList()
+    }
+
+    fun placeVehicle(
+        id: String,
+        department: String,
+        equipment: String,
+        latLng: LatLng
+    ) {
+        val current = placedVehicles
+        val idx = current.indexOfFirst { it.id == id }
+        placedVehicles = if (idx >= 0) {
+            current.toMutableList().apply {
+                this[idx] = this[idx].copy(
+                    department = department,
+                    equipment = equipment,
+                    position = latLng
+                )
+            }
+        } else {
+            current + PlacedVehicle(
+                id = id,
+                department = department,
+                equipment = equipment,
+                position = latLng
+            )
+        }
+    }
+
+    fun moveVehicle(id: String, newLatLng: LatLng) {
+        val current = placedVehicles
+        val idx = current.indexOfFirst { it.id == id }
+        if (idx < 0) return
+        placedVehicles = current.toMutableList().apply {
+            this[idx] = this[idx].copy(position = newLatLng)
+        }
+    }
+
+    fun removeVehicle(id: String) {
+        placedVehicles = placedVehicles.filterNot { it.id == id }
     }
 }

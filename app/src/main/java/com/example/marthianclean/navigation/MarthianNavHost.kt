@@ -94,7 +94,6 @@ fun MarthianNavHost() {
         composable(Routes.IncidentEditHub) {
             IncidentEditHubScreen(
                 onEditMatrix = {
-                    // 🔥 여기서 진짜 매트릭스 화면으로 이동
                     navController.navigate(Routes.DispatchMatrix)
                 },
                 onEditInfo = {
@@ -106,9 +105,12 @@ fun MarthianNavHost() {
             )
         }
 
-        // ✅ 출동대 편성(매트릭스)
+        // ✅ 출동대 편성(매트릭스) - ViewModel 공유 주입
         composable(Routes.DispatchMatrix) {
-            DispatchMatrixScreen()
+            DispatchMatrixScreen(
+                incidentViewModel = incidentViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

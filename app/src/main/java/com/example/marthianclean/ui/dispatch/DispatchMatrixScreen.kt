@@ -1,7 +1,7 @@
 package com.example.marthianclean.ui.dispatch
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.foundation.ExperimentalFoundationApi   // ✅ 추가
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.marthianclean.viewmodel.IncidentViewModel
 
 /* COLORS */
 private val BackgroundBlack = Color(0xFF0E0E0E)
@@ -45,10 +46,12 @@ private val ColumnWidth = 140.dp
 private val RowHeaderWidth = 220.dp
 private val CellPadding = 4.dp
 
-@OptIn(ExperimentalFoundationApi::class)   // ✅ 이 한 줄이 핵심
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DispatchMatrixScreen() {
-
+fun DispatchMatrixScreen(
+    incidentViewModel: IncidentViewModel,
+    onBack: () -> Unit
+) {
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
     val hScroll = rememberScrollState()
@@ -85,6 +88,14 @@ fun DispatchMatrixScreen() {
         }
     }
 
+    fun syncMatrixToVm() {
+        incidentViewModel.updateDispatchMatrix(
+            matrix.map { row -> row.toList() }
+        )
+    }
+
+    LaunchedEffect(Unit) { syncMatrixToVm() }
+
     var editingDept by remember { mutableStateOf<Int?>(null) }
     var editingEquip by remember { mutableStateOf<Int?>(null) }
 
@@ -93,6 +104,24 @@ fun DispatchMatrixScreen() {
             .fillMaxSize()
             .background(BackgroundBlack)
     ) {
+        // 최소 Back UI (테마 유지)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = "뒤로",
+                color = OrangePrimary,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .border(1.dp, BorderGray)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .clickable { onBack() }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .verticalScroll(vScroll)
@@ -129,6 +158,7 @@ fun DispatchMatrixScreen() {
                     equipments.add("신규차량")
                     matrix.forEach { it.add(0) }
                     editingEquip = equipments.lastIndex
+                    syncMatrixToVm()
                 }
             }
 
@@ -153,6 +183,7 @@ fun DispatchMatrixScreen() {
                     matrix[r].forEachIndexed { c, value ->
                         StatusCell(value) {
                             matrix[r][c] = (value + 1) % 3
+                            syncMatrixToVm()
                         }
                     }
                 }
@@ -167,6 +198,7 @@ fun DispatchMatrixScreen() {
                     }
                 )
                 editingDept = departments.lastIndex
+                syncMatrixToVm()
             }
         }
     }
