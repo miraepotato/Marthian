@@ -109,7 +109,15 @@ fun MarthianNavHost() {
         composable(Routes.DispatchMatrix) {
             DispatchMatrixScreen(
                 incidentViewModel = incidentViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onDone = {
+                    // ✅ 허브 안 거치고 바로 상황판으로
+                    // (스택에 상황판이 있으면 그걸로 이동, 없으면 새로 navigate)
+                    val popped = navController.popBackStack(Routes.SituationBoard, inclusive = false)
+                    if (!popped) {
+                        navController.navigate(Routes.SituationBoard)
+                    }
+                }
             )
         }
     }

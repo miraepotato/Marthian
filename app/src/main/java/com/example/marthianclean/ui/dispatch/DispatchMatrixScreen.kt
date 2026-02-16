@@ -50,7 +50,8 @@ private val CellPadding = 4.dp
 @Composable
 fun DispatchMatrixScreen(
     incidentViewModel: IncidentViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDone: () -> Unit // ✅ 추가: 완료 → 바로 상황판으로
 ) {
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
@@ -110,21 +111,38 @@ fun DispatchMatrixScreen(
             .fillMaxSize()
             .background(BackgroundBlack)
     ) {
-        // 최소 Back UI (테마 유지)
+        // ✅ 상단 버튼 바: 좌상단 나가기 / 우상단 완료 (테마 유지)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.End
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "뒤로",
+                text = "나가기",
                 color = OrangePrimary,
                 fontSize = 16.sp,
                 modifier = Modifier
                     .border(1.dp, BorderGray)
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .clickable { onBack() }
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "완료",
+                color = OrangePrimary,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .border(1.dp, BorderGray)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .clickable {
+                        // ✅ 완료 시 최종 싱크 + 바로 상황판 이동(허브 안 거침)
+                        syncAllToVm()
+                        focusManager.clearFocus()
+                        onDone()
+                    }
             )
         }
 
