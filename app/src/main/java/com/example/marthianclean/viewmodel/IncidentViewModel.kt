@@ -154,7 +154,7 @@ class IncidentViewModel : ViewModel() {
     }
 
     /* =========================
-       신규: 매트릭스(출동대 편성) 상태 (충돌 없는 버전)
+       신규: 매트릭스(출동대 편성) + 메타(부서/장비) 승격
        ========================= */
 
     /**
@@ -168,6 +168,21 @@ class IncidentViewModel : ViewModel() {
     // ✅ JVM 시그니처 충돌 방지: setDispatchMatrix 금지 -> updateDispatchMatrix 사용
     fun updateDispatchMatrix(matrix: List<List<Int>>) {
         dispatchMatrix = matrix
+    }
+
+    // ✅ 매트릭스의 행/열 이름도 VM이 소유해야 상황판에서 스티커를 만들 수 있음
+    var dispatchDepartments by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    var dispatchEquipments by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    fun updateDispatchMeta(
+        departments: List<String>,
+        equipments: List<String>
+    ) {
+        dispatchDepartments = departments
+        dispatchEquipments = equipments
     }
 
     fun getDispatchCount(valueToCount: Int = 1): Int {
@@ -188,6 +203,47 @@ class IncidentViewModel : ViewModel() {
     fun getRemainingToPlace(): Int {
         val remaining = getDispatchCount(1) - getPlacedCount()
         return if (remaining < 0) 0 else remaining
+    }
+
+    // ✅ 스티커 생성용 아이템
+    data class StickerItem(
+        val id: String,          // 안정적인 키 (rX_cY)
+        val department: String,
+        val equipment: String
+    )
+
+    /**
+     * ✅ 매트릭스(value==1) 기반 스티커 큐 생성
+     * - 1(출동)인 셀만 스티커 1개 생성
+     * - 부서/장비 메타가 비어있으면 빈 리스트 반환
+     */
+    fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
+        val depts = dispatchDepartments
+        val equips = dispatchEquipments
+        val m = dispatchMatrix
+
+        if (depts.isEmpty() || equips.isEmpty() || m.isEmpty()) return emptyList()
+
+        val out = ArrayList<StickerItem>(64)
+        val rMax = minOf(m.size, depts.size)
+
+        for (r in 0 until rMax) {
+            val row = m[r]
+            val cMax = minOf(row.size, equips.size)
+
+            for (c in 0 until cMax) {
+                if (row[c] == valueToInclude) {
+                    out.add(
+                        StickerItem(
+                            id = "r${r}_c${c}",
+                            department = depts[r],
+                            equipment = equips[c]
+                        )
+                    )
+                }
+            }
+        }
+        return out
     }
 
     /* =========================

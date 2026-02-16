@@ -88,13 +88,19 @@ fun DispatchMatrixScreen(
         }
     }
 
-    fun syncMatrixToVm() {
+    // ✅ matrix + meta(부서/장비)를 VM에 같이 올리는 싱크 함수
+    fun syncAllToVm() {
+        incidentViewModel.updateDispatchMeta(
+            departments = departments.toList(),
+            equipments = equipments.toList()
+        )
         incidentViewModel.updateDispatchMatrix(
-            matrix.map { row -> row.toList() }
+            matrix = matrix.map { row -> row.toList() }
         )
     }
 
-    LaunchedEffect(Unit) { syncMatrixToVm() }
+    // 최초 1회 싱크
+    LaunchedEffect(Unit) { syncAllToVm() }
 
     var editingDept by remember { mutableStateOf<Int?>(null) }
     var editingEquip by remember { mutableStateOf<Int?>(null) }
@@ -149,8 +155,12 @@ fun DispatchMatrixScreen(
                         onDone = {
                             editingEquip = null
                             focusManager.clearFocus()
+                            syncAllToVm()
                         },
-                        onTextChange = { equipments[i] = it }
+                        onTextChange = {
+                            equipments[i] = it
+                            syncAllToVm()
+                        }
                     )
                 }
 
@@ -158,7 +168,7 @@ fun DispatchMatrixScreen(
                     equipments.add("신규차량")
                     matrix.forEach { it.add(0) }
                     editingEquip = equipments.lastIndex
-                    syncMatrixToVm()
+                    syncAllToVm()
                 }
             }
 
@@ -176,14 +186,18 @@ fun DispatchMatrixScreen(
                         onDone = {
                             editingDept = null
                             focusManager.clearFocus()
+                            syncAllToVm()
                         },
-                        onTextChange = { departments[r] = it }
+                        onTextChange = {
+                            departments[r] = it
+                            syncAllToVm()
+                        }
                     )
 
                     matrix[r].forEachIndexed { c, value ->
                         StatusCell(value) {
                             matrix[r][c] = (value + 1) % 3
-                            syncMatrixToVm()
+                            syncAllToVm()
                         }
                     }
                 }
@@ -198,7 +212,7 @@ fun DispatchMatrixScreen(
                     }
                 )
                 editingDept = departments.lastIndex
-                syncMatrixToVm()
+                syncAllToVm()
             }
         }
     }
