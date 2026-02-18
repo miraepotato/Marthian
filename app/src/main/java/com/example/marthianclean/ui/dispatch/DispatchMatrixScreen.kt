@@ -51,57 +51,92 @@ private val CellPadding = 4.dp
 fun DispatchMatrixScreen(
     incidentViewModel: IncidentViewModel,
     onBack: () -> Unit,
-    onDone: () -> Unit // ✅ 추가: 완료 → 바로 상황판으로
+    onDone: () -> Unit
 ) {
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
+
+    // ✅ 스크롤 동기화
     val hScroll = rememberScrollState()
     val vScroll = rememberScrollState()
 
-    val departments = remember {
-        mutableStateListOf(
-            "향남센터", "양감지역대", "남양센터", "서신지역대", "제부지역대",
-            "팔탄센터", "장안센터", "새솔센터", "화성구조대",
-            "정남센터", "반송센터", "태안센터", "마도지역대",
-            "매송지역대", "목동센터",
-            "안중센터(평택)", "포승센터(평택)", "서탄센터(송탄)",
-            "세교센터(오산)", "청학센터(오산)", "반월센터(안산)"
-        )
-    }
+    // ✅ 기본값(처음 1회만 쓰일 값)
+    val defaultDepartments = listOf(
+        "향남센터", "양감지역대", "남양센터", "서신지역대", "제부지역대",
+        "팔탄센터", "장안센터", "새솔센터", "화성구조대",
+        "정남센터", "반송센터", "태안센터", "마도지역대",
+        "매송지역대", "목동센터",
+        "안중센터(평택)", "포승센터(평택)", "서탄센터(송탄)",
+        "세교센터(오산)", "청학센터(오산)", "반월센터(안산)"
+    )
+    val defaultEquipments = listOf(
+        "펌프차", "탱크차", "화학차", "고가사다리차",
+        "굴절차", "무인방수파괴", "구조공작차",
+        "장비운반차", "구급차"
+    )
 
-    val equipments = remember {
-        mutableStateListOf(
-            "펌프차", "탱크차", "화학차", "고가사다리차",
-            "굴절차", "무인방수파괴", "구조공작차",
-            "장비운반차", "구급차"
-        )
-    }
+    // ✅ 화면 상태
+    val departments = remember { mutableStateListOf<String>() }
+    val equipments = remember { mutableStateListOf<String>() }
+    val matrix = remember { mutableStateListOf<SnapshotStateList<Int>>() }
 
-    val matrix = remember {
-        mutableStateListOf<SnapshotStateList<Int>>().apply {
-            repeat(departments.size) {
-                add(
-                    mutableStateListOf<Int>().apply {
-                        repeat(equipments.size) { add(0) }
-                    }
-                )
-            }
-        }
-    }
-
-    // ✅ matrix + meta(부서/장비)를 VM에 같이 올리는 싱크 함수
     fun syncAllToVm() {
         incidentViewModel.updateDispatchMeta(
             departments = departments.toList(),
             equipments = equipments.toList()
         )
         incidentViewModel.updateDispatchMatrix(
-            matrix = matrix.map { row -> row.toList() }
+            matrix = matrix.map { it.toList() }
         )
     }
 
-    // 최초 1회 싱크
-    LaunchedEffect(Unit) { syncAllToVm() }
+    fun loadFromVmOrDefault() {
+        val vmDepts = incidentViewModel.dispatchDepartments
+        val vmEquips = incidentViewModel.dispatchEquipments
+        val vmMatrix = incidentViewModel.dispatchMatrix
+
+        val useDepts = if (vmDepts.isNotEmpty()) vmDepts else defaultDepartments
+        val useEquips = if (vmEquips.isNotEmpty()) vmEquips else defaultEquipments
+
+        departments.clear()
+        departments.addAll(useDepts)
+
+        equipments.clear()
+        equipments.addAll(useEquips)
+
+        matrix.clear()
+        val matrixOk =
+            vmMatrix.isNotEmpty() &&
+                    vmMatrix.size == useDepts.size &&
+                    vmMatrix.all { it.size == useEquips.size }
+
+        if (matrixOk) {
+            vmMatrix.forEach { row ->
+                matrix.add(row.toMutableStateList())
+            }
+        } else {
+            repeat(useDepts.size) {
+                matrix.add(
+                    mutableStateListOf<Int>().apply {
+                        repeat(useEquips.size) { add(0) }
+                    }
+                )
+            }
+        }
+
+        // ✅ VM이 비어 있어서 default로 만든 경우에만 1회 저장
+        if (vmDepts.isEmpty() || vmEquips.isEmpty() || vmMatrix.isEmpty()) {
+            syncAllToVm()
+        }
+    }
+
+    var initialized by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!initialized) {
+            loadFromVmOrDefault()
+            initialized = true
+        }
+    }
 
     var editingDept by remember { mutableStateOf<Int?>(null) }
     var editingEquip by remember { mutableStateOf<Int?>(null) }
@@ -111,7 +146,7 @@ fun DispatchMatrixScreen(
             .fillMaxSize()
             .background(BackgroundBlack)
     ) {
-        // ✅ 상단 버튼 바: 좌상단 나가기 / 우상단 완료 (테마 유지)
+        // 상단 버튼 바
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,100 +173,169 @@ fun DispatchMatrixScreen(
                     .border(1.dp, BorderGray)
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .clickable {
-                        // ✅ 완료 시 최종 싱크 + 바로 상황판 이동(허브 안 거침)
                         syncAllToVm()
+
+                        // ✅ 출동대 편성 완료 후, 상황판에서 줌인 유지(복원)용
+                        incidentViewModel.setMapPreferredZoom(18.0)
                         focusManager.clearFocus()
                         onDone()
                     }
             )
         }
 
-        Column(
+        // ✅ 틀고정 레이아웃(정렬 완전 고정)
+        Box(
             modifier = Modifier
-                .verticalScroll(vScroll)
-                .horizontalScroll(hScroll)
+                .fillMaxSize()
                 .padding(8.dp)
         ) {
+            /*
+             * 1) 본문 그리드(수평/수직 스크롤)
+             *    - 헤더행/좌측열은 공간만 비워둠
+             */
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(vScroll)
+                    .horizontalScroll(hScroll)
+            ) {
+                // 상단 헤더행 공간(정확히 HeaderHeight)
+                Spacer(modifier = Modifier.height(HeaderHeight))
 
-            /* ===== HEADER ROW ===== */
-            Row {
+                // 데이터 행
+                departments.forEachIndexed { r, _ ->
+                    Row {
+                        // 좌측 부서열 공간(정확히 RowHeaderWidth, CellHeight)
+                        Spacer(
+                            modifier = Modifier
+                                .width(RowHeaderWidth)
+                                .height(CellHeight)
+                        )
+
+                        matrix[r].forEachIndexed { c, value ->
+                            StatusCell(value) {
+                                matrix[r][c] = (value + 1) % 3
+                                syncAllToVm()
+                            }
+                        }
+                    }
+                }
+
+                // 하단 "센터 추가" 공간(정확히 CellHeight)
+                Spacer(modifier = Modifier.height(CellHeight))
+            }
+
+            /*
+             * 2) 상단 고정 헤더행(수평만 스크롤)
+             */
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(HeaderHeight)
+                    .background(BackgroundBlack)
+            ) {
+                // 좌상단 코너(빈칸)
                 Box(
                     modifier = Modifier
                         .width(RowHeaderWidth)
                         .height(HeaderHeight)
                 )
 
-                equipments.forEachIndexed { i, name ->
-                    EditableHeaderCell(
+                Row(modifier = Modifier.horizontalScroll(hScroll)) {
+                    equipments.forEachIndexed { i, name ->
+                        EditableHeaderCell(
+                            width = ColumnWidth,
+                            height = HeaderHeight,
+                            text = name,
+                            editing = editingEquip == i,
+                            onLongPress = {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                editingEquip = i
+                            },
+                            onDone = {
+                                editingEquip = null
+                                focusManager.clearFocus()
+                                syncAllToVm()
+                            },
+                            onTextChange = {
+                                equipments[i] = it
+                                syncAllToVm()
+                            }
+                        )
+                    }
+
+                    AddHeaderCell(
+                        text = "차량 추가",
                         width = ColumnWidth,
-                        text = name,
-                        editing = editingEquip == i,
-                        onLongPress = {
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            editingEquip = i
-                        },
-                        onDone = {
-                            editingEquip = null
-                            focusManager.clearFocus()
-                            syncAllToVm()
-                        },
-                        onTextChange = {
-                            equipments[i] = it
-                            syncAllToVm()
-                        }
-                    )
-                }
-
-                AddHeaderCell("차량 추가", ColumnWidth) {
-                    equipments.add("신규차량")
-                    matrix.forEach { it.add(0) }
-                    editingEquip = equipments.lastIndex
-                    syncAllToVm()
+                        height = HeaderHeight
+                    ) {
+                        equipments.add("신규차량")
+                        matrix.forEach { it.add(0) }
+                        editingEquip = equipments.lastIndex
+                        syncAllToVm()
+                    }
                 }
             }
 
-            /* ===== DATA ROWS ===== */
-            departments.forEachIndexed { r, dept ->
-                Row {
-                    EditableHeaderCell(
+            /*
+             * 3) 좌측 고정 부서열(수직만 스크롤)
+             */
+            Column(
+                modifier = Modifier
+                    .width(RowHeaderWidth)
+                    .fillMaxHeight()
+                    .background(BackgroundBlack)
+            ) {
+                // 헤더행 공간
+                Spacer(modifier = Modifier.height(HeaderHeight))
+
+                Column(modifier = Modifier.verticalScroll(vScroll)) {
+                    departments.forEachIndexed { r, dept ->
+                        EditableHeaderCell(
+                            width = RowHeaderWidth,
+                            height = CellHeight,
+                            text = dept,
+                            editing = editingDept == r,
+                            onLongPress = {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                editingDept = r
+                            },
+                            onDone = {
+                                editingDept = null
+                                focusManager.clearFocus()
+                                syncAllToVm()
+                            },
+                            onTextChange = {
+                                departments[r] = it
+                                syncAllToVm()
+                            }
+                        )
+                    }
+
+                    AddHeaderCell(
+                        text = "센터 추가",
                         width = RowHeaderWidth,
-                        text = dept,
-                        editing = editingDept == r,
-                        onLongPress = {
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            editingDept = r
-                        },
-                        onDone = {
-                            editingDept = null
-                            focusManager.clearFocus()
-                            syncAllToVm()
-                        },
-                        onTextChange = {
-                            departments[r] = it
-                            syncAllToVm()
-                        }
-                    )
-
-                    matrix[r].forEachIndexed { c, value ->
-                        StatusCell(value) {
-                            matrix[r][c] = (value + 1) % 3
-                            syncAllToVm()
-                        }
+                        height = CellHeight
+                    ) {
+                        departments.add("신규센터")
+                        matrix.add(
+                            mutableStateListOf<Int>().apply {
+                                repeat(equipments.size) { add(0) }
+                            }
+                        )
+                        editingDept = departments.lastIndex
+                        syncAllToVm()
                     }
                 }
             }
 
-            /* ===== ADD ROW ===== */
-            AddHeaderCell("센터 추가", RowHeaderWidth) {
-                departments.add("신규센터")
-                matrix.add(
-                    mutableStateListOf<Int>().apply {
-                        repeat(equipments.size) { add(0) }
-                    }
-                )
-                editingDept = departments.lastIndex
-                syncAllToVm()
-            }
+            // 4) 좌상단 코너 덮기(깔끔)
+            Box(
+                modifier = Modifier
+                    .width(RowHeaderWidth)
+                    .height(HeaderHeight)
+                    .background(BackgroundBlack)
+            )
         }
     }
 }
@@ -240,6 +344,7 @@ fun DispatchMatrixScreen(
 @Composable
 fun EditableHeaderCell(
     width: Dp,
+    height: Dp,
     text: String,
     editing: Boolean,
     onLongPress: () -> Unit,
@@ -251,7 +356,7 @@ fun EditableHeaderCell(
     Box(
         modifier = Modifier
             .width(width)
-            .height(HeaderHeight)
+            .height(height)
             .padding(CellPadding)
             .border(1.dp, BorderGray)
             .combinedClickable(
@@ -288,11 +393,16 @@ fun EditableHeaderCell(
 }
 
 @Composable
-fun AddHeaderCell(text: String, width: Dp, onClick: () -> Unit) {
+fun AddHeaderCell(
+    text: String,
+    width: Dp,
+    height: Dp,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .width(width)
-            .height(HeaderHeight)
+            .height(height)
             .padding(CellPadding)
             .border(1.dp, BorderGray)
             .clickable { onClick() },

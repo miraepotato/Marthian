@@ -10,7 +10,7 @@ data class Incident(
     val latitude: Double? = null,
     val longitude: Double? = null,
 
-    // ✅ 추가: 편성/배치/현장정보 (기본값 필수!)
+    // ✅ 편성/배치/현장정보 (기본값 필수)
     val dispatchPlan: DispatchPlan = DispatchPlan(),
     val placements: List<VehiclePlacement> = emptyList(),
     val meta: IncidentMeta = IncidentMeta(),

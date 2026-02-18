@@ -39,7 +39,10 @@ data class IncidentMeta(
     val 유관기관_경찰: String = "",
     val 유관기관_시청: String = "",
     val 유관기관_한전: String = "",
-    val 유관기관_도시가스: String = ""
+    val 유관기관_도시가스: String = "",
+
+    // ✅ 추가
+    val 유관기관_산불진화대_화성시: String = ""
 )
 
 @Serializable
