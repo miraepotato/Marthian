@@ -10,12 +10,8 @@ import com.example.marthianclean.R
 object VehicleIconMapper {
 
     fun iconResForEquip(equip: String): Int {
-        val e = equip.trim()
+        val e = equip.trim().lowercase()
 
-        // 형님 drawable 기준:
-        // ic_vehicle_pump, ic_vehicle_tank, ic_vehicle_hazmat, ic_vehicle_ladder,
-        // ic_vehicle_water_breaker, ic_vehicle_excavator,
-        // ic_vehicle_ambulance, ic_vehicle_rescue, ic_vehicle_recovery_bus
         return when {
             e.contains("펌프") -> R.drawable.ic_vehicle_pump
             e.contains("탱크") -> R.drawable.ic_vehicle_tank
@@ -23,11 +19,19 @@ object VehicleIconMapper {
             e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> R.drawable.ic_vehicle_ladder
             e.contains("굴절") || e.contains("articul") -> R.drawable.ic_vehicle_articulating_ladder
             e.contains("무인") || e.contains("방수") || e.contains("파괴") || e.contains("water") -> R.drawable.ic_vehicle_water_breaker
-            e.contains("굴삭") || e.contains("excava") -> R.drawable.ic_vehicle_excavator
+            e.contains("굴삭") || e.contains("포크") || e.contains("excava") -> R.drawable.ic_vehicle_excavator
             e.contains("구급") || e.contains("ambul") -> R.drawable.ic_vehicle_ambulance
             e.contains("구조") || e.contains("rescue") -> R.drawable.ic_vehicle_rescue
-            e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> R.drawable.ic_vehicle_recovery_bus
-            else -> R.drawable.ic_vehicle_equipment // 기본 아이콘(왕관/툴박스 계열)
+
+            // ✅ 지휘차는 "지휘차" 먼저
+            e.contains("지휘차") || e.contains("command") -> R.drawable.ic_vehicle_command
+
+            // ✅ 회복지원: "회복지원차" / "회복지원버스" / "회복" / "버스" 전부 커버
+            e.contains("회복지원차") || e.contains("회복지원버스") ||
+                    e.contains("회복지원") || e.contains("회복") || e.contains("버스") ||
+                    e.contains("recovery") || e.contains("bus") -> R.drawable.ic_vehicle_recovery_bus
+
+            else -> R.drawable.ic_vehicle_equipment
         }
     }
 

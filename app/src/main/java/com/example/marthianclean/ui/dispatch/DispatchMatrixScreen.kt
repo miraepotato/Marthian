@@ -60,7 +60,7 @@ fun DispatchMatrixScreen(
     val hScroll = rememberScrollState()
     val vScroll = rememberScrollState()
 
-    // ✅ 기본값(처음 1회만 쓰일 값)
+// ✅ 기본값(처음 1회만 쓰일 값)
     val defaultDepartments = listOf(
         "향남센터", "양감지역대", "남양센터", "서신지역대", "제부지역대",
         "팔탄센터", "장안센터", "새솔센터", "화성구조대",
@@ -69,11 +69,14 @@ fun DispatchMatrixScreen(
         "안중센터(평택)", "포승센터(평택)", "서탄센터(송탄)",
         "세교센터(오산)", "청학센터(오산)", "반월센터(안산)"
     )
+
     val defaultEquipments = listOf(
         "펌프차", "탱크차", "화학차", "고가사다리차",
         "굴절차", "무인방수파괴", "구조공작차",
-        "장비운반차", "구급차"
+        "장비운반차", "구급차",
+        "지휘차", "포크레인", "회복지원버스" // ✅ 구급차 이후 순서 고정
     )
+
 
     // ✅ 화면 상태
     val departments = remember { mutableStateListOf<String>() }
@@ -226,22 +229,29 @@ fun DispatchMatrixScreen(
             }
 
             /*
-             * 2) 상단 고정 헤더행(수평만 스크롤)
-             */
+ * 2) 상단 고정 헤더행(수평만 스크롤)
+ *  - 좌상단 빈칸(RowHeaderWidth) 1번만
+ *  - equipments 헤더는 hScroll 공유
+ *  - "차량 추가"는 우측 고정
+ */
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(HeaderHeight)
-                    .background(BackgroundBlack)
+                    .background(BackgroundBlack),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 좌상단 코너(빈칸)
+                // 좌상단 코너(빈칸) — 본문 RowHeaderWidth와 정확히 동일
                 Box(
                     modifier = Modifier
                         .width(RowHeaderWidth)
-                        .height(HeaderHeight)
+                        .fillMaxHeight()
                 )
 
-                Row(modifier = Modifier.horizontalScroll(hScroll)) {
+                // ✅ 스크롤되는 헤더 영역(장비들 + 맨끝 '차량 추가')
+                Row(
+                    modifier = Modifier.horizontalScroll(hScroll)
+                ) {
                     equipments.forEachIndexed { i, name ->
                         EditableHeaderCell(
                             width = ColumnWidth,
@@ -264,6 +274,7 @@ fun DispatchMatrixScreen(
                         )
                     }
 
+                    // ✅ 맨 오른쪽 끝에 붙는 버튼: 끝까지 스크롤해야만 나타남
                     AddHeaderCell(
                         text = "차량 추가",
                         width = ColumnWidth,
@@ -276,6 +287,8 @@ fun DispatchMatrixScreen(
                     }
                 }
             }
+
+
 
             /*
              * 3) 좌측 고정 부서열(수직만 스크롤)

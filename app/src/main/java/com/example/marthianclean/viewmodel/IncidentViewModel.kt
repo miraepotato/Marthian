@@ -19,9 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 
 data class PlaceCandidate(
     val title: String,
@@ -43,7 +40,7 @@ class IncidentViewModel : ViewModel() {
 
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
 
-    // ✅ 추가: ReverseGeocoding
+    // ✅ ReverseGeocoding
     private val reverseRepo = ReverseGeocodingRepository(RetrofitClient.reverseGeocodingService)
 
     private val _candidates = MutableStateFlow<List<PlaceCandidate>>(emptyList())
@@ -56,15 +53,14 @@ class IncidentViewModel : ViewModel() {
     val searchError: StateFlow<String?> = _searchError.asStateFlow()
 
     // =========================
-// 지도 줌 유지(복원)용
-// =========================
+    // 지도 줌 유지(복원)용
+    // =========================
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
     fun setMapPreferredZoom(zoom: Double?) {
         preferredMapZoom = zoom
     }
-
 
     fun setIncident(value: Incident) {
         _incident.value = value
@@ -379,6 +375,7 @@ class IncidentViewModel : ViewModel() {
             )
         }
     }
+
     private fun todayString(): String {
         val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.KOREA)
         return fmt.format(java.util.Date())
