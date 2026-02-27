@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.marthianclean.R
 import com.example.marthianclean.model.FireType
 import com.example.marthianclean.model.MarkerIconMapper
 import com.example.marthianclean.ui.sticker.VehicleIconMapper
@@ -59,6 +60,7 @@ import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.compose.*
 import com.naver.maps.map.overlay.OverlayImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.pow
@@ -87,23 +89,19 @@ private data class DragState(
     val wobble: Boolean = false
 )
 
-// ✅ 차량별 크기 배율 설정
 private fun vehicleScaleFor(equipment: String): Float {
     val e = equipment.trim()
-
     return when {
-        e.contains("구조공작") || e.contains("구조") || e.contains("rescue") -> 2.72f
+        e.contains("구조공작") || e.contains("구조") || e.contains("rescue") -> 3.0f
         e.contains("구급") || e.contains("ambul") -> 2.0f
         e.contains("장비운반") || e.contains("equipment") -> 2.0f
         e.contains("펌프") -> 2.4f
         e.contains("지휘") || e.contains("command") -> 2.4f
         e.contains("탱크") || e.contains("급수") -> 2.66f
         e.contains("포크") || e.contains("굴삭") || e.contains("excava") -> 3.2f
-
-        // ✅ 고가사다리차, 굴절차: 직전 4.0f 에서 120%로 상향하여 4.8f 로 조정 [cite: 2026-02-15]
+        e.contains("화학") || e.contains("haz") -> 4.0f
         e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> 4.8f
         e.contains("굴절") || e.contains("articul") -> 4.8f
-
         e.contains("무인") || e.contains("방수") || e.contains("파괴") || e.contains("water") -> 6.24f
         e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> 4.8f
         else -> 0.8f
@@ -118,9 +116,7 @@ private fun strongVibrate(context: Context) {
         @Suppress("DEPRECATION")
         context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
-
     vibrator ?: return
-
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         vibrator.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
     } else {
@@ -142,6 +138,11 @@ fun SituationBoardScreen(
     val incident by incidentViewModel.incident.collectAsState()
 
     var rightMode by remember { mutableStateOf(RightPanelMode.NONE) }
+
+    var isSectorMode by remember { mutableStateOf(false) }
+    var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     val cameraPositionState = rememberCameraPositionState()
     val markerState = remember { MarkerState() }
@@ -177,8 +178,7 @@ fun SituationBoardScreen(
     val remainingToPlace = max(0, totalToPlace - placedCount)
     val showTray = remainingToPlace > 0
 
-    val iconSize: Dp = 26.dp
-    val sceneIconBaseSize: Dp = 90.dp // ✅ 현장 마커의 기준 크기
+    val sceneIconBaseSize: Dp = 90.dp
 
     var didInitialCam by remember { mutableStateOf(false) }
     LaunchedEffect(lat, lng, mapLoaded, showTray, incidentViewModel.preferredMapZoom) {
@@ -186,15 +186,12 @@ fun SituationBoardScreen(
             didInitialCam = true
             val pos = LatLng(lat, lng)
             markerState.position = pos
-
             cameraPositionState.animate(
                 update = CameraUpdate.scrollTo(pos),
                 animation = CameraAnimation.Easing,
                 durationMs = 700
             )
-
             val targetZoom = incidentViewModel.preferredMapZoom ?: (if (showTray) 18.0 else 16.0)
-
             cameraPositionState.animate(
                 update = CameraUpdate.zoomTo(targetZoom),
                 animation = CameraAnimation.Easing,
@@ -233,9 +230,7 @@ fun SituationBoardScreen(
         val payload = dragState.payload ?: return
 
         val dropPos = dragState.windowPos
-        val insideMap =
-            dropPos.x in mapRect.left..mapRect.right &&
-                    dropPos.y in mapRect.top..mapRect.bottom
+        val insideMap = dropPos.x in mapRect.left..mapRect.right && dropPos.y in mapRect.top..mapRect.bottom
         if (!insideMap) return
 
         val localX = (dropPos.x - mapRect.left).toFloat()
@@ -248,7 +243,6 @@ fun SituationBoardScreen(
             equipment = payload.equipment,
             latLng = latLng
         )
-
         persistNow()
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
@@ -256,7 +250,6 @@ fun SituationBoardScreen(
     fun findNearestPlacedPayload(localPosInMap: Offset): DragPayload? {
         val mapObj = naverMapObj ?: return null
         val threshold = with(density) { 52.dp.toPx() }
-
         var best: DragPayload? = null
         var bestDist = Float.MAX_VALUE
 
@@ -279,11 +272,9 @@ fun SituationBoardScreen(
         val ilng = incident?.longitude ?: return false
         val scenePos = LatLng(ilat, ilng)
         val pt = mapObj.projection.toScreenLocation(scenePos)
-
         val dx = pt.x - localPosInMap.x
         val dy = pt.y - localPosInMap.y
         val dist = sqrt(dx * dx + dy * dy)
-
         val threshold = with(density) { 60.dp.toPx() }
         return dist <= threshold
     }
@@ -291,11 +282,8 @@ fun SituationBoardScreen(
     fun dropSceneIfPossible() {
         val mapRect = mapRectInWindow ?: return
         val mapObj = naverMapObj ?: return
-
         val dropPos = sceneDragWindowPos
-        val insideMap =
-            dropPos.x in mapRect.left..mapRect.right &&
-                    dropPos.y in mapRect.top..mapRect.bottom
+        val insideMap = dropPos.x in mapRect.left..mapRect.right && dropPos.y in mapRect.top..mapRect.bottom
         if (!insideMap) return
 
         val localX = (dropPos.x - mapRect.left).toFloat()
@@ -308,11 +296,7 @@ fun SituationBoardScreen(
 
     val panelActive = rightMode != RightPanelMode.NONE
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    Row(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Box(
             modifier = Modifier
                 .weight(if (panelActive) 2f else 1f)
@@ -323,7 +307,7 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode, isSectorMode) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             val startX = down.position.x
@@ -360,7 +344,16 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            val longPressChange = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+                            val longPressChange = awaitLongPressOrCancellation(down.id)
+
+                            if (longPressChange == null) {
+                                if (isSectorMode) {
+                                    val payload = findNearestPlacedPayload(down.position)
+                                    sectorTargetVehicleId = payload?.id
+                                    if (payload != null) strongVibrate(context)
+                                }
+                                return@awaitEachGesture
+                            }
 
                             val isScene = isNearSceneMarker(longPressChange.position)
                             if (isScene) {
@@ -422,7 +415,6 @@ fun SituationBoardScreen(
                         }
                     }
             ) {
-                // ✅ 마법의 줌 배율 (차량과 현장 마커에 모두 적용됩니다)
                 val currentZoom = cameraPositionState.position.zoom
                 val zoomFactor = 2.0.pow(currentZoom - 18.0).toFloat()
 
@@ -441,7 +433,6 @@ fun SituationBoardScreen(
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
 
-                    // ✅ 현장 마커 (줌 연동 축소 적용)
                     if (lat != null && lng != null) {
                         val fireType = FireType.from(incident?.meta?.fireType)
                         val markerRes = MarkerIconMapper.markerResFor(fireType)
@@ -460,7 +451,6 @@ fun SituationBoardScreen(
                             }
                         }
 
-                        // ✅ 현장 아이콘도 지도 줌에 맞춰 축소되도록 zoomFactor 반영 [cite: 2026-02-15]
                         val dynamicSceneSize = (sceneIconBaseSize.value * zoomFactor).coerceAtLeast(1f).dp
 
                         Marker(
@@ -468,17 +458,22 @@ fun SituationBoardScreen(
                             icon = OverlayImage.fromResource(markerRes),
                             width = dynamicSceneSize,
                             height = dynamicSceneSize,
-                            isIconPerspectiveEnabled = false, // 수동 연동이므로 SDK 옵션 OFF
+                            isIconPerspectiveEnabled = false,
                             captionText = "현장",
                             captionColor = Color.White,
                             captionHaloColor = Color.Black
                         )
                     }
 
-                    // ✅ 배치 차량 마커
+                    // ✅ 차량 렌더링
                     incidentViewModel.placedVehicles.forEach { pv ->
                         key(pv.id) {
                             val st = rememberMarkerState(position = pv.position)
+
+                            LaunchedEffect(pv.position) {
+                                st.position = pv.position
+                            }
+
                             val equipRaw = pv.equipment
                             val iconRes = VehicleIconMapper.iconResForEquip(equipRaw)
                             val label = VehicleIconMapper.deptLabel(pv.department)
@@ -486,14 +481,11 @@ fun SituationBoardScreen(
                             val baseSize = 26.dp
 
                             val markerHeight = (baseSize.value * scale * zoomFactor).coerceAtLeast(1f).dp
-
                             val markerWidth = if (equipRaw.contains("탱크") || equipRaw.contains("급수")) {
                                 (markerHeight.value * 1.6f).dp
                             } else {
                                 markerHeight
                             }
-
-                            val capOffset = 0.dp
 
                             Marker(
                                 state = st,
@@ -504,10 +496,118 @@ fun SituationBoardScreen(
                                 captionText = label,
                                 captionColor = Color.White,
                                 captionHaloColor = Color.Black,
-                                captionOffset = capOffset
+                                captionOffset = 0.dp,
+                                // 💡 [해결 1] 궤도 이탈 & 숨김 방지를 위한 차량 정중앙 고정!
+                                anchor = Offset(0.5f, 0.5f)
                             )
                         }
                     }
+
+                    fun rotateMapTo(targetBearing: Double, targetLatLng: LatLng) {
+                        coroutineScope.launch {
+                            cameraPositionState.animate(
+                                update = CameraUpdate.toCameraPosition(
+                                    com.naver.maps.map.CameraPosition(
+                                        targetLatLng,
+                                        cameraPositionState.position.zoom,
+                                        0.0,
+                                        targetBearing % 360.0
+                                    )
+                                ),
+                                animation = CameraAnimation.Easing,
+                                durationMs = 800
+                            )
+                        }
+                    }
+
+                    // ✅ 마법의 isFlat & 크기 비율 연동 간격 로직
+                    if (isSectorMode && sectorTargetVehicleId != null) {
+                        val targetVehicle = incidentViewModel.placedVehicles.find { it.id == sectorTargetVehicleId }
+
+                        targetVehicle?.let { vehicle ->
+                            val centerLat = vehicle.position.latitude
+                            val centerLng = vehicle.position.longitude
+                            val scale = vehicleScaleFor(vehicle.equipment)
+
+                            // 💡 [해결 2] 차량 크기에 비례하여 완벽하게 여백 확보! (겹침 방지)
+                            val dist = 0.000055 * scale
+                            val cosLat = kotlin.math.cos(centerLat * Math.PI / 180.0)
+                            val latOffset = dist
+                            val lngOffset = dist / cosLat
+
+                            val arrowSize = (40f * zoomFactor).coerceAtLeast(1f).dp
+
+                            // 북쪽 화살표 (클릭 시 북쪽(180도)이 화면 아래로)
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat + latOffset, centerLng)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_up),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = true, // 💡 [해결 3] 지도를 돌리면 이미지도 알아서 예쁘게 착착 돌아감!
+                                angle = 0f,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100, // 💡 차량보다 항상 위에 표시!
+                                onClick = { rotateMapTo(180.0, vehicle.position); true }
+                            )
+                            // 남쪽 화살표
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat - latOffset, centerLng)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_down),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = true,
+                                angle = 0f,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100,
+                                onClick = { rotateMapTo(0.0, vehicle.position); true }
+                            )
+                            // 동쪽 화살표
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat, centerLng + lngOffset)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_right),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = true,
+                                angle = 0f,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100,
+                                onClick = { rotateMapTo(270.0, vehicle.position); true }
+                            )
+                            // 서쪽 화살표
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat, centerLng - lngOffset)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_left),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = true,
+                                angle = 0f,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100,
+                                onClick = { rotateMapTo(90.0, vehicle.position); true }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (mapLoaded) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 16.dp, end = 16.dp)
+                        .background(
+                            color = if (isSectorMode) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .border(1.dp, if (isSectorMode) Color.White else BorderGray, RoundedCornerShape(8.dp))
+                        .clickable {
+                            isSectorMode = !isSectorMode
+                            if (!isSectorMode) sectorTargetVehicleId = null
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = if (isSectorMode) "방면지휘 ON" else "방면지휘",
+                        color = if (isSectorMode) Color.White else MarsOrange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
             }
 
@@ -525,14 +625,15 @@ fun SituationBoardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = if (showTray) 90.dp else 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
                     onClick = { isSatellite = !isSatellite },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1C),
+                        containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f),
                         contentColor = Color.White
                     )
                 ) { Text(if (isSatellite) "SAT" else "BASIC") }
@@ -547,7 +648,7 @@ fun SituationBoardScreen(
                         onExit()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1C),
+                        containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f),
                         contentColor = MarsOrange
                     )
                 ) { Text("EXIT") }
