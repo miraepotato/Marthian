@@ -61,6 +61,7 @@ import com.naver.maps.map.overlay.OverlayImage
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -86,23 +87,26 @@ private data class DragState(
     val wobble: Boolean = false
 )
 
+// ✅ 차량별 크기 배율 설정
 private fun vehicleScaleFor(equipment: String): Float {
     val e = equipment.trim()
 
     return when {
-        e.contains("구조공작") || e.contains("구조") || e.contains("rescue") -> 2.6f
-        e.contains("구급") || e.contains("ambul") -> 2.5f
-        e.contains("장비운반") || e.contains("equipment") -> 2.5f
-        e.contains("펌프") -> 3.0f
-        e.contains("지휘") || e.contains("command") -> 3.0f
-        e.contains("탱크") || e.contains("급수") -> 4.0f
-        e.contains("포크") || e.contains("굴삭") || e.contains("excava") -> 4.0f
-        e.contains("화학") || e.contains("haz") -> 5.0f
-        e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> 5.0f
-        e.contains("굴절") || e.contains("articul") -> 5.0f
-        e.contains("무인") || e.contains("방수") || e.contains("파괴") || e.contains("water") -> 7.8f
-        e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> 6.0f
-        else -> 1.0f
+        e.contains("구조공작") || e.contains("구조") || e.contains("rescue") -> 2.72f
+        e.contains("구급") || e.contains("ambul") -> 2.0f
+        e.contains("장비운반") || e.contains("equipment") -> 2.0f
+        e.contains("펌프") -> 2.4f
+        e.contains("지휘") || e.contains("command") -> 2.4f
+        e.contains("탱크") || e.contains("급수") -> 2.66f
+        e.contains("포크") || e.contains("굴삭") || e.contains("excava") -> 3.2f
+
+        // ✅ 고가사다리차, 굴절차: 직전 4.0f 에서 120%로 상향하여 4.8f 로 조정 [cite: 2026-02-15]
+        e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> 4.8f
+        e.contains("굴절") || e.contains("articul") -> 4.8f
+
+        e.contains("무인") || e.contains("방수") || e.contains("파괴") || e.contains("water") -> 6.24f
+        e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> 4.8f
+        else -> 0.8f
     }
 }
 
@@ -164,10 +168,6 @@ fun SituationBoardScreen(
     var dragAccumY by remember { mutableStateOf(0f) }
     var lastPos by remember { mutableStateOf(Offset.Zero) }
 
-    var rDragAccumX by remember { mutableStateOf(0f) }
-    var rDragAccumY by remember { mutableStateOf(0f) }
-    var rLastPos by remember { mutableStateOf(Offset.Zero) }
-
     val stickerQueue = incidentViewModel.buildStickerQueue()
     val placedIds = incidentViewModel.placedVehicles.map { it.id }.toSet()
     val notPlaced = stickerQueue.filterNot { placedIds.contains(it.id) }
@@ -178,7 +178,7 @@ fun SituationBoardScreen(
     val showTray = remainingToPlace > 0
 
     val iconSize: Dp = 26.dp
-    val sceneIconSize: Dp = 90.dp
+    val sceneIconBaseSize: Dp = 90.dp // ✅ 현장 마커의 기준 크기
 
     var didInitialCam by remember { mutableStateOf(false) }
     LaunchedEffect(lat, lng, mapLoaded, showTray, incidentViewModel.preferredMapZoom) {
@@ -422,6 +422,10 @@ fun SituationBoardScreen(
                         }
                     }
             ) {
+                // ✅ 마법의 줌 배율 (차량과 현장 마커에 모두 적용됩니다)
+                val currentZoom = cameraPositionState.position.zoom
+                val zoomFactor = 2.0.pow(currentZoom - 18.0).toFloat()
+
                 NaverMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
@@ -437,6 +441,7 @@ fun SituationBoardScreen(
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
 
+                    // ✅ 현장 마커 (줌 연동 축소 적용)
                     if (lat != null && lng != null) {
                         val fireType = FireType.from(incident?.meta?.fireType)
                         val markerRes = MarkerIconMapper.markerResFor(fireType)
@@ -455,54 +460,52 @@ fun SituationBoardScreen(
                             }
                         }
 
+                        // ✅ 현장 아이콘도 지도 줌에 맞춰 축소되도록 zoomFactor 반영 [cite: 2026-02-15]
+                        val dynamicSceneSize = (sceneIconBaseSize.value * zoomFactor).coerceAtLeast(1f).dp
+
                         Marker(
                             state = markerState,
                             icon = OverlayImage.fromResource(markerRes),
-                            width = sceneIconSize,
-                            height = sceneIconSize,
+                            width = dynamicSceneSize,
+                            height = dynamicSceneSize,
+                            isIconPerspectiveEnabled = false, // 수동 연동이므로 SDK 옵션 OFF
                             captionText = "현장",
                             captionColor = Color.White,
                             captionHaloColor = Color.Black
                         )
                     }
 
-                    // 배치 차량 마커
+                    // ✅ 배치 차량 마커
                     incidentViewModel.placedVehicles.forEach { pv ->
                         key(pv.id) {
                             val st = rememberMarkerState(position = pv.position)
-                            LaunchedEffect(pv.position) { st.position = pv.position }
-
                             val equipRaw = pv.equipment
                             val iconRes = VehicleIconMapper.iconResForEquip(equipRaw)
                             val label = VehicleIconMapper.deptLabel(pv.department)
-
                             val scale = vehicleScaleFor(equipRaw)
-                            val sized = (iconSize * scale).coerceIn(48.dp, 220.dp)
+                            val baseSize = 26.dp
 
-                            // ✅ 이 부분을 수정하세요!
-                            // 여백이 제거된 새 아이콘을 쓰시면 -2.dp 하나로 모든 차량 간격이 통일됩니다.
-                            val capOffset = (-2).dp
+                            val markerHeight = (baseSize.value * scale * zoomFactor).coerceAtLeast(1f).dp
 
-                            if (iconRes != 0) {
-                                Marker(
-                                    state = st,
-                                    icon = OverlayImage.fromResource(iconRes),
-                                    width = sized,
-                                    height = sized,
-                                    captionText = label,
-                                    captionColor = Color.White,
-                                    captionHaloColor = Color.Black,
-                                    captionOffset = capOffset // 수정된 값이 여기 적용됩니다.
-                                )
+                            val markerWidth = if (equipRaw.contains("탱크") || equipRaw.contains("급수")) {
+                                (markerHeight.value * 1.6f).dp
                             } else {
-                                Marker(
-                                    state = st,
-                                    captionText = label,
-                                    captionColor = Color.White,
-                                    captionHaloColor = Color.Black,
-                                    captionOffset = capOffset
-                                )
+                                markerHeight
                             }
+
+                            val capOffset = 0.dp
+
+                            Marker(
+                                state = st,
+                                icon = OverlayImage.fromResource(iconRes),
+                                width = markerWidth,
+                                height = markerHeight,
+                                isIconPerspectiveEnabled = false,
+                                captionText = label,
+                                captionColor = Color.White,
+                                captionHaloColor = Color.Black,
+                                captionOffset = capOffset
+                            )
                         }
                     }
                 }
