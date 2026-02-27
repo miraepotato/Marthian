@@ -86,39 +86,22 @@ private data class DragState(
     val wobble: Boolean = false
 )
 
-// ✅ 이름이 조금 달라도(회복지원차/회복지원버스/무인방수파괴차 등) 스케일이 안정적으로 먹게 contains 기반
 private fun vehicleScaleFor(equipment: String): Float {
     val e = equipment.trim()
 
     return when {
-        // ✅ 구조공작차 (요청: 크게)
         e.contains("구조공작") || e.contains("구조") || e.contains("rescue") -> 2.6f
-
-        // ✅ 구급차/장비운반
         e.contains("구급") || e.contains("ambul") -> 2.5f
         e.contains("장비운반") || e.contains("equipment") -> 2.5f
-
-        // ✅ 펌프/지휘
         e.contains("펌프") -> 3.0f
         e.contains("지휘") || e.contains("command") -> 3.0f
-
-        // ✅ 탱크/급수/포크레인(굴삭 포함)
         e.contains("탱크") || e.contains("급수") -> 4.0f
         e.contains("포크") || e.contains("굴삭") || e.contains("excava") -> 4.0f
-
-        // ✅ 화학
         e.contains("화학") || e.contains("haz") -> 5.0f
-
-        // ✅ 고가/굴절
         e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> 5.0f
         e.contains("굴절") || e.contains("articul") -> 5.0f
-
-        // ✅ 무인방수파괴
         e.contains("무인") || e.contains("방수") || e.contains("파괴") || e.contains("water") -> 7.8f
-
-        // ✅ 회복지원버스/회복지원차 (이름 변형 커버)
         e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> 6.0f
-
         else -> 1.0f
     }
 }
@@ -177,7 +160,6 @@ fun SituationBoardScreen(
     val edgeWidth = 56.dp
     val edgePx = with(density) { edgeWidth.toPx() }
 
-    // 좌/우 슬라이딩 누적 (혹시 다른 곳에서 쓸 수도 있어서 유지)
     var dragAccumX by remember { mutableStateOf(0f) }
     var dragAccumY by remember { mutableStateOf(0f) }
     var lastPos by remember { mutableStateOf(Offset.Zero) }
@@ -186,7 +168,6 @@ fun SituationBoardScreen(
     var rDragAccumY by remember { mutableStateOf(0f) }
     var rLastPos by remember { mutableStateOf(Offset.Zero) }
 
-    // ✅ 트레이 계산: remember 제거(편성 바꾸고 돌아오면 트레이 사라지는 문제 방지)
     val stickerQueue = incidentViewModel.buildStickerQueue()
     val placedIds = incidentViewModel.placedVehicles.map { it.id }.toSet()
     val notPlaced = stickerQueue.filterNot { placedIds.contains(it.id) }
@@ -332,9 +313,6 @@ fun SituationBoardScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // =========================
-        // 좌측: 지도
-        // =========================
         Box(
             modifier = Modifier
                 .weight(if (panelActive) 2f else 1f)
@@ -345,14 +323,9 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    // ✅ 핵심: 엣지 스와이프를 여기서 최우선 처리(지도 팬/줌과 충돌 방지)
                     .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
-
-                            // =====================================================
-                            // ✅ 0) 엣지 스와이프 우선 처리
-                            // =====================================================
                             val startX = down.position.x
                             val isLeftEdge = startX <= edgePx
                             val isRightEdge = startX >= (size.width - edgePx)
@@ -365,25 +338,18 @@ fun SituationBoardScreen(
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
-
                                     if (change.changedToUp()) break
-
-                                    // ✅ 지도(네이버맵)가 같이 먹지 못하게
                                     change.consumeAllChanges()
-
                                     val dx = change.position.x - last.x
                                     val dy = abs(change.position.y - last.y)
                                     accX += dx
                                     accY += dy
                                     last = change.position
-
                                     val mostlyHorizontal = abs(accX) > accY * 1.3f
-
                                     if (isLeftEdge && mostlyHorizontal && accX >= triggerPx) {
                                         onEdit()
                                         break
                                     }
-
                                     if (isRightEdge && mostlyHorizontal && accX <= -triggerPx) {
                                         if (rightMode == RightPanelMode.NONE) {
                                             rightMode = RightPanelMode.HUB
@@ -394,12 +360,8 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            // =====================================================
-                            // ✅ 1) 롱프레스(현장/차량 드래그)
-                            // =====================================================
                             val longPressChange = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
 
-                            // 1) 현장 마커 드래그
                             val isScene = isNearSceneMarker(longPressChange.position)
                             if (isScene) {
                                 val mapRect = mapRectInWindow ?: return@awaitEachGesture
@@ -409,17 +371,14 @@ fun SituationBoardScreen(
                                     mapRect.left + longPressChange.position.x,
                                     mapRect.top + longPressChange.position.y
                                 )
-
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
-
                                     if (change.changedToUp()) {
                                         dropSceneIfPossible()
                                         sceneDragActive = false
                                         break
                                     }
-
                                     change.consumeAllChanges()
                                     val mapRect2 = mapRectInWindow ?: continue
                                     sceneDragWindowPos = Offset(
@@ -430,10 +389,8 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            // 2) 차량 드래그
                             val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
                             val mapRect = mapRectInWindow ?: return@awaitEachGesture
-
                             hapticArm()
                             dragState = DragState(
                                 active = true,
@@ -444,17 +401,14 @@ fun SituationBoardScreen(
                                 ),
                                 wobble = true
                             )
-
                             while (true) {
                                 val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
-
                                 if (change.changedToUp()) {
                                     dropPayloadIfPossible()
                                     dragState = DragState(active = false)
                                     break
                                 }
-
                                 change.consumeAllChanges()
                                 val mapRect2 = mapRectInWindow ?: continue
                                 dragState = dragState.copy(
@@ -483,7 +437,6 @@ fun SituationBoardScreen(
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
 
-                    // 현장 마커
                     if (lat != null && lng != null) {
                         val fireType = FireType.from(incident?.meta?.fireType)
                         val markerRes = MarkerIconMapper.markerResFor(fireType)
@@ -520,29 +473,15 @@ fun SituationBoardScreen(
                             LaunchedEffect(pv.position) { st.position = pv.position }
 
                             val equipRaw = pv.equipment
-                            val equipTrim = equipRaw.trim()
-
                             val iconRes = VehicleIconMapper.iconResForEquip(equipRaw)
-
-                            android.util.Log.d(
-                                "MarthianEquip",
-                                "equipRaw='${equipRaw}' equipTrim='${equipTrim}' iconRes=$iconRes"
-                            )
-
-                            if (equipTrim.contains("포크")) {
-                                android.util.Log.d(
-                                    "MarthianFork",
-                                    "FOUND fork pvId=${pv.id} pos=${pv.position}"
-                                )
-                            }
-
                             val label = VehicleIconMapper.deptLabel(pv.department)
 
                             val scale = vehicleScaleFor(equipRaw)
                             val sized = (iconSize * scale).coerceIn(48.dp, 220.dp)
 
-                            // ✅ (향남) 같은 캡션을 아이콘에 “거의 붙게”
-                            val capOffset = (-14).dp
+                            // ✅ 이 부분을 수정하세요!
+                            // 여백이 제거된 새 아이콘을 쓰시면 -2.dp 하나로 모든 차량 간격이 통일됩니다.
+                            val capOffset = (-2).dp
 
                             if (iconRes != 0) {
                                 Marker(
@@ -553,7 +492,7 @@ fun SituationBoardScreen(
                                     captionText = label,
                                     captionColor = Color.White,
                                     captionHaloColor = Color.Black,
-                                    captionOffset = capOffset
+                                    captionOffset = capOffset // 수정된 값이 여기 적용됩니다.
                                 )
                             } else {
                                 Marker(
@@ -569,7 +508,6 @@ fun SituationBoardScreen(
                 }
             }
 
-            // 지도 로딩
             if (!mapLoaded) {
                 Box(
                     modifier = Modifier
@@ -581,7 +519,6 @@ fun SituationBoardScreen(
                 }
             }
 
-            // 상단 우측 버튼
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -613,10 +550,8 @@ fun SituationBoardScreen(
                 ) { Text("EXIT") }
             }
 
-            // 하단 트레이(패널 켜지면 숨김)
             if (!panelActive && showTray) {
                 val scroll = rememberScrollState()
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -633,9 +568,7 @@ fun SituationBoardScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(text = "(${placedCount}/${totalToPlace})", color = MarsOrange)
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -672,12 +605,10 @@ fun SituationBoardScreen(
                 }
             }
 
-            // 드래그 프리뷰
             if (dragState.active && dragState.payload != null) {
                 val payload = dragState.payload!!
                 val iconRes = VehicleIconMapper.iconResForEquip(payload.equipment)
                 val label = VehicleIconMapper.deptLabel(payload.department)
-
                 Box(
                     modifier = Modifier.offset {
                         IntOffset(
@@ -691,9 +622,6 @@ fun SituationBoardScreen(
             }
         }
 
-        // =========================
-        // 우측 패널
-        // =========================
         if (panelActive) {
             Box(
                 modifier = Modifier
@@ -702,7 +630,6 @@ fun SituationBoardScreen(
                     .background(BgBlack)
                     .border(1.dp, BorderGray)
             ) {
-                // 패널 닫기(좌→우)
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -717,12 +644,10 @@ fun SituationBoardScreen(
                                 },
                                 onHorizontalDrag = { change, dragAmount ->
                                     change.consumeAllChanges()
-
                                     dragAccumX += dragAmount
                                     val dy = abs(change.position.y - lastPos.y)
                                     dragAccumY += dy
                                     lastPos = change.position
-
                                     val mostlyH = dragAccumX > dragAccumY * 1.3f
                                     if (mostlyH && dragAccumX >= triggerPx) {
                                         rightMode = RightPanelMode.NONE
@@ -742,29 +667,22 @@ fun SituationBoardScreen(
                         onForceStatus = { rightMode = RightPanelMode.FORCE_STATUS },
                         onClose = { rightMode = RightPanelMode.NONE }
                     )
-
                     RightPanelMode.BRIEFING -> BriefingPanel(
                         incidentViewModel = incidentViewModel,
                         onBackToHub = { rightMode = RightPanelMode.HUB },
                         onClose = { rightMode = RightPanelMode.NONE }
                     )
-
                     RightPanelMode.FORCE_STATUS -> ForceStatusPanel(
                         incidentViewModel = incidentViewModel,
                         onBackToHub = { rightMode = RightPanelMode.HUB },
                         onClose = { rightMode = RightPanelMode.NONE }
                     )
-
                     else -> {}
                 }
             }
         }
     }
 }
-
-/* =========================
-   우측 패널 UI들
-   ========================= */
 
 @Composable
 private fun HubPanel(
@@ -773,7 +691,6 @@ private fun HubPanel(
     onClose: () -> Unit
 ) {
     val vScroll = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -793,28 +710,20 @@ private fun HubPanel(
                     .noRippleClick { onClose() }
             )
         }
-
         PanelButton(title = "브리핑 모드", desc = "현장 정보 + 편성/배치 요약") { onBriefing() }
         PanelButton(title = "소방력현황", desc = "현재(배치) + 참고(편성) 집계") { onForceStatus() }
-
         Spacer(Modifier.height(10.dp))
-
         Text(
             text = "※ 허브는 우→좌 슬라이딩으로 열고\n※ 패널은 좌→우 슬라이딩으로 닫습니다.",
             color = TextPrimary.copy(alpha = 0.75f),
             fontSize = 12.sp
         )
-
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun PanelButton(
-    title: String,
-    desc: String,
-    onClick: () -> Unit
-) {
+private fun PanelButton(title: String, desc: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -829,10 +738,6 @@ private fun PanelButton(
     }
 }
 
-/* =========================
-   브리핑 패널
-   ========================= */
-
 @Composable
 private fun BriefingPanel(
     incidentViewModel: IncidentViewModel,
@@ -840,10 +745,8 @@ private fun BriefingPanel(
     onClose: () -> Unit
 ) {
     val vScroll = rememberScrollState()
-
     val incident by incidentViewModel.incident.collectAsState()
     val meta = incident?.meta
-
     val placed = incidentViewModel.getPlacedCount()
 
     fun show(v: String?): String = v?.trim()?.takeIf { it.isNotBlank() } ?: "-"
@@ -868,17 +771,8 @@ private fun BriefingPanel(
         ) {
             rows.forEach { (k, v) ->
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = k,
-                        color = MarsOrange,
-                        fontSize = 12.sp,
-                        modifier = Modifier.width(90.dp)
-                    )
-                    Text(
-                        text = v,
-                        color = DamageRed,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = k, color = MarsOrange, fontSize = 12.sp, modifier = Modifier.width(90.dp))
+                    Text(text = v, color = DamageRed, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -969,14 +863,9 @@ private fun BriefingPanel(
             color = TextPrimary.copy(alpha = 0.75f),
             fontSize = 12.sp
         )
-
         Spacer(Modifier.height(24.dp))
     }
 }
-
-/* =========================
-   소방력현황
-   ========================= */
 
 @Composable
 private fun ForceStatusPanel(
@@ -985,7 +874,6 @@ private fun ForceStatusPanel(
     onClose: () -> Unit
 ) {
     val vScroll = rememberScrollState()
-
     val placed = incidentViewModel.placedVehicles
 
     val actualEquipCounts: List<Pair<String, Int>> = remember(placed) {
@@ -1083,21 +971,15 @@ private fun ForceStatusPanel(
                 Spacer(Modifier.height(6.dp))
             }
         }
-
         Spacer(Modifier.height(16.dp))
         Text(
             text = "※ 집계 기준: 현재(실제 배치=지도 마커)",
             color = TextPrimary.copy(alpha = 0.75f),
             fontSize = 12.sp
         )
-
         Spacer(Modifier.height(24.dp))
     }
 }
-
-/* =========================
-   공통 UI
-   ========================= */
 
 @Composable
 private fun SectionTitle(text: String) {
@@ -1131,12 +1013,7 @@ private fun InfoRowCard(rows: List<Pair<String, String>>) {
     ) {
         rows.forEach { (k, v) ->
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = k,
-                    color = MarsOrange,
-                    fontSize = 12.sp,
-                    modifier = Modifier.width(90.dp)
-                )
+                Text(text = k, color = MarsOrange, fontSize = 12.sp, modifier = Modifier.width(90.dp))
                 Text(text = v, color = TextPrimary, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -1144,14 +1021,7 @@ private fun InfoRowCard(rows: List<Pair<String, String>>) {
 }
 
 private fun Modifier.noRippleClick(onClick: () -> Unit): Modifier =
-    this.clickable(
-        interactionSource = MutableInteractionSource(),
-        indication = null
-    ) { onClick() }
-
-/* =========================
-   트레이 드래그/칩
-   ========================= */
+    this.clickable(interactionSource = MutableInteractionSource(), indication = null) { onClick() }
 
 @Composable
 private fun TrayChipDraggableAfterLongPress(
@@ -1164,7 +1034,6 @@ private fun TrayChipDraggableAfterLongPress(
     modifier: Modifier = Modifier
 ) {
     var chipTopLeftInWindow by remember { mutableStateOf(Offset.Zero) }
-
     Box(
         modifier = modifier
             .onGloballyPositioned { coords ->
@@ -1185,11 +1054,7 @@ private fun TrayChipDraggableAfterLongPress(
 }
 
 @Composable
-private fun TrayChip(
-    iconRes: Int,
-    text: String,
-    wobble: Boolean
-) {
+private fun TrayChip(iconRes: Int, text: String, wobble: Boolean) {
     var sign by remember { mutableStateOf(1f) }
     LaunchedEffect(wobble) {
         if (!wobble) {
@@ -1201,9 +1066,7 @@ private fun TrayChip(
             delay(90)
         }
     }
-
     val rot = if (wobble) 4f * sign else 0f
-
     Row(
         modifier = Modifier
             .height(40.dp)
@@ -1221,11 +1084,6 @@ private fun TrayChip(
             )
             Spacer(Modifier.width(8.dp))
         }
-
-        Text(
-            text = text,
-            color = TextPrimary,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text = text, color = TextPrimary, fontWeight = FontWeight.SemiBold)
     }
 }
