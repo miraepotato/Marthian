@@ -144,6 +144,13 @@ fun SituationBoardScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
+    // ✅ [1번 작업 추가] NCP 역지오코딩 레포지토리 초기화
+    val reverseRepo = remember {
+        com.example.marthianclean.network.ReverseGeocodingRepository(
+            com.example.marthianclean.network.RetrofitClient.reverseGeocodingService
+        )
+    }
+
     val cameraPositionState = rememberCameraPositionState()
     val markerState = remember { MarkerState() }
     var mapLoaded by remember { mutableStateOf(false) }
@@ -292,6 +299,28 @@ fun SituationBoardScreen(
 
         incidentViewModel.updateSceneLocationFromDrag(context, newLatLng)
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+
+        // ==========================================
+        // ✅ [1번 작업 추가] 현장 마커 드롭 시 Reverse Geocoding 호출
+        // ==========================================
+        coroutineScope.launch {
+            // 주소 확인 중 임시 텍스트 표시 (ViewModel에 해당 함수가 있다는 가정)
+            incidentViewModel.updateAddress("주소 위치 확인 중...")
+
+            val outcome = reverseRepo.reverse(newLatLng.latitude, newLatLng.longitude)
+
+            when (outcome) {
+                is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Ok -> {
+                    incidentViewModel.updateAddress(outcome.address)
+                    persistNow() // 로컬 DB 저장 동기화
+                }
+                is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Fail -> {
+                    incidentViewModel.updateAddress("주소 변환 실패")
+                    android.util.Log.e("Marthian", "역지오코딩 실패: ${outcome.reason}")
+                }
+            }
+        }
+        // ==========================================
     }
 
     val panelActive = rightMode != RightPanelMode.NONE

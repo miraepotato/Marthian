@@ -8,12 +8,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    // =========================
-    // 1) NCP Geocoding / ReverseGeocoding 공용 OkHttp
-    // =========================
     private val ncpOkHttp: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            // 상세 로그 확인을 위해 BODY 유지
+            level = HttpLoggingInterceptor.Level.BODY
         }
 
         OkHttpClient.Builder()
@@ -28,9 +26,7 @@ object RetrofitClient {
             .build()
     }
 
-    // =========================
-    // 2) Forward Geocoding (형님 기존)
-    // =========================
+    // ✅ 모든 NCP Map API는 이제 이 베이스 주소를 공용으로 사용합니다.
     private val ncpRetrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://maps.apigw.ntruss.com/")
@@ -43,25 +39,11 @@ object RetrofitClient {
         ncpRetrofit.create(NaverGeocodingService::class.java)
     }
 
-    // =========================
-    // ✅ 3) Reverse Geocoding
-    // =========================
-    private val reverseRetrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            // Reverse는 보통 이 도메인으로 제공됩니다.
-            .baseUrl("https://naveropenapi.apigw.ntruss.com/")
-            .client(ncpOkHttp)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
     val reverseGeocodingService: NaverReverseGeocodingService by lazy {
-        reverseRetrofit.create(NaverReverseGeocodingService::class.java)
+        ncpRetrofit.create(NaverReverseGeocodingService::class.java)
     }
 
-    // =========================
-    // 4) Naver OpenAPI Local Search (openapi.naver.com)
-    // =========================
+    // ✅ 네이버 검색 API (별도 도메인 유지)
     private val openApiRetrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://openapi.naver.com/")

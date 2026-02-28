@@ -74,6 +74,19 @@ class IncidentViewModel : ViewModel() {
         _incident.value = cur.copy(meta = newMeta)
     }
 
+    // ==========================================
+    // ✅ [1번 작업 추가] UI에서 주소를 직접 업데이트하기 위한 함수
+    // 현장정보의 '재난발생위치' 메타데이터도 함께 동기화되도록 안전하게 처리했습니다.
+    // ==========================================
+    fun updateAddress(newAddress: String) {
+        val cur = _incident.value ?: return
+        val newMeta = cur.meta.copy(재난발생위치 = newAddress)
+        _incident.value = cur.copy(
+            address = newAddress,
+            meta = newMeta
+        )
+    }
+
     fun setIncidentAndRestoreAll(value: Incident) {
         _incident.value = value
 
