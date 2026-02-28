@@ -72,15 +72,9 @@ private val TextPrimary = Color(0xFFF0F0F0)
 private val BgBlack = Color(0xFF0E0E0E)
 private val BorderGray = Color(0xFF2E2E2E)
 
-private enum class RightPanelMode {
-    NONE, HUB, BRIEFING, FORCE_STATUS
-}
+private enum class RightPanelMode { NONE, HUB, BRIEFING, FORCE_STATUS }
 
-private data class DragPayload(
-    val id: String,
-    val department: String,
-    val equipment: String
-)
+private data class DragPayload(val id: String, val department: String, val equipment: String)
 
 private data class DragState(
     val active: Boolean = false,
@@ -138,17 +132,13 @@ fun SituationBoardScreen(
     val incident by incidentViewModel.incident.collectAsState()
 
     var rightMode by remember { mutableStateOf(RightPanelMode.NONE) }
-
     var isSectorMode by remember { mutableStateOf(false) }
     var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
 
-    // ✅ [1번 작업 추가] NCP 역지오코딩 레포지토리 초기화
     val reverseRepo = remember {
-        com.example.marthianclean.network.ReverseGeocodingRepository(
-            com.example.marthianclean.network.RetrofitClient.reverseGeocodingService
-        )
+        com.example.marthianclean.network.ReverseGeocodingRepository(com.example.marthianclean.network.RetrofitClient.reverseGeocodingService)
     }
 
     val cameraPositionState = rememberCameraPositionState()
@@ -164,7 +154,6 @@ fun SituationBoardScreen(
     var mapRectInWindow by remember { mutableStateOf<Rect?>(null) }
 
     var dragState by remember { mutableStateOf(DragState()) }
-
     var sceneDragActive by remember { mutableStateOf(false) }
     var sceneDragWindowPos by remember { mutableStateOf(Offset.Zero) }
 
@@ -188,36 +177,26 @@ fun SituationBoardScreen(
     val sceneIconBaseSize: Dp = 90.dp
 
     var didInitialCam by remember { mutableStateOf(false) }
+
+    // ✅ 줌 레벨 기본값 설정 (17.5 = 약 1cm 당 20m)
+    val defaultZoom = 17.5
+
     LaunchedEffect(lat, lng, mapLoaded, showTray, incidentViewModel.preferredMapZoom) {
         if (!didInitialCam && mapLoaded && lat != null && lng != null) {
             didInitialCam = true
             val pos = LatLng(lat, lng)
             markerState.position = pos
-            cameraPositionState.animate(
-                update = CameraUpdate.scrollTo(pos),
-                animation = CameraAnimation.Easing,
-                durationMs = 700
-            )
-            val targetZoom = incidentViewModel.preferredMapZoom ?: (if (showTray) 18.0 else 16.0)
-            cameraPositionState.animate(
-                update = CameraUpdate.zoomTo(targetZoom),
-                animation = CameraAnimation.Easing,
-                durationMs = 320
-            )
+            cameraPositionState.animate(update = CameraUpdate.scrollTo(pos), animation = CameraAnimation.Easing, durationMs = 700)
+
+            val targetZoom = incidentViewModel.preferredMapZoom ?: defaultZoom
+            cameraPositionState.animate(update = CameraUpdate.zoomTo(targetZoom), animation = CameraAnimation.Easing, durationMs = 320)
         }
     }
 
-    var didZoomForTray by remember { mutableStateOf(false) }
-    LaunchedEffect(showTray, mapLoaded, didInitialCam, incidentViewModel.preferredMapZoom) {
-        if (incidentViewModel.preferredMapZoom != null) return@LaunchedEffect
-        if (!didZoomForTray && showTray && mapLoaded && didInitialCam) {
-            didZoomForTray = true
-            delay(120)
-            cameraPositionState.animate(
-                update = CameraUpdate.zoomTo(18.0),
-                animation = CameraAnimation.Easing,
-                durationMs = 450
-            )
+    // ✅ 지도를 확대/축소하고 멈추면 해당 줌 레벨을 ViewModel에 저장하여 상태 유지
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (!cameraPositionState.isMoving && mapLoaded) {
+            incidentViewModel.setMapPreferredZoom(cameraPositionState.position.zoom)
         }
     }
 
@@ -227,9 +206,7 @@ fun SituationBoardScreen(
         view.performHapticFeedback(HapticFeedbackConstants.DRAG_START)
     }
 
-    fun persistNow() {
-        incidentViewModel.saveCurrentIncident(context)
-    }
+    fun persistNow() { incidentViewModel.saveCurrentIncident(context) }
 
     fun dropPayloadIfPossible() {
         val mapRect = mapRectInWindow ?: return
@@ -244,12 +221,7 @@ fun SituationBoardScreen(
         val localY = (dropPos.y - mapRect.top).toFloat()
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
-        incidentViewModel.placeVehicle(
-            id = payload.id,
-            department = payload.department,
-            equipment = payload.equipment,
-            latLng = latLng
-        )
+        incidentViewModel.placeVehicle(payload.id, payload.department, payload.equipment, latLng)
         persistNow()
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
@@ -277,13 +249,11 @@ fun SituationBoardScreen(
         val mapObj = naverMapObj ?: return false
         val ilat = incident?.latitude ?: return false
         val ilng = incident?.longitude ?: return false
-        val scenePos = LatLng(ilat, ilng)
-        val pt = mapObj.projection.toScreenLocation(scenePos)
+        val pt = mapObj.projection.toScreenLocation(LatLng(ilat, ilng))
         val dx = pt.x - localPosInMap.x
         val dy = pt.y - localPosInMap.y
         val dist = sqrt(dx * dx + dy * dy)
-        val threshold = with(density) { 60.dp.toPx() }
-        return dist <= threshold
+        return dist <= with(density) { 60.dp.toPx() }
     }
 
     fun dropSceneIfPossible() {
@@ -300,38 +270,24 @@ fun SituationBoardScreen(
         incidentViewModel.updateSceneLocationFromDrag(context, newLatLng)
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
 
-        // ==========================================
-        // ✅ [1번 작업 추가] 현장 마커 드롭 시 Reverse Geocoding 호출
-        // ==========================================
         coroutineScope.launch {
-            // 주소 확인 중 임시 텍스트 표시 (ViewModel에 해당 함수가 있다는 가정)
             incidentViewModel.updateAddress("주소 위치 확인 중...")
-
-            val outcome = reverseRepo.reverse(newLatLng.latitude, newLatLng.longitude)
-
-            when (outcome) {
+            when (val outcome = reverseRepo.reverse(newLatLng.latitude, newLatLng.longitude)) {
                 is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Ok -> {
                     incidentViewModel.updateAddress(outcome.address)
-                    persistNow() // 로컬 DB 저장 동기화
+                    persistNow()
                 }
                 is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Fail -> {
                     incidentViewModel.updateAddress("주소 변환 실패")
-                    android.util.Log.e("Marthian", "역지오코딩 실패: ${outcome.reason}")
                 }
             }
         }
-        // ==========================================
     }
 
     val panelActive = rightMode != RightPanelMode.NONE
 
     Row(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        Box(
-            modifier = Modifier
-                .weight(if (panelActive) 2f else 1f)
-                .fillMaxHeight()
-                .background(Color.Black)
-        ) {
+        Box(modifier = Modifier.weight(if (panelActive) 2f else 1f).fillMaxHeight().background(Color.Black)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -364,9 +320,7 @@ fun SituationBoardScreen(
                                         break
                                     }
                                     if (isRightEdge && mostlyHorizontal && accX <= -triggerPx) {
-                                        if (rightMode == RightPanelMode.NONE) {
-                                            rightMode = RightPanelMode.HUB
-                                        }
+                                        if (rightMode == RightPanelMode.NONE) rightMode = RightPanelMode.HUB
                                         break
                                     }
                                 }
@@ -374,7 +328,6 @@ fun SituationBoardScreen(
                             }
 
                             val longPressChange = awaitLongPressOrCancellation(down.id)
-
                             if (longPressChange == null) {
                                 if (isSectorMode) {
                                     val payload = findNearestPlacedPayload(down.position)
@@ -384,15 +337,11 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            val isScene = isNearSceneMarker(longPressChange.position)
-                            if (isScene) {
+                            if (isNearSceneMarker(longPressChange.position)) {
                                 val mapRect = mapRectInWindow ?: return@awaitEachGesture
                                 hapticArm()
                                 sceneDragActive = true
-                                sceneDragWindowPos = Offset(
-                                    mapRect.left + longPressChange.position.x,
-                                    mapRect.top + longPressChange.position.y
-                                )
+                                sceneDragWindowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y)
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -403,10 +352,7 @@ fun SituationBoardScreen(
                                     }
                                     change.consumeAllChanges()
                                     val mapRect2 = mapRectInWindow ?: continue
-                                    sceneDragWindowPos = Offset(
-                                        mapRect2.left + change.position.x,
-                                        mapRect2.top + change.position.y
-                                    )
+                                    sceneDragWindowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y)
                                 }
                                 return@awaitEachGesture
                             }
@@ -414,15 +360,7 @@ fun SituationBoardScreen(
                             val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
                             val mapRect = mapRectInWindow ?: return@awaitEachGesture
                             hapticArm()
-                            dragState = DragState(
-                                active = true,
-                                payload = payload,
-                                windowPos = Offset(
-                                    mapRect.left + longPressChange.position.x,
-                                    mapRect.top + longPressChange.position.y
-                                ),
-                                wobble = true
-                            )
+                            dragState = DragState(active = true, payload = payload, windowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y), wobble = true)
                             while (true) {
                                 val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -433,13 +371,7 @@ fun SituationBoardScreen(
                                 }
                                 change.consumeAllChanges()
                                 val mapRect2 = mapRectInWindow ?: continue
-                                dragState = dragState.copy(
-                                    windowPos = Offset(
-                                        mapRect2.left + change.position.x,
-                                        mapRect2.top + change.position.y
-                                    ),
-                                    wobble = true
-                                )
+                                dragState = dragState.copy(windowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y), wobble = true)
                             }
                         }
                     }
@@ -451,13 +383,7 @@ fun SituationBoardScreen(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
                     properties = MapProperties(mapType = if (isSatellite) MapType.Satellite else MapType.Basic),
-                    uiSettings = MapUiSettings(
-                        isZoomControlEnabled = false,
-                        isCompassEnabled = false,
-                        isLocationButtonEnabled = false,
-                        isRotateGesturesEnabled = false,
-                        isTiltGesturesEnabled = false
-                    ),
+                    uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false, isRotateGesturesEnabled = false, isTiltGesturesEnabled = false),
                     onMapLoaded = { mapLoaded = true }
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
@@ -475,262 +401,103 @@ fun SituationBoardScreen(
                             markerState.position = mapObj.projection.fromScreenLocation(PointF(localX, localY))
                         }
                         LaunchedEffect(lat, lng, sceneDragActive) {
-                            if (!sceneDragActive) {
-                                markerState.position = LatLng(lat, lng)
-                            }
+                            if (!sceneDragActive) markerState.position = LatLng(lat, lng)
                         }
 
                         val dynamicSceneSize = (sceneIconBaseSize.value * zoomFactor).coerceAtLeast(1f).dp
-
-                        Marker(
-                            state = markerState,
-                            icon = OverlayImage.fromResource(markerRes),
-                            width = dynamicSceneSize,
-                            height = dynamicSceneSize,
-                            isIconPerspectiveEnabled = false,
-                            captionText = "현장",
-                            captionColor = Color.White,
-                            captionHaloColor = Color.Black
-                        )
+                        Marker(state = markerState, icon = OverlayImage.fromResource(markerRes), width = dynamicSceneSize, height = dynamicSceneSize, isIconPerspectiveEnabled = false, captionText = "현장", captionColor = Color.White, captionHaloColor = Color.Black)
                     }
 
-                    // ✅ 차량 렌더링
                     incidentViewModel.placedVehicles.forEach { pv ->
                         key(pv.id) {
                             val st = rememberMarkerState(position = pv.position)
-
-                            LaunchedEffect(pv.position) {
-                                st.position = pv.position
-                            }
-
+                            LaunchedEffect(pv.position) { st.position = pv.position }
                             val equipRaw = pv.equipment
                             val iconRes = VehicleIconMapper.iconResForEquip(equipRaw)
                             val label = VehicleIconMapper.deptLabel(pv.department)
                             val scale = vehicleScaleFor(equipRaw)
                             val baseSize = 26.dp
-
                             val markerHeight = (baseSize.value * scale * zoomFactor).coerceAtLeast(1f).dp
-                            val markerWidth = if (equipRaw.contains("탱크") || equipRaw.contains("급수")) {
-                                (markerHeight.value * 1.6f).dp
-                            } else {
-                                markerHeight
-                            }
+                            val markerWidth = if (equipRaw.contains("탱크") || equipRaw.contains("급수")) (markerHeight.value * 1.6f).dp else markerHeight
 
-                            Marker(
-                                state = st,
-                                icon = OverlayImage.fromResource(iconRes),
-                                width = markerWidth,
-                                height = markerHeight,
-                                isIconPerspectiveEnabled = false,
-                                captionText = label,
-                                captionColor = Color.White,
-                                captionHaloColor = Color.Black,
-                                captionOffset = 0.dp,
-                                // 💡 [해결 1] 궤도 이탈 & 숨김 방지를 위한 차량 정중앙 고정!
-                                anchor = Offset(0.5f, 0.5f)
-                            )
+                            Marker(state = st, icon = OverlayImage.fromResource(iconRes), width = markerWidth, height = markerHeight, isIconPerspectiveEnabled = false, captionText = label, captionColor = Color.White, captionHaloColor = Color.Black, captionOffset = 0.dp, anchor = Offset(0.5f, 0.5f))
                         }
                     }
 
                     fun rotateMapTo(targetBearing: Double, targetLatLng: LatLng) {
                         coroutineScope.launch {
-                            cameraPositionState.animate(
-                                update = CameraUpdate.toCameraPosition(
-                                    com.naver.maps.map.CameraPosition(
-                                        targetLatLng,
-                                        cameraPositionState.position.zoom,
-                                        0.0,
-                                        targetBearing % 360.0
-                                    )
-                                ),
-                                animation = CameraAnimation.Easing,
-                                durationMs = 800
-                            )
+                            cameraPositionState.animate(update = CameraUpdate.toCameraPosition(com.naver.maps.map.CameraPosition(targetLatLng, cameraPositionState.position.zoom, 0.0, targetBearing % 360.0)), animation = CameraAnimation.Easing, durationMs = 800)
                         }
                     }
 
-                    // ✅ 마법의 isFlat & 크기 비율 연동 간격 로직
                     if (isSectorMode && sectorTargetVehicleId != null) {
                         val targetVehicle = incidentViewModel.placedVehicles.find { it.id == sectorTargetVehicleId }
-
                         targetVehicle?.let { vehicle ->
                             val centerLat = vehicle.position.latitude
                             val centerLng = vehicle.position.longitude
                             val scale = vehicleScaleFor(vehicle.equipment)
-
-                            // 💡 [해결 2] 차량 크기에 비례하여 완벽하게 여백 확보! (겹침 방지)
                             val dist = 0.000055 * scale
                             val cosLat = kotlin.math.cos(centerLat * Math.PI / 180.0)
                             val latOffset = dist
                             val lngOffset = dist / cosLat
-
                             val arrowSize = (40f * zoomFactor).coerceAtLeast(1f).dp
 
-                            // 북쪽 화살표 (클릭 시 북쪽(180도)이 화면 아래로)
-                            Marker(
-                                state = MarkerState(position = LatLng(centerLat + latOffset, centerLng)),
-                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_up),
-                                width = arrowSize, height = arrowSize,
-                                isFlat = true, // 💡 [해결 3] 지도를 돌리면 이미지도 알아서 예쁘게 착착 돌아감!
-                                angle = 0f,
-                                anchor = Offset(0.5f, 0.5f),
-                                zIndex = 100, // 💡 차량보다 항상 위에 표시!
-                                onClick = { rotateMapTo(180.0, vehicle.position); true }
-                            )
-                            // 남쪽 화살표
-                            Marker(
-                                state = MarkerState(position = LatLng(centerLat - latOffset, centerLng)),
-                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_down),
-                                width = arrowSize, height = arrowSize,
-                                isFlat = true,
-                                angle = 0f,
-                                anchor = Offset(0.5f, 0.5f),
-                                zIndex = 100,
-                                onClick = { rotateMapTo(0.0, vehicle.position); true }
-                            )
-                            // 동쪽 화살표
-                            Marker(
-                                state = MarkerState(position = LatLng(centerLat, centerLng + lngOffset)),
-                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_right),
-                                width = arrowSize, height = arrowSize,
-                                isFlat = true,
-                                angle = 0f,
-                                anchor = Offset(0.5f, 0.5f),
-                                zIndex = 100,
-                                onClick = { rotateMapTo(270.0, vehicle.position); true }
-                            )
-                            // 서쪽 화살표
-                            Marker(
-                                state = MarkerState(position = LatLng(centerLat, centerLng - lngOffset)),
-                                icon = OverlayImage.fromResource(R.drawable.ic_arrow_left),
-                                width = arrowSize, height = arrowSize,
-                                isFlat = true,
-                                angle = 0f,
-                                anchor = Offset(0.5f, 0.5f),
-                                zIndex = 100,
-                                onClick = { rotateMapTo(90.0, vehicle.position); true }
-                            )
+                            Marker(state = MarkerState(position = LatLng(centerLat + latOffset, centerLng)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_up), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(180.0, vehicle.position); true })
+                            Marker(state = MarkerState(position = LatLng(centerLat - latOffset, centerLng)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_down), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(0.0, vehicle.position); true })
+                            Marker(state = MarkerState(position = LatLng(centerLat, centerLng + lngOffset)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_right), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(270.0, vehicle.position); true })
+                            Marker(state = MarkerState(position = LatLng(centerLat, centerLng - lngOffset)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_left), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(90.0, vehicle.position); true })
                         }
                     }
                 }
             }
 
+            // ✅ 상단 버튼 3개 배치 (아이콘 제거 완료, 브리핑 모드 클릭 시 허브 호출)
             if (mapLoaded) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 16.dp, end = 16.dp)
-                        .background(
-                            color = if (isSectorMode) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .border(1.dp, if (isSectorMode) Color.White else BorderGray, RoundedCornerShape(8.dp))
-                        .clickable {
-                            isSectorMode = !isSectorMode
-                            if (!isSectorMode) sectorTargetVehicleId = null
-                        }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
+                    TopBarButton(text = "차량편성/입력", onClick = onEdit)
+                    TopBarButton(
                         text = if (isSectorMode) "방면지휘 ON" else "방면지휘",
-                        color = if (isSectorMode) Color.White else MarsOrange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        isActive = isSectorMode,
+                        onClick = { isSectorMode = !isSectorMode; if (!isSectorMode) sectorTargetVehicleId = null }
                     )
+                    TopBarButton(text = "브리핑모드", onClick = { rightMode = RightPanelMode.HUB })
                 }
             }
 
             if (!mapLoaded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.55f)),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
                     Text(text = "지도 로딩 중…", color = Color.White)
                 }
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = if (showTray) 90.dp else 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().align(Alignment.BottomEnd).padding(bottom = if (showTray) 90.dp else 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
-                    onClick = { isSatellite = !isSatellite },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f),
-                        contentColor = Color.White
-                    )
-                ) { Text(if (isSatellite) "SAT" else "BASIC") }
-
+                Button(onClick = { isSatellite = !isSatellite }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f), contentColor = Color.White)) { Text(if (isSatellite) "SAT" else "BASIC") }
                 Spacer(modifier = Modifier.width(10.dp))
-
-                Button(
-                    onClick = {
-                        incidentViewModel.clearIncident()
-                        incidentViewModel.clearPlacedVehicles()
-                        persistNow()
-                        onExit()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f),
-                        contentColor = MarsOrange
-                    )
-                ) { Text("EXIT") }
+                Button(onClick = { incidentViewModel.clearIncident(); incidentViewModel.clearPlacedVehicles(); persistNow(); onExit() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f), contentColor = MarsOrange)) { Text("EXIT") }
             }
 
             if (!panelActive && showTray) {
                 val scroll = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.55f))
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .navigationBarsPadding()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding()) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "배치 남음: $remainingToPlace", color = Color.White)
                         Spacer(Modifier.width(10.dp))
                         Text(text = "(${placedCount}/${totalToPlace})", color = MarsOrange)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(scroll),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically) {
                         notPlaced.forEach { item ->
                             TrayChipDraggableAfterLongPress(
-                                item = item,
-                                deptLabel = VehicleIconMapper.deptLabel(item.department),
-                                iconRes = VehicleIconMapper.iconResForEquip(item.equipment),
-                                onLift = { windowPos ->
-                                    hapticArm()
-                                    dragState = DragState(
-                                        active = true,
-                                        payload = DragPayload(item.id, item.department, item.equipment),
-                                        windowPos = windowPos,
-                                        wobble = true
-                                    )
-                                },
-                                onMove = { windowPos ->
-                                    if (dragState.active && dragState.payload?.id == item.id) {
-                                        dragState = dragState.copy(windowPos = windowPos, wobble = true)
-                                    }
-                                },
-                                onDrop = {
-                                    dropPayloadIfPossible()
-                                    dragState = DragState(active = false)
-                                },
+                                item = item, deptLabel = VehicleIconMapper.deptLabel(item.department), iconRes = VehicleIconMapper.iconResForEquip(item.equipment),
+                                onLift = { windowPos -> hapticArm(); dragState = DragState(active = true, payload = DragPayload(item.id, item.department, item.equipment), windowPos = windowPos, wobble = true) },
+                                onMove = { windowPos -> if (dragState.active && dragState.payload?.id == item.id) { dragState = dragState.copy(windowPos = windowPos, wobble = true) } },
+                                onDrop = { dropPayloadIfPossible(); dragState = DragState(active = false) },
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                         }
@@ -742,74 +509,37 @@ fun SituationBoardScreen(
                 val payload = dragState.payload!!
                 val iconRes = VehicleIconMapper.iconResForEquip(payload.equipment)
                 val label = VehicleIconMapper.deptLabel(payload.department)
-                Box(
-                    modifier = Modifier.offset {
-                        IntOffset(
-                            dragState.windowPos.x.roundToInt() - 70,
-                            dragState.windowPos.y.roundToInt() - 28
-                        )
-                    }
-                ) {
+                Box(modifier = Modifier.offset { IntOffset(dragState.windowPos.x.roundToInt() - 70, dragState.windowPos.y.roundToInt() - 28) }) {
                     TrayChip(iconRes = iconRes, text = label, wobble = true)
                 }
             }
         }
 
         if (panelActive) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(BgBlack)
-                    .border(1.dp, BorderGray)
-            ) {
+            Box(modifier = Modifier.weight(1f).fillMaxHeight().background(BgBlack).border(1.dp, BorderGray)) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(18.dp)
-                        .align(Alignment.CenterStart)
+                    modifier = Modifier.fillMaxHeight().width(18.dp).align(Alignment.CenterStart)
                         .pointerInput(Unit) {
                             detectHorizontalDragGestures(
-                                onDragStart = { start ->
-                                    dragAccumX = 0f
-                                    dragAccumY = 0f
-                                    lastPos = start
-                                },
+                                onDragStart = { start -> dragAccumX = 0f; dragAccumY = 0f; lastPos = start },
                                 onHorizontalDrag = { change, dragAmount ->
                                     change.consumeAllChanges()
                                     dragAccumX += dragAmount
-                                    val dy = abs(change.position.y - lastPos.y)
-                                    dragAccumY += dy
+                                    dragAccumY += abs(change.position.y - lastPos.y)
                                     lastPos = change.position
-                                    val mostlyH = dragAccumX > dragAccumY * 1.3f
-                                    if (mostlyH && dragAccumX >= triggerPx) {
-                                        rightMode = RightPanelMode.NONE
-                                        dragAccumX = 0f
-                                        dragAccumY = 0f
+                                    if (dragAccumX > dragAccumY * 1.3f && dragAccumX >= triggerPx) {
+                                        rightMode = RightPanelMode.NONE; dragAccumX = 0f; dragAccumY = 0f
                                     }
                                 },
-                                onDragEnd = { dragAccumX = 0f; dragAccumY = 0f },
-                                onDragCancel = { dragAccumX = 0f; dragAccumY = 0f }
+                                onDragEnd = { dragAccumX = 0f; dragAccumY = 0f }, onDragCancel = { dragAccumX = 0f; dragAccumY = 0f }
                             )
                         }
                 )
 
                 when (rightMode) {
-                    RightPanelMode.HUB -> HubPanel(
-                        onBriefing = { rightMode = RightPanelMode.BRIEFING },
-                        onForceStatus = { rightMode = RightPanelMode.FORCE_STATUS },
-                        onClose = { rightMode = RightPanelMode.NONE }
-                    )
-                    RightPanelMode.BRIEFING -> BriefingPanel(
-                        incidentViewModel = incidentViewModel,
-                        onBackToHub = { rightMode = RightPanelMode.HUB },
-                        onClose = { rightMode = RightPanelMode.NONE }
-                    )
-                    RightPanelMode.FORCE_STATUS -> ForceStatusPanel(
-                        incidentViewModel = incidentViewModel,
-                        onBackToHub = { rightMode = RightPanelMode.HUB },
-                        onClose = { rightMode = RightPanelMode.NONE }
-                    )
+                    RightPanelMode.HUB -> HubPanel(onBriefing = { rightMode = RightPanelMode.BRIEFING }, onForceStatus = { rightMode = RightPanelMode.FORCE_STATUS }, onClose = { rightMode = RightPanelMode.NONE })
+                    RightPanelMode.BRIEFING -> BriefingPanel(incidentViewModel = incidentViewModel, onBackToHub = { rightMode = RightPanelMode.HUB }, onClose = { rightMode = RightPanelMode.NONE })
+                    RightPanelMode.FORCE_STATUS -> ForceStatusPanel(incidentViewModel = incidentViewModel, onBackToHub = { rightMode = RightPanelMode.HUB }, onClose = { rightMode = RightPanelMode.NONE })
                     else -> {}
                 }
             }
@@ -817,6 +547,27 @@ fun SituationBoardScreen(
     }
 }
 
+// ✅ 아이콘 제거된 상단 바 버튼 컴포저블
+@Composable
+private fun TopBarButton(text: String, isActive: Boolean = false, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .background(color = if (isActive) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f), shape = RoundedCornerShape(8.dp))
+            .border(1.dp, if (isActive) Color.White else BorderGray, RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            color = if (isActive) Color.White else MarsOrange,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+}
+
+// ✅ 허브 화면 (안내 문구 삭제, 목록 이름 '브리핑', '소방력 현황'으로 수정)
 @Composable
 private fun HubPanel(
     onBriefing: () -> Unit,
@@ -825,32 +576,16 @@ private fun HubPanel(
 ) {
     val vScroll = rememberScrollState()
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(vScroll)
-            .padding(14.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(vScroll).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "허브", color = MarsOrange, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "닫기",
-                color = MarsOrange,
-                modifier = Modifier
-                    .border(1.dp, BorderGray)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .noRippleClick { onClose() }
-            )
+            Text(text = "닫기", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onClose() })
         }
-        PanelButton(title = "브리핑 모드", desc = "현장 정보 + 편성/배치 요약") { onBriefing() }
-        PanelButton(title = "소방력현황", desc = "현재(배치) + 참고(편성) 집계") { onForceStatus() }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = "※ 허브는 우→좌 슬라이딩으로 열고\n※ 패널은 좌→우 슬라이딩으로 닫습니다.",
-            color = TextPrimary.copy(alpha = 0.75f),
-            fontSize = 12.sp
-        )
+        PanelButton(title = "브리핑", desc = "현장 정보 + 편성/배치 요약") { onBriefing() }
+        PanelButton(title = "소방력 현황", desc = "현재(배치) + 참고(편성) 집계") { onForceStatus() }
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -858,12 +593,7 @@ private fun HubPanel(
 @Composable
 private fun PanelButton(title: String, desc: String, onClick: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, BorderGray)
-            .background(Color(0xFF111111))
-            .padding(14.dp)
-            .noRippleClick(onClick)
+        modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(14.dp).noRippleClick(onClick)
     ) {
         Text(text = title, color = TextPrimary, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
@@ -871,132 +601,88 @@ private fun PanelButton(title: String, desc: String, onClick: () -> Unit) {
     }
 }
 
+// ✅ 브리핑 패널 (헤더 고정, 차량 및 인원 연동 완료, 폰트 21sp 적용)
 @Composable
 private fun BriefingPanel(
     incidentViewModel: IncidentViewModel,
     onBackToHub: () -> Unit,
     onClose: () -> Unit
 ) {
-    val vScroll = rememberScrollState()
     val incident by incidentViewModel.incident.collectAsState()
     val meta = incident?.meta
-    val placed = incidentViewModel.getPlacedCount()
+
+    // 배치된 차량 현황 집계 (자동 총 00대)
+    val placed = incidentViewModel.placedVehicles
+    val totalVehicles = placed.size
+    val vehicleStr = "총 ${totalVehicles}대"
+
+    // 소방력 인원 처리 (입력값 + '명')
+    val personnelInput = meta?.소방력_인원?.trim()
+    val personnelStr = if (!personnelInput.isNullOrBlank()) "${personnelInput}명" else "-"
+
+    val weatherStr = "${meta?.기상_날씨 ?: "-"} / ${meta?.기상_기온 ?: "-"} / ${meta?.기상_풍향 ?: "-"} ${meta?.기상_풍속 ?: "-"}"
 
     fun show(v: String?): String = v?.trim()?.takeIf { it.isNotBlank() } ?: "-"
-    fun formatCelsius(raw: String): String {
-        val v = raw.trim()
-        if (v.isBlank() || v == "-") return "-"
-        if (v.contains("℃") || v.contains("°")) return v
-        return "${v}℃"
-    }
 
     val DamageRed = Color(0xFFFF1744)
 
-    @Composable
-    fun DamageRowCard(rows: List<Pair<String, String>>) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, BorderGray)
-                .background(Color(0xFF111111))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            rows.forEach { (k, v) ->
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = k, color = MarsOrange, fontSize = 12.sp, modifier = Modifier.width(90.dp))
-                    Text(text = v, color = DamageRed, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(vScroll)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        // ✅ 1. 스크롤 밖으로 빼낸 고정 헤더
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "브리핑", color = MarsOrange, fontWeight = FontWeight.Bold)
+            Text(text = "브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "허브",
-                color = MarsOrange,
-                modifier = Modifier
-                    .border(1.dp, BorderGray)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .noRippleClick { onBackToHub() }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "닫기",
-                color = MarsOrange,
-                modifier = Modifier
-                    .border(1.dp, BorderGray)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .noRippleClick { onClose() }
-            )
+            Text(text = "허브", color = MarsOrange, fontSize = 18.sp, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 14.dp, vertical = 10.dp).noRippleClick { onBackToHub() })
+            Spacer(Modifier.width(10.dp))
+            Text(text = "닫기", color = MarsOrange, fontSize = 18.sp, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 14.dp, vertical = 10.dp).noRippleClick { onClose() })
         }
-
-        SectionTitle("현장 핵심")
-        InfoCard("위치", show(incident?.address))
-        InfoCard("처종", show(meta?.fireType))
-        InfoCard("신고접수", show(meta?.신고접수))
-        InfoCard("화재원인", show(meta?.화재원인))
-        if (meta?.memo?.isNotBlank() == true) {
-            InfoCard("메모", show(meta?.memo))
-        }
-
-        SectionTitle("시간")
-        InfoRowCard(
-            rows = listOf(
-                "초진시간" to show(meta?.초진시간),
-                "완진시간" to show(meta?.완진시간),
-                "선착대도착" to show(meta?.선착대도착시간)
-            )
-        )
-
-        SectionTitle("피해")
-        DamageRowCard(
-            rows = listOf(
-                "인명피해" to show(meta?.인명피해현황),
-                "재산피해" to show(meta?.재산피해현황),
-                "대원피해" to show(meta?.대원피해현황)
-            )
-        )
-
-        SectionTitle("소방력")
-        InfoCard("차량", "${placed}대")
-
-        SectionTitle("기상")
-        InfoRowCard(
-            rows = listOf(
-                "날씨" to show(meta?.기상_날씨),
-                "기온" to formatCelsius(show(meta?.기상_기온)),
-                "풍향/풍속" to show(meta?.기상_풍향풍속)
-            )
-        )
-
-        SectionTitle("유관기관")
-        InfoRowCard(
-            rows = listOf(
-                "경찰" to show(meta?.유관기관_경찰),
-                "시청" to show(meta?.유관기관_시청),
-                "한전" to show(meta?.유관기관_한전),
-                "도시가스" to show(meta?.유관기관_도시가스),
-                "산불진화대(화성시)" to show(meta?.유관기관_산불진화대_화성시)
-            )
-        )
 
         Spacer(Modifier.height(16.dp))
-        Text(
-            text = "※ 지도:패널 = 2:1\n※ 편성 변경/귀소/교대 반영은 즉시 반영됩니다.",
-            color = TextPrimary.copy(alpha = 0.75f),
-            fontSize = 12.sp
-        )
-        Spacer(Modifier.height(24.dp))
+
+        // ✅ 2. 세로로 스크롤 가능한 본문 영역 (1열 나열)
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            BriefingRow("위치", show(incident?.address))
+            BriefingRow("처종", show(meta?.fireType))
+            BriefingRow("신고접수일시", show(meta?.신고접수일시))
+
+            val stageStr = show(meta?.대응단계)
+            val stageColor = if (stageStr.contains("단계")) DamageRed else TextPrimary
+            BriefingRow("대응단계", stageStr, valueColor = stageColor)
+
+            BriefingRow("화재원인", show(meta?.화재원인))
+            BriefingRow("초진시간", show(meta?.초진시간))
+            BriefingRow("완진시간", show(meta?.완진시간))
+            BriefingRow("선착대도착시간", show(meta?.선착대도착시간))
+
+            BriefingRow("인명피해", show(meta?.인명피해현황), valueColor = DamageRed)
+            BriefingRow("재산피해", show(meta?.재산피해현황), valueColor = DamageRed)
+            BriefingRow("대원피해", show(meta?.대원피해현황), valueColor = Color(0xFFFF9100))
+
+            // 차량, 인원 연동
+            BriefingRow("소방력_차량", vehicleStr)
+            BriefingRow("소방력_인원", personnelStr)
+
+            BriefingRow("날씨", weatherStr)
+
+            BriefingRow("유관기관_경찰", show(meta?.유관기관_경찰))
+            BriefingRow("유관기관_시청", show(meta?.유관기관_시청))
+            BriefingRow("유관기관_한전", show(meta?.유관기관_한전))
+            BriefingRow("유관기관_도시가스", show(meta?.유관기관_도시가스))
+            BriefingRow("유관기관_산불진화대(화성시)", show(meta?.유관기관_산불진화대_화성시))
+
+            Spacer(Modifier.height(40.dp))
+        }
+    }
+}
+
+// ✅ 노안 극복 폰트 21sp (약 90%), 두께 Medium 적용
+@Composable
+private fun BriefingRow(label: String, value: String, valueColor: Color = TextPrimary) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(text = "$label : ", color = Color.Gray, fontSize = 21.sp, fontWeight = FontWeight.Medium, modifier = Modifier.width(140.dp))
+        Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 21.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
     }
 }
 
@@ -1008,48 +694,19 @@ private fun ForceStatusPanel(
 ) {
     val vScroll = rememberScrollState()
     val placed = incidentViewModel.placedVehicles
-
-    val actualEquipCounts: List<Pair<String, Int>> = remember(placed) {
-        placed.groupingBy { it.equipment }
-            .eachCount()
-            .toList()
-            .sortedByDescending { it.second }
-    }
-
-    val actualDeptCounts: List<Pair<String, Int>> = remember(placed) {
-        placed.groupingBy { it.department }
-            .eachCount()
-            .toList()
-            .sortedByDescending { it.second }
-    }
+    val actualEquipCounts: List<Pair<String, Int>> = remember(placed) { placed.groupingBy { it.equipment }.eachCount().toList().sortedByDescending { it.second } }
+    val actualDeptCounts: List<Pair<String, Int>> = remember(placed) { placed.groupingBy { it.department }.eachCount().toList().sortedByDescending { it.second } }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(vScroll)
-            .padding(14.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(vScroll).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "소방력현황", color = MarsOrange, fontWeight = FontWeight.Bold)
+            Text(text = "소방력 현황", color = MarsOrange, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "허브",
-                color = MarsOrange,
-                modifier = Modifier
-                    .border(1.dp, BorderGray)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .noRippleClick { onBackToHub() }
-            )
+            Text(text = "허브", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onBackToHub() })
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = "닫기",
-                color = MarsOrange,
-                modifier = Modifier
-                    .border(1.dp, BorderGray)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .noRippleClick { onClose() }
-            )
+            Text(text = "닫기", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onClose() })
         }
 
         SectionTitle("현재(실제 배치) - 차종별")
@@ -1057,21 +714,10 @@ private fun ForceStatusPanel(
             Text(text = "현재 지도에 배치된 차량이 없습니다.", color = TextPrimary.copy(alpha = 0.75f))
         } else {
             actualEquipCounts.forEach { (equip, cnt) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, BorderGray)
-                        .background(Color(0xFF111111))
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     val iconRes = VehicleIconMapper.iconResForEquip(equip)
                     if (iconRes != 0) {
-                        Image(
-                            painter = painterResource(id = iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(10.dp))
                     }
                     Text(text = equip, color = TextPrimary, modifier = Modifier.weight(1f))
@@ -1086,72 +732,18 @@ private fun ForceStatusPanel(
             Text(text = "현재 지도에 배치된 차량이 없습니다.", color = TextPrimary.copy(alpha = 0.75f))
         } else {
             actualDeptCounts.forEach { (dept, cnt) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, BorderGray)
-                        .background(Color(0xFF111111))
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = VehicleIconMapper.deptLabel(dept),
-                        color = TextPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = VehicleIconMapper.deptLabel(dept), color = TextPrimary, modifier = Modifier.weight(1f))
                     Text(text = "${cnt}대", color = MarsOrange, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(6.dp))
             }
         }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "※ 집계 기준: 현재(실제 배치=지도 마커)",
-            color = TextPrimary.copy(alpha = 0.75f),
-            fontSize = 12.sp
-        )
-        Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text = text, color = MarsOrange, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun InfoCard(title: String, value: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, BorderGray)
-            .background(Color(0xFF111111))
-            .padding(14.dp)
-    ) {
-        Text(text = title, color = MarsOrange, fontSize = 12.sp)
-        Spacer(Modifier.height(6.dp))
-        Text(text = value, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun InfoRowCard(rows: List<Pair<String, String>>) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, BorderGray)
-            .background(Color(0xFF111111))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        rows.forEach { (k, v) ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(text = k, color = MarsOrange, fontSize = 12.sp, modifier = Modifier.width(90.dp))
-                Text(text = v, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-}
+private fun SectionTitle(text: String) { Text(text = text, color = MarsOrange, fontWeight = FontWeight.SemiBold) }
 
 private fun Modifier.noRippleClick(onClick: () -> Unit): Modifier =
     this.clickable(interactionSource = MutableInteractionSource(), indication = null) { onClick() }
@@ -1190,33 +782,15 @@ private fun TrayChipDraggableAfterLongPress(
 private fun TrayChip(iconRes: Int, text: String, wobble: Boolean) {
     var sign by remember { mutableStateOf(1f) }
     LaunchedEffect(wobble) {
-        if (!wobble) {
-            sign = 1f
-            return@LaunchedEffect
-        }
-        while (true) {
-            sign *= -1f
-            delay(90)
-        }
+        if (!wobble) { sign = 1f; return@LaunchedEffect }
+        while (true) { sign *= -1f; delay(90) }
     }
     val rot = if (wobble) 4f * sign else 0f
     Row(
-        modifier = Modifier
-            .height(40.dp)
-            .wrapContentWidth()
-            .graphicsLayer { rotationZ = rot }
-            .background(Color(0xFF0E0E0E), RoundedCornerShape(6.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+        modifier = Modifier.height(40.dp).wrapContentWidth().graphicsLayer { rotationZ = rot }.background(Color(0xFF0E0E0E), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (iconRes != 0) {
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-        }
+        if (iconRes != 0) { Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(24.dp)); Spacer(Modifier.width(8.dp)) }
         Text(text = text, color = TextPrimary, fontWeight = FontWeight.SemiBold)
     }
 }

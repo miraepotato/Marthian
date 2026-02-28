@@ -19,13 +19,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class PlaceCandidate(
     val title: String,
     val address: String
 )
 
-// ✅ 지도 배치(스티커)용 (UI에서 쓰는 상태)
 data class PlacedVehicle(
     val id: String,
     val department: String,
@@ -39,8 +40,6 @@ class IncidentViewModel : ViewModel() {
     val incident: StateFlow<Incident?> = _incident.asStateFlow()
 
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
-
-    // ✅ ReverseGeocoding
     private val reverseRepo = ReverseGeocodingRepository(RetrofitClient.reverseGeocodingService)
 
     private val _candidates = MutableStateFlow<List<PlaceCandidate>>(emptyList())
@@ -52,9 +51,6 @@ class IncidentViewModel : ViewModel() {
     private val _searchError = MutableStateFlow<String?>(null)
     val searchError: StateFlow<String?> = _searchError.asStateFlow()
 
-    // =========================
-    // 지도 줌 유지(복원)용
-    // =========================
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
@@ -62,9 +58,13 @@ class IncidentViewModel : ViewModel() {
         preferredMapZoom = zoom
     }
 
+    private fun dateTimeNow(): String {
+        val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA)
+        return fmt.format(Date())
+    }
+
     fun setIncident(value: Incident) {
         _incident.value = value
-        // ✅ 주소검색으로 들어온 주소를 현장정보수정에 “자동 표시”되게 싱크
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
     }
@@ -74,10 +74,6 @@ class IncidentViewModel : ViewModel() {
         _incident.value = cur.copy(meta = newMeta)
     }
 
-    // ==========================================
-    // ✅ [1번 작업 추가] UI에서 주소를 직접 업데이트하기 위한 함수
-    // 현장정보의 '재난발생위치' 메타데이터도 함께 동기화되도록 안전하게 처리했습니다.
-    // ==========================================
     fun updateAddress(newAddress: String) {
         val cur = _incident.value ?: return
         val newMeta = cur.meta.copy(재난발생위치 = newAddress)
@@ -89,7 +85,6 @@ class IncidentViewModel : ViewModel() {
 
     fun setIncidentAndRestoreAll(value: Incident) {
         _incident.value = value
-
         placedVehicles = value.placements.map { p ->
             PlacedVehicle(
                 id = p.id,
@@ -98,12 +93,10 @@ class IncidentViewModel : ViewModel() {
                 position = LatLng(p.lat, p.lng)
             )
         }
-
         dispatchMatrix = value.dispatchPlan.matrix
         dispatchDepartments = value.dispatchPlan.departments
         dispatchEquipments = value.dispatchPlan.equipments
 
-        // ✅ 지난현장 불러와도 “현장정보수정” 주소 자동 표출 싱크
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
     }
@@ -112,13 +105,23 @@ class IncidentViewModel : ViewModel() {
         val cur = _incident.value ?: return
         val addr = cur.address.trim()
         if (addr.isBlank()) return
-
         val meta = cur.meta
         if (meta.재난발생위치.isNotBlank()) return
 
         _incident.value = cur.copy(
             meta = meta.copy(재난발생위치 = addr)
         )
+    }
+
+    private fun syncDefaultDatesIfBlank() {
+        val cur = _incident.value ?: return
+        val meta = cur.meta
+
+        if (meta.신고접수일시.isBlank()) {
+            _incident.value = cur.copy(
+                meta = meta.copy(신고접수일시 = dateTimeNow())
+            )
+        }
     }
 
     fun clearIncident() {
@@ -164,13 +167,12 @@ class IncidentViewModel : ViewModel() {
                 }
 
                 if (out.isEmpty()) {
-                    _searchError.value = "검색 결과가 없습니다. (주소로도 한 번 시도해보세요)"
+                    _searchError.value = "검색 결과가 없습니다."
                 }
-
                 _candidates.value = out
                 onDone()
             } catch (e: Exception) {
-                _searchError.value = "장소 검색 실패: ${e.message ?: "unknown"}"
+                _searchError.value = "장소 검색 실패: ${e.message}"
                 _candidates.value = emptyList()
             } finally {
                 _searchLoading.value = false
@@ -178,11 +180,7 @@ class IncidentViewModel : ViewModel() {
         }
     }
 
-    fun geocodeAndApply(
-        query: String,
-        onSuccess: () -> Unit,
-        onFail: (String) -> Unit
-    ) {
+    fun geocodeAndApply(query: String, onSuccess: () -> Unit, onFail: (String) -> Unit) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
             onFail("검색어가 비어 있습니다.")
@@ -194,7 +192,6 @@ class IncidentViewModel : ViewModel() {
                 is GeocodingRepository.Outcome.Fail -> onFail(out.reason)
                 is GeocodingRepository.Outcome.Ok -> {
                     val data = out.data
-
                     val current = _incident.value
                     val updated = current?.copy(
                         address = data.resolvedAddress,
@@ -205,70 +202,38 @@ class IncidentViewModel : ViewModel() {
                         latitude = data.latitude,
                         longitude = data.longitude
                     )
-
                     _incident.value = updated
-                    // ✅ 주소검색 성공 시 meta.재난발생위치 자동 채움(비어있을 때만)
                     syncMetaAddressIfBlank()
-
                     onSuccess()
                 }
             }
         }
     }
 
-    // =========================
-    // ✅ 현장 마커 이동 → 좌표/주소/메타 연동
-    // =========================
     fun updateSceneLocationFromDrag(context: Context, latLng: LatLng) {
         val cur = _incident.value ?: return
+        _incident.value = cur.copy(latitude = latLng.latitude, longitude = latLng.longitude)
 
-        // 1) 좌표는 즉시 갱신
-        _incident.value = cur.copy(
-            latitude = latLng.latitude,
-            longitude = latLng.longitude
-        )
-
-        // 2) reverse geocode로 주소 갱신 후 incident.address + meta.재난발생위치 같이 갱신
         viewModelScope.launch {
             when (val out = reverseRepo.reverse(latLng.latitude, latLng.longitude)) {
-                is ReverseGeocodingRepository.Outcome.Fail -> {
-                    // 실패해도 좌표는 이미 반영됨 (운영상 유리)
-                    saveCurrentIncident(context)
-                }
+                is ReverseGeocodingRepository.Outcome.Fail -> saveCurrentIncident(context)
                 is ReverseGeocodingRepository.Outcome.Ok -> {
                     val now = _incident.value ?: return@launch
                     val addr = out.address
-
-                    val meta = now.meta
-                    val newMeta = meta.copy(
-                        재난발생위치 = addr
-                    )
-
-                    _incident.value = now.copy(
-                        address = addr,
-                        meta = newMeta
-                    )
-
+                    val newMeta = now.meta.copy(재난발생위치 = addr)
+                    _incident.value = now.copy(address = addr, meta = newMeta)
                     saveCurrentIncident(context)
                 }
             }
         }
     }
 
-    /* =========================
-       출동대 편성(매트릭스) + 메타
-       ========================= */
-
     var dispatchMatrix by mutableStateOf<List<List<Int>>>(emptyList())
         private set
-
-    fun updateDispatchMatrix(matrix: List<List<Int>>) {
-        dispatchMatrix = matrix
-    }
+    fun updateDispatchMatrix(matrix: List<List<Int>>) { dispatchMatrix = matrix }
 
     var dispatchDepartments by mutableStateOf<List<String>>(emptyList())
         private set
-
     var dispatchEquipments by mutableStateOf<List<String>>(emptyList())
         private set
 
@@ -281,86 +246,20 @@ class IncidentViewModel : ViewModel() {
         val m = dispatchMatrix
         if (m.isEmpty()) return 0
         var sum = 0
-        for (r in m.indices) {
-            val row = m[r]
-            for (c in row.indices) {
-                if (row[c] == valueToCount) sum += 1
-            }
-        }
+        m.forEach { row -> row.forEach { if (it == valueToCount) sum++ } }
         return sum
     }
 
-    fun getPlacedCount(): Int = placedVehicles.size
-
-    fun getRemainingToPlace(): Int {
-        val remaining = getDispatchCount(1) - getPlacedCount()
-        return if (remaining < 0) 0 else remaining
-    }
-
-    data class StickerItem(
-        val id: String,
-        val department: String,
-        val equipment: String
-    )
-
-    fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
-        val depts = dispatchDepartments
-        val equips = dispatchEquipments
-        val m = dispatchMatrix
-
-        if (depts.isEmpty() || equips.isEmpty() || m.isEmpty()) return emptyList()
-
-        val out = ArrayList<StickerItem>(64)
-        val rMax = minOf(m.size, depts.size)
-
-        for (r in 0 until rMax) {
-            val row = m[r]
-            val cMax = minOf(row.size, equips.size)
-
-            for (c in 0 until cMax) {
-                if (row[c] == valueToInclude) {
-                    out.add(
-                        StickerItem(
-                            id = "r${r}_c${c}",
-                            department = depts[r],
-                            equipment = equips[c]
-                        )
-                    )
-                }
-            }
-        }
-        return out
-    }
-
-    /* =========================
-       지도 스티커 배치 상태 (UI)
-       ========================= */
-
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
         private set
-
-    fun clearPlacedVehicles() {
-        placedVehicles = emptyList()
-    }
 
     fun placeVehicle(id: String, department: String, equipment: String, latLng: LatLng) {
         val current = placedVehicles
         val idx = current.indexOfFirst { it.id == id }
         placedVehicles = if (idx >= 0) {
-            current.toMutableList().apply {
-                this[idx] = this[idx].copy(
-                    department = department,
-                    equipment = equipment,
-                    position = latLng
-                )
-            }
+            current.toMutableList().apply { this[idx] = this[idx].copy(department = department, equipment = equipment, position = latLng) }
         } else {
-            current + PlacedVehicle(
-                id = id,
-                department = department,
-                equipment = equipment,
-                position = latLng
-            )
+            current + PlacedVehicle(id = id, department = department, equipment = equipment, position = latLng)
         }
     }
 
@@ -368,40 +267,15 @@ class IncidentViewModel : ViewModel() {
         val current = placedVehicles
         val idx = current.indexOfFirst { it.id == id }
         if (idx < 0) return
-        placedVehicles = current.toMutableList().apply {
-            this[idx] = this[idx].copy(position = newLatLng)
-        }
+        placedVehicles = current.toMutableList().apply { this[idx] = this[idx].copy(position = newLatLng) }
     }
 
-    fun removeVehicle(id: String) {
-        placedVehicles = placedVehicles.filterNot { it.id == id }
-    }
+    fun removeVehicle(id: String) { placedVehicles = placedVehicles.filterNot { it.id == id } }
+
+    fun clearPlacedVehicles() { placedVehicles = emptyList() }
 
     private fun buildPlacementsForSave(): List<VehiclePlacement> {
-        return placedVehicles.map { pv ->
-            VehiclePlacement(
-                id = pv.id,
-                department = pv.department,
-                equipment = pv.equipment,
-                lat = pv.position.latitude,
-                lng = pv.position.longitude
-            )
-        }
-    }
-
-    private fun todayString(): String {
-        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.KOREA)
-        return fmt.format(java.util.Date())
-    }
-
-    private fun syncDefaultDatesIfBlank() {
-        val cur = _incident.value ?: return
-        val meta = cur.meta
-
-        // ✅ “날짜 관련” 대표: 신고접수
-        if (meta.신고접수.isBlank()) {
-            _incident.value = cur.copy(meta = meta.copy(신고접수 = todayString()))
-        }
+        return placedVehicles.map { VehiclePlacement(it.id, it.department, it.equipment, it.position.latitude, it.position.longitude) }
     }
 
     fun snapshotIncidentForSave(): Incident? {
@@ -418,22 +292,29 @@ class IncidentViewModel : ViewModel() {
 
     fun saveCurrentIncident(context: Context) {
         val snap = snapshotIncidentForSave() ?: return
-        viewModelScope.launch {
-            IncidentStore.upsert(context, snap)
-        }
+        viewModelScope.launch { IncidentStore.upsert(context, snap) }
     }
 
     fun loadPastIncidents(context: Context, onLoaded: (List<Incident>) -> Unit) {
-        viewModelScope.launch {
-            val list = IncidentStore.loadAll(context)
-            onLoaded(list)
-        }
+        viewModelScope.launch { onLoaded(IncidentStore.loadAll(context)) }
     }
 
     fun deletePastIncidents(context: Context, ids: List<String>, onDone: () -> Unit = {}) {
-        viewModelScope.launch {
-            IncidentStore.deleteMany(context, ids)
-            onDone()
+        viewModelScope.launch { IncidentStore.deleteMany(context, ids); onDone() }
+    }
+
+    data class StickerItem(val id: String, val department: String, val equipment: String)
+    fun buildStickerQueue(): List<StickerItem> {
+        val out = mutableListOf<StickerItem>()
+        for (r in dispatchMatrix.indices) {
+            for (c in dispatchMatrix[r].indices) {
+                if (dispatchMatrix[r][c] == 1) {
+                    val dept = dispatchDepartments.getOrNull(r) ?: ""
+                    val eq = dispatchEquipments.getOrNull(c) ?: ""
+                    out.add(StickerItem("${r}_$c", dept, eq))
+                }
+            }
         }
+        return out
     }
 }
