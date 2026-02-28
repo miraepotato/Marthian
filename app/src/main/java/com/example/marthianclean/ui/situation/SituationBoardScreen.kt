@@ -17,7 +17,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -61,7 +60,6 @@ import com.naver.maps.map.compose.*
 import com.naver.maps.map.overlay.OverlayImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -135,8 +133,10 @@ fun SituationBoardScreen(
     var isSectorMode by remember { mutableStateOf(false) }
     var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
 
-    val coroutineScope = rememberCoroutineScope()
+    // ✅ 마커(현장, 차량) 위치 고정(잠금) 상태
+    var isMarkerLocked by remember { mutableStateOf(false) }
 
+    val coroutineScope = rememberCoroutineScope()
     val reverseRepo = remember {
         com.example.marthianclean.network.ReverseGeocodingRepository(com.example.marthianclean.network.RetrofitClient.reverseGeocodingService)
     }
@@ -157,14 +157,6 @@ fun SituationBoardScreen(
     var sceneDragActive by remember { mutableStateOf(false) }
     var sceneDragWindowPos by remember { mutableStateOf(Offset.Zero) }
 
-    val triggerPx = with(density) { 80.dp.toPx() }
-    val edgeWidth = 56.dp
-    val edgePx = with(density) { edgeWidth.toPx() }
-
-    var dragAccumX by remember { mutableStateOf(0f) }
-    var dragAccumY by remember { mutableStateOf(0f) }
-    var lastPos by remember { mutableStateOf(Offset.Zero) }
-
     val stickerQueue = incidentViewModel.buildStickerQueue()
     val placedIds = incidentViewModel.placedVehicles.map { it.id }.toSet()
     val notPlaced = stickerQueue.filterNot { placedIds.contains(it.id) }
@@ -175,10 +167,7 @@ fun SituationBoardScreen(
     val showTray = remainingToPlace > 0
 
     val sceneIconBaseSize: Dp = 90.dp
-
     var didInitialCam by remember { mutableStateOf(false) }
-
-    // ✅ 줌 레벨 기본값 설정 (17.5 = 약 1cm 당 20m)
     val defaultZoom = 17.5
 
     LaunchedEffect(lat, lng, mapLoaded, showTray, incidentViewModel.preferredMapZoom) {
@@ -187,13 +176,11 @@ fun SituationBoardScreen(
             val pos = LatLng(lat, lng)
             markerState.position = pos
             cameraPositionState.animate(update = CameraUpdate.scrollTo(pos), animation = CameraAnimation.Easing, durationMs = 700)
-
             val targetZoom = incidentViewModel.preferredMapZoom ?: defaultZoom
             cameraPositionState.animate(update = CameraUpdate.zoomTo(targetZoom), animation = CameraAnimation.Easing, durationMs = 320)
         }
     }
 
-    // ✅ 지도를 확대/축소하고 멈추면 해당 줌 레벨을 ViewModel에 저장하여 상태 유지
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving && mapLoaded) {
             incidentViewModel.setMapPreferredZoom(cameraPositionState.position.zoom)
@@ -292,40 +279,11 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode, isSectorMode) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode, isSectorMode, isMarkerLocked) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
-                            val startX = down.position.x
-                            val isLeftEdge = startX <= edgePx
-                            val isRightEdge = startX >= (size.width - edgePx)
 
-                            if (isLeftEdge || isRightEdge) {
-                                var accX = 0f
-                                var accY = 0f
-                                var last = down.position
-
-                                while (true) {
-                                    val event = awaitPointerEvent(pass = PointerEventPass.Main)
-                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (change.changedToUp()) break
-                                    change.consumeAllChanges()
-                                    val dx = change.position.x - last.x
-                                    val dy = abs(change.position.y - last.y)
-                                    accX += dx
-                                    accY += dy
-                                    last = change.position
-                                    val mostlyHorizontal = abs(accX) > accY * 1.3f
-                                    if (isLeftEdge && mostlyHorizontal && accX >= triggerPx) {
-                                        onEdit()
-                                        break
-                                    }
-                                    if (isRightEdge && mostlyHorizontal && accX <= -triggerPx) {
-                                        if (rightMode == RightPanelMode.NONE) rightMode = RightPanelMode.HUB
-                                        break
-                                    }
-                                }
-                                return@awaitEachGesture
-                            }
+                            // ✅ 좌/우측 가장자리 스와이프 패널 오픈 로직 완전 제거
 
                             val longPressChange = awaitLongPressOrCancellation(down.id)
                             if (longPressChange == null) {
@@ -337,7 +295,10 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            if (isNearSceneMarker(longPressChange.position)) {
+                            // ✅ 마커 이동 가능 조건: 사용자가 수동으로 잠그지 않았고, 브리핑 모드도 아닐 때
+                            val canDragMarkers = !isMarkerLocked && rightMode != RightPanelMode.BRIEFING
+
+                            if (canDragMarkers && isNearSceneMarker(longPressChange.position)) {
                                 val mapRect = mapRectInWindow ?: return@awaitEachGesture
                                 hapticArm()
                                 sceneDragActive = true
@@ -357,21 +318,23 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
-                            val mapRect = mapRectInWindow ?: return@awaitEachGesture
-                            hapticArm()
-                            dragState = DragState(active = true, payload = payload, windowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y), wobble = true)
-                            while (true) {
-                                val event = awaitPointerEvent(pass = PointerEventPass.Main)
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (change.changedToUp()) {
-                                    dropPayloadIfPossible()
-                                    dragState = DragState(active = false)
-                                    break
+                            if (canDragMarkers) {
+                                val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
+                                val mapRect = mapRectInWindow ?: return@awaitEachGesture
+                                hapticArm()
+                                dragState = DragState(active = true, payload = payload, windowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y), wobble = true)
+                                while (true) {
+                                    val event = awaitPointerEvent(pass = PointerEventPass.Main)
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (change.changedToUp()) {
+                                        dropPayloadIfPossible()
+                                        dragState = DragState(active = false)
+                                        break
+                                    }
+                                    change.consumeAllChanges()
+                                    val mapRect2 = mapRectInWindow ?: continue
+                                    dragState = dragState.copy(windowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y), wobble = true)
                                 }
-                                change.consumeAllChanges()
-                                val mapRect2 = mapRectInWindow ?: continue
-                                dragState = dragState.copy(windowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y), wobble = true)
                             }
                         }
                     }
@@ -451,19 +414,59 @@ fun SituationBoardScreen(
                 }
             }
 
-            // ✅ 상단 버튼 3개 배치 (아이콘 제거 완료, 브리핑 모드 클릭 시 허브 호출)
             if (mapLoaded) {
-                Row(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                // ✅ 1. 방위 표시 나침반 (좌측 상단, 클릭 시 북쪽 정렬)
+                val bearing = cameraPositionState.position.bearing.toFloat()
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 16.dp, start = 16.dp)
+                        .size(48.dp)
+                        .background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                        .border(1.dp, BorderGray, RoundedCornerShape(24.dp))
+                        .clickable {
+                            coroutineScope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdate.toCameraPosition(
+                                        com.naver.maps.map.CameraPosition(cameraPositionState.position.target, cameraPositionState.position.zoom, 0.0, 0.0)
+                                    ), CameraAnimation.Easing, 500
+                                )
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    TopBarButton(text = "차량편성/입력", onClick = onEdit)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.graphicsLayer { rotationZ = -bearing }
+                    ) {
+                        Text("N", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Box(Modifier.width(3.dp).height(12.dp).background(Color(0xFFFF1744)))
+                        Box(Modifier.width(3.dp).height(12.dp).background(Color.White))
+                        Text("S", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                // ✅ 2. 상단 우측 버튼 모음 및 자물쇠 버튼
+                Column(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TopBarButton(text = "차량편성/입력", onClick = onEdit)
+                        TopBarButton(
+                            text = if (isSectorMode) "방면지휘 ON" else "방면지휘",
+                            isActive = isSectorMode,
+                            onClick = { isSectorMode = !isSectorMode; if (!isSectorMode) sectorTargetVehicleId = null }
+                        )
+                        TopBarButton(text = "브리핑모드", onClick = { rightMode = RightPanelMode.HUB })
+                    }
+                    // 자물쇠 버튼 (브리핑 모드 아이콘 바로 밑)
                     TopBarButton(
-                        text = if (isSectorMode) "방면지휘 ON" else "방면지휘",
-                        isActive = isSectorMode,
-                        onClick = { isSectorMode = !isSectorMode; if (!isSectorMode) sectorTargetVehicleId = null }
+                        text = if (isMarkerLocked) "🔒 마커 잠금됨" else "🔓 마커 이동 가능",
+                        isActive = isMarkerLocked,
+                        onClick = { isMarkerLocked = !isMarkerLocked }
                     )
-                    TopBarButton(text = "브리핑모드", onClick = { rightMode = RightPanelMode.HUB })
                 }
             }
 
@@ -517,24 +520,7 @@ fun SituationBoardScreen(
 
         if (panelActive) {
             Box(modifier = Modifier.weight(1f).fillMaxHeight().background(BgBlack).border(1.dp, BorderGray)) {
-                Box(
-                    modifier = Modifier.fillMaxHeight().width(18.dp).align(Alignment.CenterStart)
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onDragStart = { start -> dragAccumX = 0f; dragAccumY = 0f; lastPos = start },
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consumeAllChanges()
-                                    dragAccumX += dragAmount
-                                    dragAccumY += abs(change.position.y - lastPos.y)
-                                    lastPos = change.position
-                                    if (dragAccumX > dragAccumY * 1.3f && dragAccumX >= triggerPx) {
-                                        rightMode = RightPanelMode.NONE; dragAccumX = 0f; dragAccumY = 0f
-                                    }
-                                },
-                                onDragEnd = { dragAccumX = 0f; dragAccumY = 0f }, onDragCancel = { dragAccumX = 0f; dragAccumY = 0f }
-                            )
-                        }
-                )
+                // ✅ 패널 스와이프 닫기 로직도 깔끔하게 제거했습니다.
 
                 when (rightMode) {
                     RightPanelMode.HUB -> HubPanel(onBriefing = { rightMode = RightPanelMode.BRIEFING }, onForceStatus = { rightMode = RightPanelMode.FORCE_STATUS }, onClose = { rightMode = RightPanelMode.NONE })
@@ -547,7 +533,6 @@ fun SituationBoardScreen(
     }
 }
 
-// ✅ 아이콘 제거된 상단 바 버튼 컴포저블
 @Composable
 private fun TopBarButton(text: String, isActive: Boolean = false, onClick: () -> Unit) {
     Row(
@@ -567,7 +552,6 @@ private fun TopBarButton(text: String, isActive: Boolean = false, onClick: () ->
     }
 }
 
-// ✅ 허브 화면 (안내 문구 삭제, 목록 이름 '브리핑', '소방력 현황'으로 수정)
 @Composable
 private fun HubPanel(
     onBriefing: () -> Unit,
@@ -601,7 +585,6 @@ private fun PanelButton(title: String, desc: String, onClick: () -> Unit) {
     }
 }
 
-// ✅ 브리핑 패널 (헤더 고정, 차량 및 인원 연동 완료, 폰트 21sp 적용)
 @Composable
 private fun BriefingPanel(
     incidentViewModel: IncidentViewModel,
@@ -611,12 +594,10 @@ private fun BriefingPanel(
     val incident by incidentViewModel.incident.collectAsState()
     val meta = incident?.meta
 
-    // 배치된 차량 현황 집계 (자동 총 00대)
     val placed = incidentViewModel.placedVehicles
     val totalVehicles = placed.size
     val vehicleStr = "총 ${totalVehicles}대"
 
-    // 소방력 인원 처리 (입력값 + '명')
     val personnelInput = meta?.소방력_인원?.trim()
     val personnelStr = if (!personnelInput.isNullOrBlank()) "${personnelInput}명" else "-"
 
@@ -627,7 +608,6 @@ private fun BriefingPanel(
     val DamageRed = Color(0xFFFF1744)
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        // ✅ 1. 스크롤 밖으로 빼낸 고정 헤더
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(Modifier.weight(1f))
@@ -638,7 +618,6 @@ private fun BriefingPanel(
 
         Spacer(Modifier.height(16.dp))
 
-        // ✅ 2. 세로로 스크롤 가능한 본문 영역 (1열 나열)
         Column(
             modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -660,7 +639,6 @@ private fun BriefingPanel(
             BriefingRow("재산피해", show(meta?.재산피해현황), valueColor = DamageRed)
             BriefingRow("대원피해", show(meta?.대원피해현황), valueColor = Color(0xFFFF9100))
 
-            // 차량, 인원 연동
             BriefingRow("소방력_차량", vehicleStr)
             BriefingRow("소방력_인원", personnelStr)
 
@@ -677,7 +655,6 @@ private fun BriefingPanel(
     }
 }
 
-// ✅ 노안 극복 폰트 21sp (약 90%), 두께 Medium 적용
 @Composable
 private fun BriefingRow(label: String, value: String, valueColor: Color = TextPrimary) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
