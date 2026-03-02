@@ -304,17 +304,11 @@ class IncidentViewModel : ViewModel() {
     }
 
     data class StickerItem(val id: String, val department: String, val equipment: String)
+
+    /**
+     * ✅ [수정] 2단계 고도화: 다른 편성 무시하고 지휘차만 기본값으로 트레이에 표출
+     */
     fun buildStickerQueue(): List<StickerItem> {
-        val out = mutableListOf<StickerItem>()
-        for (r in dispatchMatrix.indices) {
-            for (c in dispatchMatrix[r].indices) {
-                if (dispatchMatrix[r][c] == 1) {
-                    val dept = dispatchDepartments.getOrNull(r) ?: ""
-                    val eq = dispatchEquipments.getOrNull(c) ?: ""
-                    out.add(StickerItem("${r}_$c", dept, eq))
-                }
-            }
-        }
-        return out
+        return listOf(StickerItem("CMD_AUTO_01", "화성소방서 지휘단", "지휘차"))
     }
 }

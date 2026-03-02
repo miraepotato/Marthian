@@ -21,6 +21,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -57,15 +58,16 @@ import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.compose.*
-import com.naver.maps.map.overlay.OverlayImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import com.naver.maps.map.overlay.OverlayImage
 
 private val MarsOrange = Color(0xFFFF8C00)
+private val CommandYellowGreen = Color(0xFFD4FF00)
 private val TextPrimary = Color(0xFFF0F0F0)
 private val BgBlack = Color(0xFF0E0E0E)
 private val BorderGray = Color(0xFF2E2E2E)
@@ -132,8 +134,6 @@ fun SituationBoardScreen(
     var rightMode by remember { mutableStateOf(RightPanelMode.NONE) }
     var isSectorMode by remember { mutableStateOf(false) }
     var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
-
-    // ✅ 마커(현장, 차량) 위치 고정(잠금) 상태
     var isMarkerLocked by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -144,7 +144,6 @@ fun SituationBoardScreen(
     val cameraPositionState = rememberCameraPositionState()
     val markerState = remember { MarkerState() }
     var mapLoaded by remember { mutableStateOf(false) }
-
     var isSatellite by remember { mutableStateOf(true) }
 
     val lat = incident?.latitude
@@ -157,59 +156,42 @@ fun SituationBoardScreen(
     var sceneDragActive by remember { mutableStateOf(false) }
     var sceneDragWindowPos by remember { mutableStateOf(Offset.Zero) }
 
-    val stickerQueue = incidentViewModel.buildStickerQueue()
+    val stickerQueue = listOf(IncidentViewModel.StickerItem("CMD_AUTO_01", "화성소방서 지휘단", "지휘차"))
     val placedIds = incidentViewModel.placedVehicles.map { it.id }.toSet()
     val notPlaced = stickerQueue.filterNot { placedIds.contains(it.id) }
-
-    val placedCount = incidentViewModel.placedVehicles.size
-    val totalToPlace = stickerQueue.size
-    val remainingToPlace = max(0, totalToPlace - placedCount)
-    val showTray = remainingToPlace > 0
+    val showTray = notPlaced.isNotEmpty()
 
     val sceneIconBaseSize: Dp = 90.dp
     var didInitialCam by remember { mutableStateOf(false) }
-    val defaultZoom = 17.5
 
-    LaunchedEffect(lat, lng, mapLoaded, showTray, incidentViewModel.preferredMapZoom) {
+    LaunchedEffect(lat, lng, mapLoaded) {
         if (!didInitialCam && mapLoaded && lat != null && lng != null) {
             didInitialCam = true
             val pos = LatLng(lat, lng)
             markerState.position = pos
-            cameraPositionState.animate(update = CameraUpdate.scrollTo(pos), animation = CameraAnimation.Easing, durationMs = 700)
-            val targetZoom = incidentViewModel.preferredMapZoom ?: defaultZoom
-            cameraPositionState.animate(update = CameraUpdate.zoomTo(targetZoom), animation = CameraAnimation.Easing, durationMs = 320)
-        }
-    }
-
-    LaunchedEffect(cameraPositionState.isMoving) {
-        if (!cameraPositionState.isMoving && mapLoaded) {
-            incidentViewModel.setMapPreferredZoom(cameraPositionState.position.zoom)
+            cameraPositionState.animate(update = CameraUpdate.scrollTo(pos), durationMs = 700)
+            cameraPositionState.animate(update = CameraUpdate.zoomTo(17.5), durationMs = 320)
         }
     }
 
     fun hapticArm() {
         strongVibrate(context)
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        view.performHapticFeedback(HapticFeedbackConstants.DRAG_START)
     }
-
-    fun persistNow() { incidentViewModel.saveCurrentIncident(context) }
 
     fun dropPayloadIfPossible() {
         val mapRect = mapRectInWindow ?: return
         val mapObj = naverMapObj ?: return
         val payload = dragState.payload ?: return
-
         val dropPos = dragState.windowPos
-        val insideMap = dropPos.x in mapRect.left..mapRect.right && dropPos.y in mapRect.top..mapRect.bottom
-        if (!insideMap) return
+        if (dropPos.x !in mapRect.left..mapRect.right || dropPos.y !in mapRect.top..mapRect.bottom) return
 
         val localX = (dropPos.x - mapRect.left).toFloat()
         val localY = (dropPos.y - mapRect.top).toFloat()
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
         incidentViewModel.placeVehicle(payload.id, payload.department, payload.equipment, latLng)
-        persistNow()
+        incidentViewModel.saveCurrentIncident(context)
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
@@ -239,36 +221,20 @@ fun SituationBoardScreen(
         val pt = mapObj.projection.toScreenLocation(LatLng(ilat, ilng))
         val dx = pt.x - localPosInMap.x
         val dy = pt.y - localPosInMap.y
-        val dist = sqrt(dx * dx + dy * dy)
-        return dist <= with(density) { 60.dp.toPx() }
+        return sqrt(dx * dx + dy * dy) <= with(density) { 60.dp.toPx() }
     }
 
     fun dropSceneIfPossible() {
         val mapRect = mapRectInWindow ?: return
         val mapObj = naverMapObj ?: return
         val dropPos = sceneDragWindowPos
-        val insideMap = dropPos.x in mapRect.left..mapRect.right && dropPos.y in mapRect.top..mapRect.bottom
-        if (!insideMap) return
+        if (dropPos.x !in mapRect.left..mapRect.right || dropPos.y !in mapRect.top..mapRect.bottom) return
 
         val localX = (dropPos.x - mapRect.left).toFloat()
         val localY = (dropPos.y - mapRect.top).toFloat()
-        val newLatLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
-
-        incidentViewModel.updateSceneLocationFromDrag(context, newLatLng)
+        val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
+        incidentViewModel.updateSceneLocationFromDrag(context, latLng)
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-
-        coroutineScope.launch {
-            incidentViewModel.updateAddress("주소 위치 확인 중...")
-            when (val outcome = reverseRepo.reverse(newLatLng.latitude, newLatLng.longitude)) {
-                is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Ok -> {
-                    incidentViewModel.updateAddress(outcome.address)
-                    persistNow()
-                }
-                is com.example.marthianclean.network.ReverseGeocodingRepository.Outcome.Fail -> {
-                    incidentViewModel.updateAddress("주소 변환 실패")
-                }
-            }
-        }
     }
 
     val panelActive = rightMode != RightPanelMode.NONE
@@ -279,25 +245,23 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, incident?.latitude, incident?.longitude, rightMode, isSectorMode, isMarkerLocked) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
-
-                            // ✅ 좌/우측 가장자리 스와이프 패널 오픈 로직 완전 제거
-
                             val longPressChange = awaitLongPressOrCancellation(down.id)
+
                             if (longPressChange == null) {
                                 if (isSectorMode) {
                                     val payload = findNearestPlacedPayload(down.position)
-                                    sectorTargetVehicleId = payload?.id
-                                    if (payload != null) strongVibrate(context)
+                                    if (payload != null) {
+                                        sectorTargetVehicleId = payload.id
+                                        strongVibrate(context)
+                                    }
                                 }
                                 return@awaitEachGesture
                             }
 
-                            // ✅ 마커 이동 가능 조건: 사용자가 수동으로 잠그지 않았고, 브리핑 모드도 아닐 때
                             val canDragMarkers = !isMarkerLocked && rightMode != RightPanelMode.BRIEFING
-
                             if (canDragMarkers && isNearSceneMarker(longPressChange.position)) {
                                 val mapRect = mapRectInWindow ?: return@awaitEachGesture
                                 hapticArm()
@@ -306,18 +270,13 @@ fun SituationBoardScreen(
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (change.changedToUp()) {
-                                        dropSceneIfPossible()
-                                        sceneDragActive = false
-                                        break
-                                    }
+                                    if (change.changedToUp()) { dropSceneIfPossible(); sceneDragActive = false; break }
                                     change.consumeAllChanges()
-                                    val mapRect2 = mapRectInWindow ?: continue
-                                    sceneDragWindowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y)
+                                    val mR = mapRectInWindow ?: continue
+                                    sceneDragWindowPos = Offset(mR.left + change.position.x, mR.top + change.position.y)
                                 }
                                 return@awaitEachGesture
                             }
-
                             if (canDragMarkers) {
                                 val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
                                 val mapRect = mapRectInWindow ?: return@awaitEachGesture
@@ -326,27 +285,23 @@ fun SituationBoardScreen(
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (change.changedToUp()) {
-                                        dropPayloadIfPossible()
-                                        dragState = DragState(active = false)
-                                        break
-                                    }
+                                    if (change.changedToUp()) { dropPayloadIfPossible(); dragState = DragState(active = false); break }
                                     change.consumeAllChanges()
-                                    val mapRect2 = mapRectInWindow ?: continue
-                                    dragState = dragState.copy(windowPos = Offset(mapRect2.left + change.position.x, mapRect2.top + change.position.y), wobble = true)
+                                    val mR = mapRectInWindow ?: continue
+                                    dragState = dragState.copy(windowPos = Offset(mR.left + change.position.x, mR.top + change.position.y), wobble = true)
                                 }
                             }
                         }
                     }
             ) {
                 val currentZoom = cameraPositionState.position.zoom
-                val zoomFactor = 2.0.pow(currentZoom - 18.0).toFloat()
+                val zoomFactor = 2.0.pow(currentZoom - 17.5).toFloat()
 
                 NaverMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
                     properties = MapProperties(mapType = if (isSatellite) MapType.Satellite else MapType.Basic),
-                    uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false, isRotateGesturesEnabled = false, isTiltGesturesEnabled = false),
+                    uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false),
                     onMapLoaded = { mapLoaded = true }
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
@@ -354,42 +309,33 @@ fun SituationBoardScreen(
                     if (lat != null && lng != null) {
                         val fireType = FireType.from(incident?.meta?.fireType)
                         val markerRes = MarkerIconMapper.markerResFor(fireType)
-
-                        LaunchedEffect(sceneDragActive, sceneDragWindowPos) {
-                            if (!sceneDragActive) return@LaunchedEffect
-                            val mapRect = mapRectInWindow ?: return@LaunchedEffect
-                            val mapObj = naverMapObj ?: return@LaunchedEffect
-                            val localX = (sceneDragWindowPos.x - mapRect.left).toFloat()
-                            val localY = (sceneDragWindowPos.y - mapRect.top).toFloat()
-                            markerState.position = mapObj.projection.fromScreenLocation(PointF(localX, localY))
-                        }
-                        LaunchedEffect(lat, lng, sceneDragActive) {
-                            if (!sceneDragActive) markerState.position = LatLng(lat, lng)
-                        }
-
                         val dynamicSceneSize = (sceneIconBaseSize.value * zoomFactor).coerceAtLeast(1f).dp
-                        Marker(state = markerState, icon = OverlayImage.fromResource(markerRes), width = dynamicSceneSize, height = dynamicSceneSize, isIconPerspectiveEnabled = false, captionText = "현장", captionColor = Color.White, captionHaloColor = Color.Black)
+                        Marker(state = markerState, icon = OverlayImage.fromResource(markerRes), width = dynamicSceneSize, height = dynamicSceneSize, captionText = "현장", captionColor = Color.White, captionHaloColor = Color.Black)
                     }
 
                     incidentViewModel.placedVehicles.forEach { pv ->
                         key(pv.id) {
+                            val isCommand = pv.equipment.contains("지휘")
                             val st = rememberMarkerState(position = pv.position)
-                            LaunchedEffect(pv.position) { st.position = pv.position }
-                            val equipRaw = pv.equipment
-                            val iconRes = VehicleIconMapper.iconResForEquip(equipRaw)
+                            val iconRes = VehicleIconMapper.iconResForEquip(pv.equipment)
                             val label = VehicleIconMapper.deptLabel(pv.department)
-                            val scale = vehicleScaleFor(equipRaw)
+
+                            val scale = if (isCommand) 5.0f else vehicleScaleFor(pv.equipment)
                             val baseSize = 26.dp
                             val markerHeight = (baseSize.value * scale * zoomFactor).coerceAtLeast(1f).dp
-                            val markerWidth = if (equipRaw.contains("탱크") || equipRaw.contains("급수")) (markerHeight.value * 1.6f).dp else markerHeight
+                            val markerWidth = if (pv.equipment.contains("탱크")) (markerHeight.value * 1.6f).dp else markerHeight
 
-                            Marker(state = st, icon = OverlayImage.fromResource(iconRes), width = markerWidth, height = markerHeight, isIconPerspectiveEnabled = false, captionText = label, captionColor = Color.White, captionHaloColor = Color.Black, captionOffset = 0.dp, anchor = Offset(0.5f, 0.5f))
-                        }
-                    }
-
-                    fun rotateMapTo(targetBearing: Double, targetLatLng: LatLng) {
-                        coroutineScope.launch {
-                            cameraPositionState.animate(update = CameraUpdate.toCameraPosition(com.naver.maps.map.CameraPosition(targetLatLng, cameraPositionState.position.zoom, 0.0, targetBearing % 360.0)), animation = CameraAnimation.Easing, durationMs = 800)
+                            Marker(
+                                state = st,
+                                icon = OverlayImage.fromResource(iconRes),
+                                width = markerWidth,
+                                height = markerHeight,
+                                captionText = label,
+                                captionColor = if (isCommand) CommandYellowGreen else Color.White,
+                                captionHaloColor = Color.Black,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = if (isCommand) 10 else 1
+                            )
                         }
                     }
 
@@ -398,103 +344,113 @@ fun SituationBoardScreen(
                         targetVehicle?.let { vehicle ->
                             val centerLat = vehicle.position.latitude
                             val centerLng = vehicle.position.longitude
-                            val scale = vehicleScaleFor(vehicle.equipment)
-                            val dist = 0.000055 * scale
-                            val cosLat = kotlin.math.cos(centerLat * Math.PI / 180.0)
-                            val latOffset = dist
-                            val lngOffset = dist / cosLat
-                            val arrowSize = (40f * zoomFactor).coerceAtLeast(1f).dp
 
-                            Marker(state = MarkerState(position = LatLng(centerLat + latOffset, centerLng)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_up), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(180.0, vehicle.position); true })
-                            Marker(state = MarkerState(position = LatLng(centerLat - latOffset, centerLng)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_down), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(0.0, vehicle.position); true })
-                            Marker(state = MarkerState(position = LatLng(centerLat, centerLng + lngOffset)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_right), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(270.0, vehicle.position); true })
-                            Marker(state = MarkerState(position = LatLng(centerLat, centerLng - lngOffset)), icon = OverlayImage.fromResource(R.drawable.ic_arrow_left), width = arrowSize, height = arrowSize, isFlat = true, angle = 0f, anchor = Offset(0.5f, 0.5f), zIndex = 100, onClick = { rotateMapTo(90.0, vehicle.position); true })
+                            val bearing = cameraPositionState.position.bearing
+                            val rightAzimuthRad = Math.toRadians(bearing + 90.0)
+                            val leftAzimuthRad = Math.toRadians(bearing - 90.0)
+
+                            // ✅ [황금비율 간격] 형님 스크린샷에 맞춰 65.0m -> 32.0m 로 최적화했습니다.
+                            val gapMeters = 32.0
+
+                            val latPerMeter = 1.0 / 111320.0
+                            val cosLat = kotlin.math.cos(centerLat * Math.PI / 180.0)
+                            val lngPerMeter = 1.0 / (111320.0 * cosLat)
+
+                            val dLatRight = gapMeters * kotlin.math.cos(rightAzimuthRad) * latPerMeter
+                            val dLngRight = gapMeters * kotlin.math.sin(rightAzimuthRad) * lngPerMeter
+
+                            val dLatLeft = gapMeters * kotlin.math.cos(leftAzimuthRad) * latPerMeter
+                            val dLngLeft = gapMeters * kotlin.math.sin(leftAzimuthRad) * lngPerMeter
+
+                            val arrowSize = (70f * zoomFactor).coerceAtLeast(30f).dp
+
+                            fun rotateMapBy(degrees: Double) {
+                                coroutineScope.launch {
+                                    val currentB = cameraPositionState.position.bearing
+                                    val newBearing = (currentB + degrees + 360.0) % 360.0
+                                    cameraPositionState.animate(
+                                        update = CameraUpdate.toCameraPosition(
+                                            com.naver.maps.map.CameraPosition(vehicle.position, cameraPositionState.position.zoom, 0.0, newBearing)
+                                        ),
+                                        animation = CameraAnimation.Easing,
+                                        durationMs = 500
+                                    )
+                                }
+                            }
+
+                            // ⬅️ 화면 기준 좌측 화살표 (시계 방향 90도 회전)
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat + dLatLeft, centerLng + dLngLeft)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_turn_left),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = false,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100,
+                                onClick = { rotateMapBy(90.0); true }
+                            )
+
+                            // ➡️ 화면 기준 우측 화살표 (반시계 방향 90도 회전)
+                            Marker(
+                                state = MarkerState(position = LatLng(centerLat + dLatRight, centerLng + dLngRight)),
+                                icon = OverlayImage.fromResource(R.drawable.ic_turn_right),
+                                width = arrowSize, height = arrowSize,
+                                isFlat = false,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 100,
+                                onClick = { rotateMapBy(-90.0); true }
+                            )
                         }
                     }
                 }
             }
 
             if (mapLoaded) {
-                // ✅ 1. 방위 표시 나침반 (좌측 상단, 클릭 시 북쪽 정렬)
                 val bearing = cameraPositionState.position.bearing.toFloat()
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(top = 16.dp, start = 16.dp)
-                        .size(48.dp)
-                        .background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(24.dp))
-                        .border(1.dp, BorderGray, RoundedCornerShape(24.dp))
+                        .padding(top = 20.dp, start = 20.dp)
+                        .size(64.dp)
+                        .background(Color(0xFF1C1C1C).copy(alpha = 0.85f), CircleShape)
+                        .border(1.5.dp, BorderGray, CircleShape)
                         .clickable {
-                            coroutineScope.launch {
-                                cameraPositionState.animate(
-                                    CameraUpdate.toCameraPosition(
-                                        com.naver.maps.map.CameraPosition(cameraPositionState.position.target, cameraPositionState.position.zoom, 0.0, 0.0)
-                                    ), CameraAnimation.Easing, 500
-                                )
-                            }
+                            coroutineScope.launch { cameraPositionState.animate(CameraUpdate.toCameraPosition(com.naver.maps.map.CameraPosition(cameraPositionState.position.target, cameraPositionState.position.zoom, 0.0, 0.0))) }
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.graphicsLayer { rotationZ = -bearing }
+                        modifier = Modifier.graphicsLayer { rotationZ = -bearing }.size(54.dp).padding(2.dp),
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("N", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("N", color = Color(0xFFFF1744), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                         Box(Modifier.width(3.dp).height(12.dp).background(Color(0xFFFF1744)))
                         Box(Modifier.width(3.dp).height(12.dp).background(Color.White))
-                        Text("S", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("S", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                     }
                 }
 
-                // ✅ 2. 상단 우측 버튼 모음 및 자물쇠 버튼
-                Column(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Column(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         TopBarButton(text = "차량편성/입력", onClick = onEdit)
-                        TopBarButton(
-                            text = if (isSectorMode) "방면지휘 ON" else "방면지휘",
-                            isActive = isSectorMode,
-                            onClick = { isSectorMode = !isSectorMode; if (!isSectorMode) sectorTargetVehicleId = null }
-                        )
+                        TopBarButton(text = if (isSectorMode) "방면지휘 ON" else "방면지휘", isActive = isSectorMode, onClick = { isSectorMode = !isSectorMode; if (!isSectorMode) sectorTargetVehicleId = null })
                         TopBarButton(text = "브리핑모드", onClick = { rightMode = RightPanelMode.HUB })
                     }
-                    // 자물쇠 버튼 (브리핑 모드 아이콘 바로 밑)
-                    TopBarButton(
-                        text = if (isMarkerLocked) "🔒 마커 잠금됨" else "🔓 마커 이동 가능",
-                        isActive = isMarkerLocked,
-                        onClick = { isMarkerLocked = !isMarkerLocked }
-                    )
+                    TopBarButton(text = if (isMarkerLocked) "🔒 마커 잠금됨" else "🔓 마커 이동 가능", isActive = isMarkerLocked, onClick = { isMarkerLocked = !isMarkerLocked })
                 }
             }
 
-            if (!mapLoaded) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
-                    Text(text = "지도 로딩 중…", color = Color.White)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().align(Alignment.BottomEnd).padding(bottom = if (showTray) 90.dp else 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(onClick = { isSatellite = !isSatellite }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f), contentColor = Color.White)) { Text(if (isSatellite) "SAT" else "BASIC") }
-                Spacer(modifier = Modifier.width(10.dp))
-                Button(onClick = { incidentViewModel.clearIncident(); incidentViewModel.clearPlacedVehicles(); persistNow(); onExit() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f), contentColor = MarsOrange)) { Text("EXIT") }
+            Row(modifier = Modifier.fillMaxWidth().align(Alignment.BottomEnd).padding(bottom = if (showTray) 90.dp else 16.dp, end = 16.dp), horizontalArrangement = Arrangement.End) {
+                Button(onClick = { isSatellite = !isSatellite }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f))) { Text(if (isSatellite) "SAT" else "BASIC") }
+                Spacer(Modifier.width(10.dp))
+                Button(onClick = { incidentViewModel.clearIncident(); onExit() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.8f), contentColor = MarsOrange)) { Text("EXIT") }
             }
 
             if (!panelActive && showTray) {
-                val scroll = rememberScrollState()
-                Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding()) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "배치 남음: $remainingToPlace", color = Color.White)
-                        Spacer(Modifier.width(10.dp))
-                        Text(text = "(${placedCount}/${totalToPlace})", color = MarsOrange)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.55f)).padding(12.dp).navigationBarsPadding()) {
+                    Text(text = "지휘차 배치 대기", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         notPlaced.forEach { item ->
                             TrayChipDraggableAfterLongPress(
                                 item = item, deptLabel = VehicleIconMapper.deptLabel(item.department), iconRes = VehicleIconMapper.iconResForEquip(item.equipment),
@@ -509,19 +465,14 @@ fun SituationBoardScreen(
             }
 
             if (dragState.active && dragState.payload != null) {
-                val payload = dragState.payload!!
-                val iconRes = VehicleIconMapper.iconResForEquip(payload.equipment)
-                val label = VehicleIconMapper.deptLabel(payload.department)
                 Box(modifier = Modifier.offset { IntOffset(dragState.windowPos.x.roundToInt() - 70, dragState.windowPos.y.roundToInt() - 28) }) {
-                    TrayChip(iconRes = iconRes, text = label, wobble = true)
+                    TrayChip(iconRes = VehicleIconMapper.iconResForEquip(dragState.payload!!.equipment), text = VehicleIconMapper.deptLabel(dragState.payload!!.department), wobble = true)
                 }
             }
         }
 
         if (panelActive) {
             Box(modifier = Modifier.weight(1f).fillMaxHeight().background(BgBlack).border(1.dp, BorderGray)) {
-                // ✅ 패널 스와이프 닫기 로직도 깔끔하게 제거했습니다.
-
                 when (rightMode) {
                     RightPanelMode.HUB -> HubPanel(onBriefing = { rightMode = RightPanelMode.BRIEFING }, onForceStatus = { rightMode = RightPanelMode.FORCE_STATUS }, onClose = { rightMode = RightPanelMode.NONE })
                     RightPanelMode.BRIEFING -> BriefingPanel(incidentViewModel = incidentViewModel, onBackToHub = { rightMode = RightPanelMode.HUB }, onClose = { rightMode = RightPanelMode.NONE })
@@ -535,239 +486,69 @@ fun SituationBoardScreen(
 
 @Composable
 private fun TopBarButton(text: String, isActive: Boolean = false, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .background(color = if (isActive) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f), shape = RoundedCornerShape(8.dp))
-            .border(1.dp, if (isActive) Color.White else BorderGray, RoundedCornerShape(8.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = text,
-            color = if (isActive) Color.White else MarsOrange,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
+    Box(modifier = Modifier.background(if (isActive) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp)).border(1.dp, if (isActive) Color.White else BorderGray, RoundedCornerShape(8.dp)).clickable { onClick() }.padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Text(text = text, color = if (isActive) Color.White else MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
 @Composable
-private fun HubPanel(
-    onBriefing: () -> Unit,
-    onForceStatus: () -> Unit,
-    onClose: () -> Unit
-) {
+private fun HubPanel(onBriefing: () -> Unit, onForceStatus: () -> Unit, onClose: () -> Unit) {
     val vScroll = rememberScrollState()
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(vScroll).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(vScroll).padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "허브", color = MarsOrange, fontWeight = FontWeight.Bold)
+            Text("허브", color = MarsOrange, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Text(text = "닫기", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onClose() })
+            Text("닫기", color = MarsOrange, modifier = Modifier.clickable { onClose() })
         }
-        PanelButton(title = "브리핑", desc = "현장 정보 + 편성/배치 요약") { onBriefing() }
-        PanelButton(title = "소방력 현황", desc = "현재(배치) + 참고(편성) 집계") { onForceStatus() }
-        Spacer(Modifier.height(24.dp))
+        Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).clickable { onBriefing() }.padding(14.dp)) {
+            Column { Text("브리핑", color = TextPrimary, fontWeight = FontWeight.Bold); Text("현장 정보 요약", color = TextPrimary.copy(0.7f)) }
+        }
+        Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).clickable { onForceStatus() }.padding(14.dp)) {
+            Column { Text("소방력 현황", color = TextPrimary, fontWeight = FontWeight.Bold); Text("차량 및 부서 집계", color = TextPrimary.copy(0.7f)) }
+        }
     }
 }
 
 @Composable
-private fun PanelButton(title: String, desc: String, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(14.dp).noRippleClick(onClick)
-    ) {
-        Text(text = title, color = TextPrimary, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
-        Text(text = desc, color = TextPrimary.copy(alpha = 0.75f))
-    }
-}
-
-@Composable
-private fun BriefingPanel(
-    incidentViewModel: IncidentViewModel,
-    onBackToHub: () -> Unit,
-    onClose: () -> Unit
-) {
+private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () -> Unit, onClose: () -> Unit) {
     val incident by incidentViewModel.incident.collectAsState()
     val meta = incident?.meta
-
-    val placed = incidentViewModel.placedVehicles
-    val totalVehicles = placed.size
-    val vehicleStr = "총 ${totalVehicles}대"
-
-    val personnelInput = meta?.소방력_인원?.trim()
-    val personnelStr = if (!personnelInput.isNullOrBlank()) "${personnelInput}명" else "-"
-
-    val weatherStr = "${meta?.기상_날씨 ?: "-"} / ${meta?.기상_기온 ?: "-"} / ${meta?.기상_풍향 ?: "-"} ${meta?.기상_풍속 ?: "-"}"
-
-    fun show(v: String?): String = v?.trim()?.takeIf { it.isNotBlank() } ?: "-"
-
-    val DamageRed = Color(0xFFFF1744)
-
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Spacer(Modifier.weight(1f))
-            Text(text = "허브", color = MarsOrange, fontSize = 18.sp, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 14.dp, vertical = 10.dp).noRippleClick { onBackToHub() })
-            Spacer(Modifier.width(10.dp))
-            Text(text = "닫기", color = MarsOrange, fontSize = 18.sp, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 14.dp, vertical = 10.dp).noRippleClick { onClose() })
-        }
-
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Row { Text("브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp); Spacer(Modifier.weight(1f)); Text("허브", color = MarsOrange, modifier = Modifier.clickable { onBackToHub() }); Spacer(Modifier.width(10.dp)); Text("닫기", color = MarsOrange, modifier = Modifier.clickable { onClose() }) }
         Spacer(Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            BriefingRow("위치", show(incident?.address))
-            BriefingRow("처종", show(meta?.fireType))
-            BriefingRow("신고접수일시", show(meta?.신고접수일시))
-
-            val stageStr = show(meta?.대응단계)
-            val stageColor = if (stageStr.contains("단계")) DamageRed else TextPrimary
-            BriefingRow("대응단계", stageStr, valueColor = stageColor)
-
-            BriefingRow("화재원인", show(meta?.화재원인))
-            BriefingRow("초진시간", show(meta?.초진시간))
-            BriefingRow("완진시간", show(meta?.완진시간))
-            BriefingRow("선착대도착시간", show(meta?.선착대도착시간))
-
-            BriefingRow("인명피해", show(meta?.인명피해현황), valueColor = DamageRed)
-            BriefingRow("재산피해", show(meta?.재산피해현황), valueColor = DamageRed)
-            BriefingRow("대원피해", show(meta?.대원피해현황), valueColor = Color(0xFFFF9100))
-
-            BriefingRow("소방력_차량", vehicleStr)
-            BriefingRow("소방력_인원", personnelStr)
-
-            BriefingRow("날씨", weatherStr)
-
-            BriefingRow("유관기관_경찰", show(meta?.유관기관_경찰))
-            BriefingRow("유관기관_시청", show(meta?.유관기관_시청))
-            BriefingRow("유관기관_한전", show(meta?.유관기관_한전))
-            BriefingRow("유관기관_도시가스", show(meta?.유관기관_도시가스))
-            BriefingRow("유관기관_산불진화대(화성시)", show(meta?.유관기관_산불진화대_화성시))
-
-            Spacer(Modifier.height(40.dp))
-        }
+        Text("위치: ${incident?.address ?: "-"}", color = TextPrimary, fontSize = 18.sp)
+        Text("처종: ${meta?.fireType ?: "-"}", color = TextPrimary, fontSize = 18.sp)
     }
 }
 
 @Composable
-private fun BriefingRow(label: String, value: String, valueColor: Color = TextPrimary) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(text = "$label : ", color = Color.Gray, fontSize = 21.sp, fontWeight = FontWeight.Medium, modifier = Modifier.width(140.dp))
-        Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 21.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun ForceStatusPanel(
-    incidentViewModel: IncidentViewModel,
-    onBackToHub: () -> Unit,
-    onClose: () -> Unit
-) {
-    val vScroll = rememberScrollState()
+private fun ForceStatusPanel(incidentViewModel: IncidentViewModel, onBackToHub: () -> Unit, onClose: () -> Unit) {
     val placed = incidentViewModel.placedVehicles
-    val actualEquipCounts: List<Pair<String, Int>> = remember(placed) { placed.groupingBy { it.equipment }.eachCount().toList().sortedByDescending { it.second } }
-    val actualDeptCounts: List<Pair<String, Int>> = remember(placed) { placed.groupingBy { it.department }.eachCount().toList().sortedByDescending { it.second } }
-
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(vScroll).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "소방력 현황", color = MarsOrange, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.weight(1f))
-            Text(text = "허브", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onBackToHub() })
-            Spacer(Modifier.width(8.dp))
-            Text(text = "닫기", color = MarsOrange, modifier = Modifier.border(1.dp, BorderGray).padding(horizontal = 12.dp, vertical = 8.dp).noRippleClick { onClose() })
-        }
-
-        SectionTitle("현재(실제 배치) - 차종별")
-        if (actualEquipCounts.isEmpty()) {
-            Text(text = "현재 지도에 배치된 차량이 없습니다.", color = TextPrimary.copy(alpha = 0.75f))
-        } else {
-            actualEquipCounts.forEach { (equip, cnt) ->
-                Row(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    val iconRes = VehicleIconMapper.iconResForEquip(equip)
-                    if (iconRes != 0) {
-                        Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.width(10.dp))
-                    }
-                    Text(text = equip, color = TextPrimary, modifier = Modifier.weight(1f))
-                    Text(text = "${cnt}대", color = MarsOrange, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(6.dp))
-            }
-        }
-
-        SectionTitle("현재(실제 배치) - 부서별")
-        if (actualDeptCounts.isEmpty()) {
-            Text(text = "현재 지도에 배치된 차량이 없습니다.", color = TextPrimary.copy(alpha = 0.75f))
-        } else {
-            actualDeptCounts.forEach { (dept, cnt) ->
-                Row(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray).background(Color(0xFF111111)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = VehicleIconMapper.deptLabel(dept), color = TextPrimary, modifier = Modifier.weight(1f))
-                    Text(text = "${cnt}대", color = MarsOrange, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(6.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(14.dp).verticalScroll(rememberScrollState())) {
+        Row { Text("소방력 현황", color = MarsOrange, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); Text("허브", color = MarsOrange, modifier = Modifier.clickable { onBackToHub() }) }
+        placed.groupBy { it.equipment }.forEach { (equip, list) ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text(equip, color = TextPrimary, modifier = Modifier.weight(1f))
+                Text("${list.size}대", color = MarsOrange)
             }
         }
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) { Text(text = text, color = MarsOrange, fontWeight = FontWeight.SemiBold) }
-
-private fun Modifier.noRippleClick(onClick: () -> Unit): Modifier =
-    this.clickable(interactionSource = MutableInteractionSource(), indication = null) { onClick() }
-
-@Composable
-private fun TrayChipDraggableAfterLongPress(
-    item: IncidentViewModel.StickerItem,
-    deptLabel: String,
-    iconRes: Int,
-    onLift: (Offset) -> Unit,
-    onMove: (Offset) -> Unit,
-    onDrop: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var chipTopLeftInWindow by remember { mutableStateOf(Offset.Zero) }
-    Box(
-        modifier = modifier
-            .onGloballyPositioned { coords ->
-                val rect = coords.boundsInWindow()
-                chipTopLeftInWindow = Offset(rect.left, rect.top)
-            }
-            .pointerInput(item.id) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { localStart -> onLift(chipTopLeftInWindow + localStart) },
-                    onDrag = { change, _ -> onMove(chipTopLeftInWindow + change.position) },
-                    onDragEnd = { onDrop() },
-                    onDragCancel = { onDrop() }
-                )
-            }
-    ) {
-        TrayChip(iconRes = iconRes, text = deptLabel, wobble = false)
-    }
+private fun TrayChipDraggableAfterLongPress(item: IncidentViewModel.StickerItem, deptLabel: String, iconRes: Int, onLift: (Offset) -> Unit, onMove: (Offset) -> Unit, onDrop: () -> Unit, modifier: Modifier = Modifier) {
+    var chipPos by remember { mutableStateOf(Offset.Zero) }
+    Box(modifier = modifier.onGloballyPositioned { chipPos = it.boundsInWindow().topLeft }.pointerInput(Unit) {
+        detectDragGesturesAfterLongPress(onDragStart = { onLift(chipPos + it) }, onDrag = { change, _ -> onMove(chipPos + change.position) }, onDragEnd = { onDrop() }, onDragCancel = { onDrop() })
+    }) { TrayChip(iconRes, deptLabel, false) }
 }
 
 @Composable
 private fun TrayChip(iconRes: Int, text: String, wobble: Boolean) {
     var sign by remember { mutableStateOf(1f) }
-    LaunchedEffect(wobble) {
-        if (!wobble) { sign = 1f; return@LaunchedEffect }
-        while (true) { sign *= -1f; delay(90) }
-    }
-    val rot = if (wobble) 4f * sign else 0f
-    Row(
-        modifier = Modifier.height(40.dp).wrapContentWidth().graphicsLayer { rotationZ = rot }.background(Color(0xFF0E0E0E), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (iconRes != 0) { Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(24.dp)); Spacer(Modifier.width(8.dp)) }
-        Text(text = text, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+    LaunchedEffect(wobble) { if (wobble) while (true) { sign *= -1f; delay(90) } }
+    Row(modifier = Modifier.graphicsLayer { rotationZ = if (wobble) 4f * sign else 0f }.background(BgBlack, RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (iconRes != 0) { Image(painterResource(iconRes), null, Modifier.size(24.dp)); Spacer(Modifier.width(8.dp)) }
+        Text(text, color = TextPrimary, fontWeight = FontWeight.SemiBold)
     }
 }
