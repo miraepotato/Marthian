@@ -54,6 +54,7 @@ import com.example.marthianclean.R
 import com.example.marthianclean.model.FireType
 import com.example.marthianclean.model.MarkerIconMapper
 import com.example.marthianclean.ui.sticker.VehicleIconMapper
+import com.example.marthianclean.model.IncidentMeta
 import com.example.marthianclean.viewmodel.IncidentViewModel
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
@@ -66,12 +67,15 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import com.naver.maps.map.overlay.OverlayImage
+import com.naver.maps.map.util.MarkerIcons
 
 private val MarsOrange = Color(0xFFFF8C00)
 private val CommandYellowGreen = Color(0xFFD4FF00)
 private val TextPrimary = Color(0xFFF0F0F0)
 private val BgBlack = Color(0xFF0E0E0E)
 private val BorderGray = Color(0xFF2E2E2E)
+private val NeonRed = Color(0xFFFF1744)     // 브리핑 피해상황 하이라이트용
+private val NeonOrange = Color(0xFFFF9100)  // 브리핑 대원피해 하이라이트용
 
 private enum class RightPanelMode { NONE, HUB, BRIEFING, FORCE_STATUS }
 
@@ -131,14 +135,17 @@ fun SituationBoardScreen(
     val density = LocalDensity.current
 
     val incident by incidentViewModel.incident.collectAsState()
+    val weatherData by incidentViewModel.weatherData.collectAsState()
 
     var rightMode by remember { mutableStateOf(RightPanelMode.NONE) }
     var isSectorMode by remember { mutableStateOf(false) }
     var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
     var isMarkerLocked by remember { mutableStateOf(false) }
 
-    // 현장 변경 버튼 상태
     var isSceneMovable by remember { mutableStateOf(false) }
+
+    var isMeasuringDistance by remember { mutableStateOf(false) }
+    val measurePoints = remember { mutableStateListOf<LatLng>() }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -164,6 +171,10 @@ fun SituationBoardScreen(
 
     val sceneIconBaseSize: Dp = 90.dp
     var didInitialCam by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        incidentViewModel.fetchRealtimeWeather()
+    }
 
     LaunchedEffect(lat, lng, mapLoaded) {
         if (!didInitialCam && mapLoaded && lat != null && lng != null) {
@@ -225,7 +236,6 @@ fun SituationBoardScreen(
         return sqrt(dx * dx + dy * dy) <= with(density) { 80.dp.toPx() }
     }
 
-    // ✅ [버그 수정] 현장 마커 이동 시 새로운 위치를 뷰모델에 확실히 전달!
     fun dropSceneIfPossible() {
         val mapRect = mapRectInWindow ?: return
         val mapObj = naverMapObj ?: return
@@ -236,7 +246,6 @@ fun SituationBoardScreen(
         val localY = (dropPos.y - mapRect.top).toFloat()
         val latLng = mapObj.projection.fromScreenLocation(PointF(localX, localY))
 
-        // 마커 상태와 뷰모델 좌표 동시 업데이트
         markerState.position = latLng
         incidentViewModel.updateSceneLocationFromDrag(context, latLng)
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -250,7 +259,7 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable, isMeasuringDistance) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             val longPressChange = awaitLongPressOrCancellation(down.id)
@@ -266,10 +275,11 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
+                            if (isMeasuringDistance) return@awaitEachGesture
+
                             val nearScene = isNearSceneMarker(longPressChange.position)
                             val canDragMarkers = !isMarkerLocked && rightMode != RightPanelMode.BRIEFING
 
-                            // ✅ [버그 수정] 현장 마커 이동 시 로직 탈출 방지 및 상태 체크 강화
                             if (nearScene) {
                                 if (isSceneMovable) {
                                     val mapRect = mapRectInWindow ?: return@awaitEachGesture
@@ -317,9 +327,49 @@ fun SituationBoardScreen(
                     cameraPositionState = cameraPositionState,
                     properties = MapProperties(mapType = if (isSatellite) MapType.Satellite else MapType.Basic),
                     uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false),
-                    onMapLoaded = { mapLoaded = true }
+                    onMapLoaded = { mapLoaded = true },
+                    onMapClick = { _, clickedLatLng ->
+                        if (isMeasuringDistance) {
+                            measurePoints.add(clickedLatLng)
+                            strongVibrate(context)
+                        }
+                    }
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
+
+                    if (measurePoints.isNotEmpty()) {
+                        if (measurePoints.size >= 2) {
+                            PathOverlay(
+                                coords = measurePoints.toList(),
+                                width = 4.dp,
+                                color = MarsOrange,
+                                outlineWidth = 1.dp,
+                                outlineColor = Color.White
+                            )
+                        }
+
+                        var totalDistance = 0.0
+                        measurePoints.forEachIndexed { index, pt ->
+                            if (index > 0) {
+                                totalDistance += measurePoints[index - 1].distanceTo(pt)
+                            }
+
+                            val distText = if (index == 0) "시작" else if (totalDistance < 1000) "${totalDistance.roundToInt()}m" else String.format("%.2fkm", totalDistance / 1000.0)
+
+                            Marker(
+                                state = MarkerState(position = pt),
+                                icon = MarkerIcons.BLACK,
+                                iconTintColor = MarsOrange,
+                                width = 22.dp,
+                                height = 30.dp,
+                                captionText = distText,
+                                captionColor = Color.White,
+                                captionHaloColor = MarsOrange,
+                                captionTextSize = 18.sp,
+                                zIndex = 200
+                            )
+                        }
+                    }
 
                     if (lat != null && lng != null) {
                         val fireType = FireType.from(incident?.meta?.fireType)
@@ -458,6 +508,31 @@ fun SituationBoardScreen(
                     }
                     TopBarButton(text = if (isMarkerLocked) "🔒 마커 잠금됨" else "🔓 마커 이동 가능", isActive = isMarkerLocked, onClick = { isMarkerLocked = !isMarkerLocked })
                     TopBarButton(text = if (isSceneMovable) "📍 현장 변경 ON" else "📍 현장 변경", isActive = isSceneMovable, onClick = { isSceneMovable = !isSceneMovable })
+                    TopBarButton(text = if (isMeasuringDistance) "📏 측정 종료" else "📏 거리측정", isActive = isMeasuringDistance, onClick = {
+                        isMeasuringDistance = !isMeasuringDistance
+                        if (!isMeasuringDistance) measurePoints.clear()
+                    })
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(bottom = if (showTray && !panelActive) 110.dp else 16.dp, start = 16.dp)
+                        .background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .border(1.dp, BorderGray, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    val sky = incident?.meta?.기상_날씨?.takeIf { it.isNotBlank() } ?: "맑음"
+                    val temp = if (weatherData.temp != "-") "${weatherData.temp}℃" else "기온-"
+                    val windDir = if (weatherData.windDirStr != "-") "${weatherData.windDirStr}풍" else "풍향-"
+                    val windSpeed = if (weatherData.windSpeed != "-") "${weatherData.windSpeed}m/s" else "풍속-"
+
+                    Text(
+                        text = "$sky / $temp / $windDir / $windSpeed",
+                        color = MarsOrange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
             }
 
@@ -570,6 +645,22 @@ fun SituationBoardScreen(
     }
 }
 
+// ✅ [신규] 브리핑 화면용 매트릭스 타일 UI 컴포넌트
+@Composable
+private fun BriefingTile(title: String, value: String, modifier: Modifier = Modifier, valueColor: Color = TextPrimary) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
+            .border(1.dp, BorderGray, RoundedCornerShape(8.dp))
+            .padding(12.dp)
+    ) {
+        Text(text = title, color = Color.Gray, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
 @Composable
 private fun TopBarButton(text: String, isActive: Boolean = false, onClick: () -> Unit) {
     Box(modifier = Modifier.background(if (isActive) MarsOrange else Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp)).border(1.dp, if (isActive) Color.White else BorderGray, RoundedCornerShape(8.dp)).clickable { onClick() }.padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -595,15 +686,100 @@ private fun HubPanel(onBriefing: () -> Unit, onForceStatus: () -> Unit, onClose:
     }
 }
 
+// ✅ [디자인 개편] 깔끔한 표(매트릭스) 형태의 브리핑 패널
 @Composable
 private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () -> Unit, onClose: () -> Unit) {
     val incident by incidentViewModel.incident.collectAsState()
-    val meta = incident?.meta
+    val weatherData by incidentViewModel.weatherData.collectAsState()
+    val meta = incident?.meta ?: IncidentMeta()
+
     Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Row { Text("브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp); Spacer(Modifier.weight(1f)); Text("허브", color = MarsOrange, modifier = Modifier.clickable { onBackToHub() }); Spacer(Modifier.width(10.dp)); Text("닫기", color = MarsOrange, modifier = Modifier.clickable { onClose() }) }
-        Spacer(Modifier.height(16.dp))
-        Text("위치: ${incident?.address ?: "-"}", color = TextPrimary, fontSize = 18.sp)
-        Text("처종: ${meta?.fireType ?: "-"}", color = TextPrimary, fontSize = 18.sp)
+
+        // 상단 헤더
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("현장 브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Spacer(Modifier.weight(1f))
+            TopBarButton(text = "허브", onClick = onBackToHub)
+            Spacer(Modifier.width(8.dp))
+            TopBarButton(text = "닫기", onClick = onClose)
+        }
+        Spacer(Modifier.height(24.dp))
+
+        // 1. 기상 현황 (API 연동 데이터 최우선)
+        val sky = meta.기상_날씨.takeIf { it.isNotBlank() } ?: "맑음"
+        val temp = if (weatherData.temp != "-") "${weatherData.temp}℃" else meta.기상_기온
+        val windDir = if (weatherData.windDirStr != "-") "${weatherData.windDirStr}풍" else meta.기상_풍향
+        val windSpeed = if (weatherData.windSpeed != "-") "${weatherData.windSpeed}m/s" else meta.기상_풍속
+
+        Text("🌤️ 기상 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BriefingTile("날씨", sky, Modifier.weight(1f))
+            BriefingTile("기온", temp, Modifier.weight(1f))
+            BriefingTile("풍향/풍속", "$windDir $windSpeed", Modifier.weight(1.5f))
+        }
+        Spacer(Modifier.height(20.dp))
+
+        // 2. 재난 개요
+        Text("📋 발생 개요", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(8.dp))
+        BriefingTile("발생 위치", incident?.address ?: "-", Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BriefingTile("처종 (화재/구조 등)", meta.fireType, Modifier.weight(1f))
+            BriefingTile("대응 단계", meta.대응단계, Modifier.weight(1f), valueColor = if(meta.대응단계.contains("단계")) NeonRed else TextPrimary)
+        }
+        Spacer(Modifier.height(8.dp))
+        BriefingTile("화재 원인 추정", meta.화재원인, Modifier.fillMaxWidth())
+        Spacer(Modifier.height(20.dp))
+
+        // 3. 시간대별 현황
+        Text("⏰ 시간대별 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BriefingTile("신고 접수", meta.신고접수일시, Modifier.weight(1f))
+            BriefingTile("선착대 도착", meta.선착대도착시간, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BriefingTile("초진 시간", meta.초진시간, Modifier.weight(1f))
+            BriefingTile("완진 시간", meta.완진시간, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(20.dp))
+
+        // 4. 피해 현황 (하이라이트 컬러 적용)
+        Text("🚨 피해 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BriefingTile("인명 피해", meta.인명피해현황, Modifier.weight(1f), valueColor = NeonRed)
+            BriefingTile("재산 피해", meta.재산피해현황, Modifier.weight(1f), valueColor = NeonRed)
+            BriefingTile("대원 피해", meta.대원피해현황, Modifier.weight(1f), valueColor = NeonOrange)
+        }
+        Spacer(Modifier.height(20.dp))
+
+        // 5. 동원 현황
+        Text("🚒 동원 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(8.dp))
+        BriefingTile("소방력 인원", if (meta.소방력_인원.isNotBlank()) "${meta.소방력_인원}명" else "-", Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+
+        // 유관기관 중 내용이 입력된 곳만 필터링하여 한 줄로 묶기
+        val relatedAgencies = listOf(
+            "경찰" to meta.유관기관_경찰,
+            "시청" to meta.유관기관_시청,
+            "한전" to meta.유관기관_한전,
+            "가스" to meta.유관기관_도시가스,
+            "산불대" to meta.유관기관_산불진화대_화성시
+        ).filter { it.second.isNotBlank() }
+
+        if(relatedAgencies.isNotEmpty()) {
+            val agenciesText = relatedAgencies.joinToString(" / ") { "${it.first}: ${it.second}" }
+            BriefingTile("유관기관 지원", agenciesText, Modifier.fillMaxWidth())
+        } else {
+            BriefingTile("유관기관 지원", "해당사항 없음", Modifier.fillMaxWidth())
+        }
+
+        Spacer(Modifier.height(40.dp)) // 스크롤 여백
     }
 }
 

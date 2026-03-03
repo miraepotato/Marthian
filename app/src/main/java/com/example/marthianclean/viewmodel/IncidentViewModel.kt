@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class PlaceCandidate(
     val title: String,
@@ -32,6 +36,21 @@ data class PlacedVehicle(
     val department: String,
     val equipment: String,
     val position: LatLng
+)
+
+data class WeatherData(
+    val temp: String = "-",
+    val windSpeed: String = "-",
+    val windDir: Double = 0.0,
+    val windDirStr: String = "-",
+    val stationName: String = "-"
+)
+
+data class WeatherStation(
+    val stnId: Int,
+    val name: String,
+    val lat: Double,
+    val lng: Double
 )
 
 class IncidentViewModel : ViewModel() {
@@ -51,6 +70,9 @@ class IncidentViewModel : ViewModel() {
     private val _searchError = MutableStateFlow<String?>(null)
     val searchError: StateFlow<String?> = _searchError.asStateFlow()
 
+    private val _weatherData = MutableStateFlow(WeatherData())
+    val weatherData: StateFlow<WeatherData> = _weatherData.asStateFlow()
+
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
@@ -64,7 +86,19 @@ class IncidentViewModel : ViewModel() {
     }
 
     fun setIncident(value: Incident) {
-        _incident.value = value
+        val wd = _weatherData.value
+        val meta = value.meta
+
+        // 자동 연동: 현장이 세팅될 때, 이미 불러온 날씨가 있다면 메타 데이터에 자동으로 꽂아줍니다.
+        val newMeta = if (wd.temp != "-" && meta.기상_기온.isBlank()) {
+            meta.copy(
+                기상_기온 = "${wd.temp}°C",
+                기상_풍속 = "${wd.windSpeed}m/s",
+                기상_풍향 = wd.windDirStr
+            )
+        } else meta
+
+        _incident.value = value.copy(meta = newMeta)
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
     }
@@ -126,6 +160,7 @@ class IncidentViewModel : ViewModel() {
 
     fun clearIncident() {
         _incident.value = null
+        _weatherData.value = WeatherData()
     }
 
     fun clearCandidates() {
@@ -204,6 +239,8 @@ class IncidentViewModel : ViewModel() {
                     )
                     _incident.value = updated
                     syncMetaAddressIfBlank()
+
+                    fetchRealtimeWeather()
                     onSuccess()
                 }
             }
@@ -223,6 +260,8 @@ class IncidentViewModel : ViewModel() {
                     val newMeta = now.meta.copy(재난발생위치 = addr)
                     _incident.value = now.copy(address = addr, meta = newMeta)
                     saveCurrentIncident(context)
+
+                    fetchRealtimeWeather()
                 }
             }
         }
@@ -305,13 +344,8 @@ class IncidentViewModel : ViewModel() {
 
     data class StickerItem(val id: String, val department: String, val equipment: String)
 
-    /**
-     * ✅ [완벽 수정] 지휘차 1대 기본 고정 + 사용자가 매트릭스에서 편성한 차량 합치기
-     */
     fun buildStickerQueue(): List<StickerItem> {
         val res = mutableListOf<StickerItem>()
-
-        // 1. 현장당 지휘차는 무조건 1대 기본 배치! (최우선)
         res.add(StickerItem("CMD_AUTO_01", "화성소방서 지휘단", "지휘차"))
 
         if (dispatchMatrix.isEmpty()) return res
@@ -319,13 +353,10 @@ class IncidentViewModel : ViewModel() {
         val deps = dispatchDepartments
         val eqs = dispatchEquipments
 
-        // 2. 사용자가 편성한 차량들을 지휘차 뒤에 줄 세웁니다.
         for (r in dispatchMatrix.indices) {
             val dep = deps.getOrNull(r) ?: continue
             for (c in dispatchMatrix[r].indices) {
                 val eq = eqs.getOrNull(c) ?: continue
-
-                // [안전장치] 매트릭스에 지휘차가 없어야 정상이지만, 혹시나 남아있다면 무시 (중복 방지)
                 if (eq.contains("지휘")) continue
 
                 val count = dispatchMatrix[r][c]
@@ -336,5 +367,114 @@ class IncidentViewModel : ViewModel() {
             }
         }
         return res
+    }
+
+    // =========================================================================
+    // ✅ 기상청 실시간 지상관측(ASOS) 데이터 연동 & 근접 관측소 자동 탐색 (수도권 전역)
+    // =========================================================================
+
+    // ✅ 수도권(서울/경기/인천)을 완벽하게 덮는 8개 ASOS 관측소 망
+    private val stationList = listOf(
+        WeatherStation(108, "서울", 37.5714, 126.9658),       // 서울, 과천, 광명 커버
+        WeatherStation(112, "인천", 37.4777, 126.6249),       // 인천, 부천, 시흥 서부 커버
+        WeatherStation(119, "수원", 37.2723, 126.9853),       // 수원, 화성, 오산, 용인 커버
+        WeatherStation(232, "이천", 37.2640, 127.4842),       // 이천, 여주, 광주 커버
+        WeatherStation(212, "양평", 37.4886, 127.4945),       // 양평, 가평, 하남 커버
+        WeatherStation(98, "동두천", 37.9019, 127.0607),      // 동두천, 연천, 포천, 양주 커버
+        WeatherStation(99, "파주", 37.8859, 126.7661),        // 파주, 고양, 김포 북부 커버
+        WeatherStation(201, "강화", 37.7074, 126.4463)        // 강화도 및 서해안 북부 커버
+    )
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371e3
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+    }
+
+    private fun findNearestStation(lat: Double, lng: Double): WeatherStation {
+        var nearestStn = stationList[0]
+        var minDistance = Double.MAX_VALUE
+        for (station in stationList) {
+            val dist = calculateDistance(lat, lng, station.lat, station.lng)
+            if (dist < minDistance) {
+                minDistance = dist
+                nearestStn = station
+            }
+        }
+        return nearestStn
+    }
+
+    private fun convertWindDirToStr(wd: Double): String {
+        val directions = arrayOf("북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서", "북")
+        val index = Math.round((wd % 360) / 22.5).toInt()
+        return directions[index]
+    }
+
+    fun fetchRealtimeWeather() {
+        val curIncident = _incident.value
+        val targetStation = if (curIncident?.latitude != null && curIncident.longitude != null) {
+            findNearestStation(curIncident.latitude, curIncident.longitude)
+        } else {
+            stationList.find { it.stnId == 119 } ?: stationList[0] // 기본값: 수원(119)
+        }
+
+        viewModelScope.launch {
+            try {
+                // 안전하게 1시간 전 정각 데이터로 강제 변환하여 요청
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.HOUR_OF_DAY, -1)
+                val tmFormat = SimpleDateFormat("yyyyMMddHH00", Locale.KOREA)
+                val tm = tmFormat.format(cal.time)
+
+                val responseBody = RetrofitClient.kmaService.getStationWeather(
+                    time = tm,
+                    stnId = targetStation.stnId,
+                    help = 1
+                )
+                val rawText = responseBody.string()
+
+                val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
+                if (lines.isNotEmpty()) {
+                    val lastData = lines.last().trim().split(Regex("\\s+"))
+
+                    // 기온(TA) 11번 인덱스 확정 적용
+                    val wd = lastData.getOrNull(2)?.toDoubleOrNull() ?: 0.0
+                    val ws = lastData.getOrNull(3) ?: "-"
+                    val ta = lastData.getOrNull(11) ?: "-"
+
+                    // 결측치(-9.0, -99.0 등) 필터링
+                    val finalTa = if (ta.startsWith("-9") || ta == "-9.0") "-" else ta
+                    val finalWs = if (ws.startsWith("-9")) "-" else ws
+                    val finalWd = if (wd < 0.0 || wd > 360.0) 0.0 else wd
+
+                    val dirStr = if (finalWs == "-") "-" else convertWindDirToStr(finalWd)
+
+                    _weatherData.value = WeatherData(
+                        temp = finalTa,
+                        windSpeed = finalWs,
+                        windDir = finalWd,
+                        windDirStr = dirStr,
+                        stationName = targetStation.name
+                    )
+
+                    // 현재 열려있는 현장 정보(메타)에도 실시간 기상 자동 업데이트
+                    if (curIncident != null) {
+                        val meta = curIncident.meta
+                        _incident.value = curIncident.copy(
+                            meta = meta.copy(
+                                기상_기온 = if (finalTa != "-") "${finalTa}°C" else meta.기상_기온,
+                                기상_풍속 = if (finalWs != "-") "${finalWs}m/s" else meta.기상_풍속,
+                                기상_풍향 = if (dirStr != "-") dirStr else meta.기상_풍향
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }
