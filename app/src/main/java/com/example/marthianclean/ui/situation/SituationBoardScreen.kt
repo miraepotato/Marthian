@@ -534,7 +534,7 @@ fun SituationBoardScreen(
 
             if (!panelActive && showTray) {
                 Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.55f)).padding(12.dp).navigationBarsPadding()) {
-                    Text(text = "지휘차 배치 대기", color = Color.White, fontWeight = FontWeight.Bold)
+                    //Text(text = "지휘차 배치 대기", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         notPlaced.forEach { item ->
