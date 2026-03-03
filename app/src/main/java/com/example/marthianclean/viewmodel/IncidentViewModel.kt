@@ -230,8 +230,6 @@ class IncidentViewModel : ViewModel() {
 
     var dispatchMatrix by mutableStateOf<List<List<Int>>>(emptyList())
         private set
-    fun updateDispatchMatrix(matrix: List<List<Int>>) { dispatchMatrix = matrix }
-
     var dispatchDepartments by mutableStateOf<List<String>>(emptyList())
         private set
     var dispatchEquipments by mutableStateOf<List<String>>(emptyList())
@@ -241,6 +239,8 @@ class IncidentViewModel : ViewModel() {
         dispatchDepartments = departments
         dispatchEquipments = equipments
     }
+
+    fun updateDispatchMatrix(matrix: List<List<Int>>) { dispatchMatrix = matrix }
 
     fun getDispatchCount(valueToCount: Int = 1): Int {
         val m = dispatchMatrix
@@ -306,9 +306,35 @@ class IncidentViewModel : ViewModel() {
     data class StickerItem(val id: String, val department: String, val equipment: String)
 
     /**
-     * ✅ [수정] 2단계 고도화: 다른 편성 무시하고 지휘차만 기본값으로 트레이에 표출
+     * ✅ [완벽 수정] 지휘차 1대 기본 고정 + 사용자가 매트릭스에서 편성한 차량 합치기
      */
     fun buildStickerQueue(): List<StickerItem> {
-        return listOf(StickerItem("CMD_AUTO_01", "화성소방서 지휘단", "지휘차"))
+        val res = mutableListOf<StickerItem>()
+
+        // 1. 현장당 지휘차는 무조건 1대 기본 배치! (최우선)
+        res.add(StickerItem("CMD_AUTO_01", "화성소방서 지휘단", "지휘차"))
+
+        if (dispatchMatrix.isEmpty()) return res
+
+        val deps = dispatchDepartments
+        val eqs = dispatchEquipments
+
+        // 2. 사용자가 편성한 차량들을 지휘차 뒤에 줄 세웁니다.
+        for (r in dispatchMatrix.indices) {
+            val dep = deps.getOrNull(r) ?: continue
+            for (c in dispatchMatrix[r].indices) {
+                val eq = eqs.getOrNull(c) ?: continue
+
+                // [안전장치] 매트릭스에 지휘차가 없어야 정상이지만, 혹시나 남아있다면 무시 (중복 방지)
+                if (eq.contains("지휘")) continue
+
+                val count = dispatchMatrix[r][c]
+                for (i in 0 until count) {
+                    val uid = "stk_${r}_${c}_$i"
+                    res.add(StickerItem(uid, dep, eq))
+                }
+            }
+        }
+        return res
     }
 }

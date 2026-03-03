@@ -110,13 +110,14 @@ fun IncidentInfoEditScreen(
                 WeatherSection(meta = meta, onMetaChange = { meta = it })
                 DividerRow()
 
-                MatrixTextRow(label = "선착대 도착시간", value = meta.선착대도착시간, onChange = { meta = meta.copy(선착대도착시간 = it) })
+                // ✅ 선착대 도착시간도 휠 스크롤 방식으로 교체 완료!
+                TimeSelectRow(label = "선착대 도착시간", value = meta.선착대도착시간) { targetField = "선착대"; showTimePicker = true }
+
                 MatrixTextRow(label = "인명피해", labelColor = NeonRed, valueColor = NeonRed, value = meta.인명피해현황, onChange = { meta = meta.copy(인명피해현황 = it) })
                 MatrixTextRow(label = "재산피해", labelColor = NeonRed, valueColor = NeonRed, value = meta.재산피해현황, onChange = { meta = meta.copy(재산피해현황 = it) })
                 MatrixTextRow(label = "대원피해", labelColor = NeonOrange, valueColor = NeonOrange, value = meta.대원피해현황, onChange = { meta = meta.copy(대원피해현황 = it) })
 
                 DividerRow()
-                // ✅ 소방력 인원 입력 (숫자 키보드 띄우기)
                 MatrixTextRow(
                     label = "소방력 인원(명)",
                     value = meta.소방력_인원,
@@ -142,6 +143,7 @@ fun IncidentInfoEditScreen(
                 "신고" -> meta.신고접수일시
                 "초진" -> meta.초진시간
                 "완진" -> meta.완진시간
+                "선착대" -> meta.선착대도착시간 // ✅ 선착대 처리 추가
                 else -> ""
             },
             onDismiss = { showTimePicker = false },
@@ -150,6 +152,7 @@ fun IncidentInfoEditScreen(
                     "신고" -> meta.copy(신고접수일시 = pickedTime)
                     "초진" -> meta.copy(초진시간 = pickedTime)
                     "완진" -> meta.copy(완진시간 = pickedTime)
+                    "선착대" -> meta.copy(선착대도착시간 = pickedTime) // ✅ 선착대 저장 로직 추가
                     else -> meta
                 }
                 showTimePicker = false

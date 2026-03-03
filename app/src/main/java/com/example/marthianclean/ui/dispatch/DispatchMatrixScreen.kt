@@ -56,11 +56,9 @@ fun DispatchMatrixScreen(
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
 
-    // ✅ 스크롤 동기화
     val hScroll = rememberScrollState()
     val vScroll = rememberScrollState()
 
-// ✅ 기본값(처음 1회만 쓰일 값)
     val defaultDepartments = listOf(
         "향남센터", "양감지역대", "남양센터", "서신지역대", "제부지역대",
         "팔탄센터", "장안센터", "새솔센터", "화성구조대",
@@ -70,15 +68,14 @@ fun DispatchMatrixScreen(
         "세교센터(오산)", "청학센터(오산)", "반월센터(안산)"
     )
 
+    // ✅ 지휘차 항목 영구 삭제 (현장당 1대는 자동 배치되므로)
     val defaultEquipments = listOf(
         "펌프차", "탱크차", "화학차", "고가사다리차",
         "굴절차", "무인방수파괴", "구조공작차",
         "장비운반차", "구급차",
-        "지휘차", "포크레인", "회복지원버스" // ✅ 구급차 이후 순서 고정
+        "포크레인", "회복지원버스"
     )
 
-
-    // ✅ 화면 상태
     val departments = remember { mutableStateListOf<String>() }
     val equipments = remember { mutableStateListOf<String>() }
     val matrix = remember { mutableStateListOf<SnapshotStateList<Int>>() }
@@ -99,7 +96,17 @@ fun DispatchMatrixScreen(
         val vmMatrix = incidentViewModel.dispatchMatrix
 
         val useDepts = if (vmDepts.isNotEmpty()) vmDepts else defaultDepartments
-        val useEquips = if (vmEquips.isNotEmpty()) vmEquips else defaultEquipments
+        var useEquips = if (vmEquips.isNotEmpty()) vmEquips else defaultEquipments
+        var useMatrix = vmMatrix
+
+        // ✅ 과거에 저장된 현장 데이터에 '지휘차'가 남아있다면 자동으로 걸러내고 표를 깔끔하게 잘라냅니다.
+        if (useEquips.contains("지휘차")) {
+            val removeIdx = useEquips.indexOf("지휘차")
+            useEquips = useEquips.filterIndexed { index, _ -> index != removeIdx }
+            if (useMatrix.isNotEmpty()) {
+                useMatrix = useMatrix.map { row -> row.filterIndexed { index, _ -> index != removeIdx } }
+            }
+        }
 
         departments.clear()
         departments.addAll(useDepts)
@@ -109,12 +116,12 @@ fun DispatchMatrixScreen(
 
         matrix.clear()
         val matrixOk =
-            vmMatrix.isNotEmpty() &&
-                    vmMatrix.size == useDepts.size &&
-                    vmMatrix.all { it.size == useEquips.size }
+            useMatrix.isNotEmpty() &&
+                    useMatrix.size == useDepts.size &&
+                    useMatrix.all { it.size == useEquips.size }
 
         if (matrixOk) {
-            vmMatrix.forEach { row ->
+            useMatrix.forEach { row ->
                 matrix.add(row.toMutableStateList())
             }
         } else {
@@ -127,7 +134,6 @@ fun DispatchMatrixScreen(
             }
         }
 
-        // ✅ VM이 비어 있어서 default로 만든 경우에만 1회 저장
         if (vmDepts.isEmpty() || vmEquips.isEmpty() || vmMatrix.isEmpty()) {
             syncAllToVm()
         }
@@ -149,7 +155,6 @@ fun DispatchMatrixScreen(
             .fillMaxSize()
             .background(BackgroundBlack)
     ) {
-        // 상단 버튼 바
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,8 +182,6 @@ fun DispatchMatrixScreen(
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .clickable {
                         syncAllToVm()
-
-                        // ✅ 출동대 편성 완료 후, 상황판에서 줌인 유지(복원)용
                         incidentViewModel.setMapPreferredZoom(18.0)
                         focusManager.clearFocus()
                         onDone()
@@ -186,34 +189,23 @@ fun DispatchMatrixScreen(
             )
         }
 
-        // ✅ 틀고정 레이아웃(정렬 완전 고정)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp)
         ) {
-            /*
-             * 1) 본문 그리드(수평/수직 스크롤)
-             *    - 헤더행/좌측열은 공간만 비워둠
-             */
+            // 1) 본문 그리드
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(vScroll)
                     .horizontalScroll(hScroll)
             ) {
-                // 상단 헤더행 공간(정확히 HeaderHeight)
                 Spacer(modifier = Modifier.height(HeaderHeight))
 
-                // 데이터 행
                 departments.forEachIndexed { r, _ ->
                     Row {
-                        // 좌측 부서열 공간(정확히 RowHeaderWidth, CellHeight)
-                        Spacer(
-                            modifier = Modifier
-                                .width(RowHeaderWidth)
-                                .height(CellHeight)
-                        )
+                        Spacer(modifier = Modifier.width(RowHeaderWidth).height(CellHeight))
 
                         matrix[r].forEachIndexed { c, value ->
                             StatusCell(value) {
@@ -221,19 +213,15 @@ fun DispatchMatrixScreen(
                                 syncAllToVm()
                             }
                         }
+
+                        // ✅ [핵심 버그 수정] 헤더에 있는 "차량 추가" 버튼 너비만큼 바디에도 빈칸을 채워줘야 스크롤 시 밀리지 않습니다!!
+                        Spacer(modifier = Modifier.width(ColumnWidth).height(CellHeight))
                     }
                 }
-
-                // 하단 "센터 추가" 공간(정확히 CellHeight)
                 Spacer(modifier = Modifier.height(CellHeight))
             }
 
-            /*
- * 2) 상단 고정 헤더행(수평만 스크롤)
- *  - 좌상단 빈칸(RowHeaderWidth) 1번만
- *  - equipments 헤더는 hScroll 공유
- *  - "차량 추가"는 우측 고정
- */
+            // 2) 상단 고정 헤더행
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -241,17 +229,9 @@ fun DispatchMatrixScreen(
                     .background(BackgroundBlack),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 좌상단 코너(빈칸) — 본문 RowHeaderWidth와 정확히 동일
-                Box(
-                    modifier = Modifier
-                        .width(RowHeaderWidth)
-                        .fillMaxHeight()
-                )
+                Box(modifier = Modifier.width(RowHeaderWidth).fillMaxHeight())
 
-                // ✅ 스크롤되는 헤더 영역(장비들 + 맨끝 '차량 추가')
-                Row(
-                    modifier = Modifier.horizontalScroll(hScroll)
-                ) {
+                Row(modifier = Modifier.horizontalScroll(hScroll)) {
                     equipments.forEachIndexed { i, name ->
                         EditableHeaderCell(
                             width = ColumnWidth,
@@ -274,7 +254,6 @@ fun DispatchMatrixScreen(
                         )
                     }
 
-                    // ✅ 맨 오른쪽 끝에 붙는 버튼: 끝까지 스크롤해야만 나타남
                     AddHeaderCell(
                         text = "차량 추가",
                         width = ColumnWidth,
@@ -288,18 +267,13 @@ fun DispatchMatrixScreen(
                 }
             }
 
-
-
-            /*
-             * 3) 좌측 고정 부서열(수직만 스크롤)
-             */
+            // 3) 좌측 고정 부서열
             Column(
                 modifier = Modifier
                     .width(RowHeaderWidth)
                     .fillMaxHeight()
                     .background(BackgroundBlack)
             ) {
-                // 헤더행 공간
                 Spacer(modifier = Modifier.height(HeaderHeight))
 
                 Column(modifier = Modifier.verticalScroll(vScroll)) {
@@ -342,7 +316,7 @@ fun DispatchMatrixScreen(
                 }
             }
 
-            // 4) 좌상단 코너 덮기(깔끔)
+            // 4) 좌상단 코너 덮기
             Box(
                 modifier = Modifier
                     .width(RowHeaderWidth)
