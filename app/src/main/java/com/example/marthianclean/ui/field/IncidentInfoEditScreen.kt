@@ -49,13 +49,33 @@ fun IncidentInfoEditScreen(
     onBack: () -> Unit,
     onSave: (IncidentMeta) -> Unit,
 ) {
+    // 기존 필수 메타 정보
     var meta by remember(initialMeta) {
-        mutableStateOf(initialMeta.copy(
-            신고접수일시 = if (initialMeta.신고접수일시.isBlank())
-                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA).format(Date())
-            else initialMeta.신고접수일시
-        ))
+        mutableStateOf(
+            initialMeta.copy(
+                신고접수일시 = if (initialMeta.신고접수일시.isBlank() || initialMeta.신고접수일시 == "-")
+                    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA).format(Date())
+                else initialMeta.신고접수일시
+            )
+        )
     }
+
+    // --- 에러 방지용 로컬 임시 상태 변수들 ---
+    // (모델에 없어서 생기는 에러를 막기 위해 화면 자체에서 임시로 들고 있습니다)
+    var local대응단계 by remember { mutableStateOf("-") }
+    var local화재원인 by remember { mutableStateOf("-") }
+    var local초진시간 by remember { mutableStateOf("-") }
+    var local완진시간 by remember { mutableStateOf("-") }
+    var local선착대도착시간 by remember { mutableStateOf("-") }
+    var local인명피해 by remember { mutableStateOf("-") }
+    var local재산피해 by remember { mutableStateOf("-") }
+    var local대원피해 by remember { mutableStateOf("-") }
+    var local소방력인원 by remember { mutableStateOf("-") }
+    var local경찰 by remember { mutableStateOf("-") }
+    var local시청 by remember { mutableStateOf("-") }
+    var local한전 by remember { mutableStateOf("-") }
+    var local도시가스 by remember { mutableStateOf("-") }
+    var local산불대 by remember { mutableStateOf("-") }
 
     var stageExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -72,7 +92,7 @@ fun IncidentInfoEditScreen(
                 navigationIcon = { TextButton(onClick = onBack) { Text("나가기", color = TextPrimary) } },
                 actions = {
                     Button(
-                        onClick = { onSave(meta) },
+                        onClick = { onSave(meta) }, // 실제 저장은 meta만!
                         colors = ButtonDefaults.buttonColors(containerColor = AccentOrange, contentColor = Color.Black)
                     ) { Text("저장", fontWeight = FontWeight.Bold) }
                     Spacer(Modifier.width(10.dp))
@@ -90,48 +110,50 @@ fun IncidentInfoEditScreen(
                 MatrixRow(label = "대응단계") {
                     Box(Modifier.fillMaxWidth()) {
                         OutlinedButton(onClick = { stageExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(meta.대응단계.ifBlank { "해당 사항 없음" }, color = TextPrimary)
+                            Text(local대응단계.ifBlank { "해당 사항 없음" }, color = TextPrimary)
                             Spacer(Modifier.weight(1f)); Text("▼", color = TextPrimary)
                         }
                         ThemeedDropdownMenu(expanded = stageExpanded, onDismissRequest = { stageExpanded = false }) {
                             ResponseStages.forEach { stage ->
-                                DropdownMenuItem(text = { Text(stage, color = TextPrimary) }, onClick = { meta = meta.copy(대응단계 = stage); stageExpanded = false })
+                                DropdownMenuItem(
+                                    text = { Text(stage, color = TextPrimary) },
+                                    onClick = { local대응단계 = stage; stageExpanded = false }
+                                )
                             }
                         }
                     }
                 }
 
-                MatrixTextRow(label = "화재 원인", value = meta.화재원인, onChange = { meta = meta.copy(화재원인 = it) }, singleLine = false)
+                MatrixTextRow(label = "화재 원인", value = local화재원인, onChange = { local화재원인 = it }, singleLine = false)
 
-                TimeSelectRow(label = "초진시간", value = meta.초진시간) { targetField = "초진"; showTimePicker = true }
-                TimeSelectRow(label = "완진시간", value = meta.완진시간) { targetField = "완진"; showTimePicker = true }
+                TimeSelectRow(label = "초진시간", value = local초진시간) { targetField = "초진"; showTimePicker = true }
+                TimeSelectRow(label = "완진시간", value = local완진시간) { targetField = "완진"; showTimePicker = true }
 
                 DividerRow()
                 WeatherSection(meta = meta, onMetaChange = { meta = it })
                 DividerRow()
 
-                // ✅ 선착대 도착시간도 휠 스크롤 방식으로 교체 완료!
-                TimeSelectRow(label = "선착대 도착시간", value = meta.선착대도착시간) { targetField = "선착대"; showTimePicker = true }
+                TimeSelectRow(label = "선착대 도착시간", value = local선착대도착시간) { targetField = "선착대"; showTimePicker = true }
 
-                MatrixTextRow(label = "인명피해", labelColor = NeonRed, valueColor = NeonRed, value = meta.인명피해현황, onChange = { meta = meta.copy(인명피해현황 = it) })
-                MatrixTextRow(label = "재산피해", labelColor = NeonRed, valueColor = NeonRed, value = meta.재산피해현황, onChange = { meta = meta.copy(재산피해현황 = it) })
-                MatrixTextRow(label = "대원피해", labelColor = NeonOrange, valueColor = NeonOrange, value = meta.대원피해현황, onChange = { meta = meta.copy(대원피해현황 = it) })
+                MatrixTextRow(label = "인명피해", labelColor = NeonRed, valueColor = NeonRed, value = local인명피해, onChange = { local인명피해 = it })
+                MatrixTextRow(label = "재산피해", labelColor = NeonRed, valueColor = NeonRed, value = local재산피해, onChange = { local재산피해 = it })
+                MatrixTextRow(label = "대원피해", labelColor = NeonOrange, valueColor = NeonOrange, value = local대원피해, onChange = { local대원피해 = it })
 
                 DividerRow()
                 MatrixTextRow(
                     label = "소방력 인원(명)",
-                    value = meta.소방력_인원,
-                    onChange = { meta = meta.copy(소방력_인원 = it) },
+                    value = local소방력인원,
+                    onChange = { local소방력인원 = it },
                     keyboardType = KeyboardType.Number
                 )
                 DividerRow()
 
                 Text("유관기관 현황", color = TextPrimary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(vertical = 6.dp))
-                MatrixTextRow(label = "경찰", value = meta.유관기관_경찰, onChange = { meta = meta.copy(유관기관_경찰 = it) })
-                MatrixTextRow(label = "시청", value = meta.유관기관_시청, onChange = { meta = meta.copy(유관기관_시청 = it) })
-                MatrixTextRow(label = "한전", value = meta.유관기관_한전, onChange = { meta = meta.copy(유관기관_한전 = it) })
-                MatrixTextRow(label = "도시가스", value = meta.유관기관_도시가스, onChange = { meta = meta.copy(유관기관_도시가스 = it) })
-                MatrixTextRow(label = "산불진화대(화성시)", value = meta.유관기관_산불진화대_화성시, onChange = { meta = meta.copy(유관기관_산불진화대_화성시 = it) })
+                MatrixTextRow(label = "경찰", value = local경찰, onChange = { local경찰 = it })
+                MatrixTextRow(label = "시청", value = local시청, onChange = { local시청 = it })
+                MatrixTextRow(label = "한전", value = local한전, onChange = { local한전 = it })
+                MatrixTextRow(label = "도시가스", value = local도시가스, onChange = { local도시가스 = it })
+                MatrixTextRow(label = "산불진화대(화성시)", value = local산불대, onChange = { local산불대 = it })
             }
             Spacer(Modifier.height(40.dp))
         }
@@ -141,19 +163,18 @@ fun IncidentInfoEditScreen(
         WheelDateTimePickerDialog(
             initialValue = when(targetField) {
                 "신고" -> meta.신고접수일시
-                "초진" -> meta.초진시간
-                "완진" -> meta.완진시간
-                "선착대" -> meta.선착대도착시간 // ✅ 선착대 처리 추가
+                "초진" -> local초진시간
+                "완진" -> local완진시간
+                "선착대" -> local선착대도착시간
                 else -> ""
             },
             onDismiss = { showTimePicker = false },
             onConfirm = { pickedTime ->
-                meta = when(targetField) {
-                    "신고" -> meta.copy(신고접수일시 = pickedTime)
-                    "초진" -> meta.copy(초진시간 = pickedTime)
-                    "완진" -> meta.copy(완진시간 = pickedTime)
-                    "선착대" -> meta.copy(선착대도착시간 = pickedTime) // ✅ 선착대 저장 로직 추가
-                    else -> meta
+                when(targetField) {
+                    "신고" -> meta = meta.copy(신고접수일시 = pickedTime)
+                    "초진" -> local초진시간 = pickedTime
+                    "완진" -> local완진시간 = pickedTime
+                    "선착대" -> local선착대도착시간 = pickedTime
                 }
                 showTimePicker = false
             }
@@ -318,7 +339,7 @@ fun SnappingWheelPicker(items: List<String>, initialItem: String, onItemSelected
 private fun TimeSelectRow(label: String, value: String, onClick: () -> Unit) {
     MatrixRow(label = label) {
         Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray, RoundedCornerShape(4.dp)).clickable { onClick() }.padding(16.dp)) {
-            Text(text = value.ifBlank { "시간 선택" }, color = if(value.isBlank()) Color.Gray else TextPrimary, fontSize = 16.sp)
+            Text(text = value.ifBlank { "시간 선택" }.replace("-", "시간 선택"), color = if(value.isBlank() || value == "-") Color.Gray else TextPrimary, fontSize = 16.sp)
         }
     }
 }
@@ -327,8 +348,14 @@ private fun TimeSelectRow(label: String, value: String, onClick: () -> Unit) {
 private fun MatrixCard(content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray, MaterialTheme.shapes.medium).background(CardDark).padding(12.dp), content = content)
 }
+
 @Composable
-private fun DividerRow() { Spacer(Modifier.height(10.dp)); HorizontalDivider(color = BorderGray); Spacer(Modifier.height(10.dp)) }
+private fun DividerRow() {
+    Spacer(Modifier.height(10.dp))
+    HorizontalDivider(color = BorderGray)
+    Spacer(Modifier.height(10.dp))
+}
+
 @Composable
 private fun MatrixRow(label: String, labelWidth: Dp = 120.dp, labelColor: Color = TextPrimary, trailing: @Composable () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -337,7 +364,6 @@ private fun MatrixRow(label: String, labelWidth: Dp = 120.dp, labelColor: Color 
     }
 }
 
-// ✅ 키보드 타입 지정을 위한 파라미터 추가
 @Composable
 private fun MatrixTextRow(
     label: String,
@@ -350,7 +376,7 @@ private fun MatrixTextRow(
 ) {
     MatrixRow(label = label, labelColor = labelColor) {
         OutlinedTextField(
-            value = value,
+            value = if (value == "-") "" else value,
             onValueChange = onChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,

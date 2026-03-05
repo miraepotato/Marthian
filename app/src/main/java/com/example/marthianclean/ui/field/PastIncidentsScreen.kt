@@ -66,8 +66,9 @@ fun PastIncidentsScreen(
             loading = true
             error = null
             runCatching {
+                // 수정: createdAtMillis 대신 문자열인 신고접수일시(또는 startTime)로 내림차순 정렬
                 incidents = IncidentStore.loadAll(context)
-                    .sortedByDescending { it.createdAtMillis }
+                    .sortedByDescending { it.meta.신고접수일시 }
             }.onFailure {
                 error = "목록 불러오기 실패: ${it.message ?: "unknown"}"
                 incidents = emptyList()
@@ -202,10 +203,8 @@ private fun PastIncidentRow(
     val bg = if (selected) Color(0xFF2A2A2A) else Color(0xFF141414)
     val border = if (selected) MarsOrange else Color(0xFF2B2B2B)
 
-    val dt = remember(incident.createdAtMillis) {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA)
-        sdf.format(Date(incident.createdAtMillis))
-    }
+    // 수정: createdAtMillis를 문자열 포맷팅하는 로직 제거하고 meta.신고접수일시를 바로 사용
+    val dt = incident.meta.신고접수일시.ifBlank { incident.startTime }
 
     Column(
         modifier = Modifier
@@ -223,7 +222,7 @@ private fun PastIncidentRow(
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(6.dp))
-        Text(text = dt, color = Color(0xFFB0B0B0))
+        Text(text = dt, color = Color(0xFFB0B0B0)) // 날짜 텍스트 표시
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier
