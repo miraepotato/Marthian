@@ -3,7 +3,7 @@
     "name": "가평소방서",
     "centers": [
       {
-        "name": "119구조대",
+        "name": "가평구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
@@ -48,11 +48,6 @@
             "type": "물탱크차(10000)",
             "callSign": "대곡탱크차",
             "plateNumber": "998버1329"
-          },
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "가평의소대(벌집)",
-            "plateNumber": "235너7823"
           },
           {
             "type": "조명차(일반등)",
@@ -121,33 +116,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승합차",
-            "callSign": "가평버스",
-            "plateNumber": "74다8450"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "가평1호차",
-            "plateNumber": "11보0365"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "7346",
-            "plateNumber": "40조7346"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "4647",
-            "plateNumber": "82누4647"
-          }
-        ]
-      },
-      {
         "name": "수난구조대",
         "lat": 0.0,
         "lng": 0.0,
@@ -161,16 +129,6 @@
             "type": "구조대차(기타)",
             "callSign": "가평수난장비운반",
             "plateNumber": "998버1339"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "수난보트트레일러2",
-            "plateNumber": "87저0724"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "수난보트트레일러1",
-            "plateNumber": "92거3046"
           },
           {
             "type": "펌프차(3000)",
@@ -202,18 +160,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "3286",
-            "plateNumber": "05호3286"
-          }
-        ]
-      },
-      {
         "name": "청평119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -241,61 +187,14 @@
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "대형승용차",
-            "callSign": "가평의소대순찰차",
-            "plateNumber": "339가1629"
-          },
-          {
             "type": "지휘차(기타)",
             "callSign": "가평지휘(영상)",
             "plateNumber": "998버1321"
           },
           {
-            "type": "행정차(중형)",
-            "callSign": "현장대응행정차",
-            "plateNumber": "02수4914"
-          },
-          {
             "type": "화재조사차(6인승)",
             "callSign": "가평화재조사",
             "plateNumber": "998버1323"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "행정차(화물차)",
-            "plateNumber": "82누4640"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "8534",
-            "plateNumber": "33너8534"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "행정차(가평안전진단)",
-            "plateNumber": "33너8385"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "가평화재안전조사1",
-            "plateNumber": "29호8516"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "가평화재안전조사2",
-            "plateNumber": "29호8517"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "가평안전진단차",
-            "plateNumber": "347서9885"
           }
         ]
       }
@@ -304,34 +203,6 @@
   {
     "name": "경기도소방재난본부",
     "centers": [
-      {
-        "name": "119생활안전담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "119종합상황실",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "119종합상황실 싼타페",
-            "plateNumber": "100오9421"
-          },
-          {
-            "type": "지휘차(25인승)",
-            "callSign": "본부지휘버스(영상)",
-            "plateNumber": "998더1938"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "119종합상황실 아이오",
-            "plateNumber": "146구2315"
-          }
-        ]
-      },
       {
         "name": "경기도119특수대응단",
         "lat": 0.0,
@@ -346,11 +217,6 @@
             "type": "방수탑(기타)",
             "callSign": "특수다굴절무인방수차",
             "plateNumber": "998머2294"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "특수화물차",
-            "plateNumber": "82더0191"
           },
           {
             "type": "유조차",
@@ -378,26 +244,6 @@
             "plateNumber": "998머2202"
           },
           {
-            "type": "트레일러",
-            "callSign": "고무보트 트레일러",
-            "plateNumber": "809부4310"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "도시탐색 트레일러",
-            "plateNumber": "83러 8224"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "음파탐지선 트레일러",
-            "plateNumber": "91누4403"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "수중펌프 트레일러",
-            "plateNumber": "982버3607"
-          },
-          {
             "type": "특수구조버스",
             "callSign": "특수화학버스",
             "plateNumber": "998머2263"
@@ -413,11 +259,6 @@
             "plateNumber": "998머2217"
           },
           {
-            "type": "행정차(중형)",
-            "callSign": "특수지휘차",
-            "plateNumber": "998머2252"
-          },
-          {
             "type": "화학차(제독차)",
             "callSign": "특수화생방분석차",
             "plateNumber": "998머2214"
@@ -425,373 +266,14 @@
         ]
       },
       {
-        "name": "경기도소방학교",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(소형)",
-            "callSign": "소방학교 구급2",
-            "plateNumber": "998부9603"
-          },
-          {
-            "type": "구급차특수(소형)",
-            "callSign": "소방학교 구급1",
-            "plateNumber": "998부9666"
-          },
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "학교구조구급",
-            "plateNumber": "998버5356"
-          },
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "학교구급",
-            "plateNumber": "998버5358"
-          },
-          {
-            "type": "구조공작차",
-            "callSign": "학교구조공작",
-            "plateNumber": "998부9624"
-          },
-          {
-            "type": "구조버스",
-            "callSign": "학교운영4",
-            "plateNumber": "73너6200"
-          },
-          {
-            "type": "구조버스",
-            "callSign": "학교운영3",
-            "plateNumber": "73너6280"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "학교지원1",
-            "plateNumber": "67오5104"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "학교운영2",
-            "plateNumber": "92고4709"
-          },
-          {
-            "type": "장비운반차",
-            "callSign": "학교장비운반",
-            "plateNumber": "998부9684"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "학교운영1",
-            "plateNumber": "256라3651"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "학교트레일러",
-            "plateNumber": "998부9688"
-          },
-          {
-            "type": "펌프차(3000)",
-            "callSign": "학교펌프4",
-            "plateNumber": "998나4461"
-          },
-          {
-            "type": "펌프차(3000)",
-            "callSign": "학교펌프2",
-            "plateNumber": "998나4482"
-          },
-          {
-            "type": "펌프차(3000)",
-            "callSign": "학교펌프3",
-            "plateNumber": "998무6532"
-          },
-          {
-            "type": "펌프차(3000)",
-            "callSign": "학교펌프1",
-            "plateNumber": "998버5369"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "학교지원3",
-            "plateNumber": "03두6250"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "학교지원2",
-            "plateNumber": "09오6398"
-          },
-          {
-            "type": "화재조사차(기타)",
-            "callSign": "학교화재조사",
-            "plateNumber": "998버5376"
-          }
-        ]
-      },
-      {
-        "name": "구조구급과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "구조구급과 싼타페",
-            "plateNumber": "235로3493"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "구조구급과 코나",
-            "plateNumber": "256라3652"
-          }
-        ]
-      },
-      {
-        "name": "대응구조구급과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "화재조사차(6인승)",
-            "callSign": ".",
-            "plateNumber": "75가8477"
-          }
-        ]
-      },
-      {
-        "name": "생활안전담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "생활안전 아이오닉 2",
-            "plateNumber": "127부3648"
-          }
-        ]
-      },
-      {
-        "name": "소방감사과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "소방감사과 코란도",
-            "plateNumber": "48수7931"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "본부지휘(그랜져)",
-            "plateNumber": "24부9821"
-          },
-          {
-            "type": "행정차(대형)",
-            "callSign": "본부행정(스타리아)",
-            "plateNumber": "713마5180"
-          }
-        ]
-      },
-      {
-        "name": "안전관리실",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승용차",
-            "callSign": "중형승용차",
-            "plateNumber": "13로5854"
-          }
-        ]
-      },
-      {
-        "name": "안전교육훈련담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "인사담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "인사담당관 싼타페",
-            "plateNumber": "37우7962"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "재난대응과 스타렉스3",
-            "plateNumber": "79러4611"
-          },
-          {
-            "type": "지휘차(9인승)",
-            "callSign": "재난대응과 스타렉스",
-            "plateNumber": "998더1937"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "본부신속기동팀",
-            "plateNumber": "14우9988"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "재난대응과 쏘렌토",
-            "plateNumber": "998더1903"
-          },
-          {
-            "type": "화재조사차(12인승)",
-            "callSign": "재난대응과 스타렉스2",
-            "plateNumber": "998더1954"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "재난예방과 싼타페",
-            "plateNumber": "998더8939"
-          },
-          {
-            "type": "진단차(기타)",
-            "callSign": "재난예방과 진단2",
-            "plateNumber": "29호8545"
-          },
-          {
-            "type": "진단차(기타)",
-            "callSign": "재난예방과 진단1",
-            "plateNumber": "34호3270"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "재난예방과 코나",
-            "plateNumber": "256라3624"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "재난예방과 아이오닉",
-            "plateNumber": "389버3651"
-          }
-        ]
-      },
-      {
-        "name": "재난종합지휘센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차(기타)",
-            "callSign": "교통정보센터테스트01",
-            "plateNumber": "교통센터01"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트1",
-            "plateNumber": "테스트01"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트2",
-            "plateNumber": "테스트02"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트3",
-            "plateNumber": "테스트03"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트4",
-            "plateNumber": "테스트04"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트5",
-            "plateNumber": "테스트05"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "긴급신호테스트6",
-            "plateNumber": "테스트06"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "지휘센터모닝",
-            "plateNumber": "14보2231"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "재난종합지휘센터장",
-            "plateNumber": "49러9589"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "SNG",
-            "plateNumber": "경기98가1146"
-          }
-        ]
-      },
-      {
-        "name": "청문감사담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "회계장비담당관",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "구조대차(기타)",
-            "callSign": "회계장비아반떼",
-            "plateNumber": "경기2코5596"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "회계장비담당관모닝",
-            "plateNumber": "14보2262"
-          },
-          {
-            "type": "진단차(15인승)",
-            "callSign": "회계장비 스타렉스1",
-            "plateNumber": "72보6695"
-          },
-          {
             "type": "특수차(기타)",
             "callSign": "안성취사",
             "plateNumber": "99라2900"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "회계장비 아이오닉",
-            "plateNumber": "146구2326"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "화계장비 아이오닉2",
-            "plateNumber": "146구2351"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "이동정비",
-            "plateNumber": "73마5706"
           }
         ]
       }
@@ -801,7 +283,7 @@
     "name": "고양소방서",
     "centers": [
       {
-        "name": "119구조대",
+        "name": "고양구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
@@ -814,26 +296,6 @@
             "type": "구조대차(일반)",
             "callSign": "고양장비운반",
             "plateNumber": "998라6100"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조보트트레일러1",
-            "plateNumber": "844더5926"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조보트",
-            "plateNumber": "94모7379"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "구조제트",
-            "plateNumber": "95어2409"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "구조보트(중)",
-            "plateNumber": "95어2448"
           }
         ]
       },
@@ -843,19 +305,9 @@
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "기타화물차",
-            "callSign": "고양44호",
-            "plateNumber": "94서0654"
-          },
-          {
             "type": "소형승용차",
             "callSign": "고양45호",
             "plateNumber": "336라5383"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "의용순찰차",
-            "plateNumber": "333무5354"
           }
         ]
       },
@@ -948,43 +400,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타화물차",
-            "callSign": "고양3호",
-            "plateNumber": "88고0829"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "고양2호",
-            "plateNumber": "33구1141"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "고양행정",
-            "plateNumber": "46버6544"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "1호차",
-            "plateNumber": "998라6171"
-          },
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "고양재난",
-            "plateNumber": "48무7450"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "고양안전진단",
-            "plateNumber": "18보6784"
-          }
-        ]
-      },
-      {
         "name": "원당119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -1015,7 +430,7 @@
             "plateNumber": "998라6184"
           },
           {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "원당진단버스",
             "plateNumber": "73주7023"
           },
@@ -1048,23 +463,6 @@
             "type": "화학차(고성능)",
             "callSign": "원당화학/고발포",
             "plateNumber": "998나4488"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "트레일러",
-            "callSign": "통제단트레일러",
-            "plateNumber": "83러6840"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "현장행정",
-            "plateNumber": "52두1965"
           }
         ]
       },
@@ -1109,6 +507,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "고양조사",
             "plateNumber": "998라6105"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -1145,7 +548,7 @@
     "name": "과천소방서",
     "centers": [
       {
-        "name": "119구조대",
+        "name": "과천구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
@@ -1158,55 +561,6 @@
             "type": "구조대차(기타)",
             "callSign": "과천장비운반",
             "plateNumber": "998오5410"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "과천트레일러",
-            "plateNumber": "94거1494"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "과천행정1",
-            "plateNumber": "02거5619"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "과천재난지휘",
-            "plateNumber": "998오5421"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "과천행정",
-            "plateNumber": "17고9694"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "생활구조차",
-            "callSign": "과천의소대",
-            "plateNumber": "72소2394"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "과천의소대2",
-            "plateNumber": "225어9554"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "과천행정4",
-            "plateNumber": "65모5864"
           }
         ]
       },
@@ -1221,7 +575,7 @@
             "plateNumber": "998오5405"
           },
           {
-            "type": "기타승합차",
+            "type": "특수차(기타)",
             "callSign": "주암버스",
             "plateNumber": "74가2027"
           },
@@ -1263,11 +617,6 @@
             "plateNumber": "998오5417"
           },
           {
-            "type": "기타화물차",
-            "callSign": "과천(중앙)화물",
-            "plateNumber": "97부0899"
-          },
-          {
             "type": "물탱크차(6500)",
             "callSign": "과천중앙탱크/12톤",
             "plateNumber": "998오5433"
@@ -1300,18 +649,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "과천행정3",
-            "plateNumber": "135보2056"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -1325,563 +662,19 @@
             "type": "화재조사차(6인승)",
             "callSign": "과천조사",
             "plateNumber": "998오5409"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
+          },
           {
-            "type": "행정차(기타)",
-            "callSign": "과천행정2",
-            "plateNumber": "181머6504"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
-      }
-    ]
-  },
-  {
-    "name": "관할서·센터 :",
-    "centers": [
-      {
-        "name": "119구조구급대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "119종합상황실",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "가남119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "강상119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도119특수대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도북부119특수대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도소방학교",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "고잔119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "관양119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "교문119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "구미119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "군내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "군서119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "권선119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "금오119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "기흥119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "남한산성지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "대곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "도기119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "마도119지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "마산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "문화119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "백사지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "백석119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "백운119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "별내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "보정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "봉담119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "부림119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "불현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "비전119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "상동119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "상록수119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "서둔119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "서현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "성곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "성복119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "세교119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소방안전특별점검단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소방행정기획과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소요119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소하119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소흘119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "송산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "송산119지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "송정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "수내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신상119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신서119지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신장119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "양촌119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "양평수난구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "영중119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "오남119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "오정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "옥정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "용문119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "원당119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "월송119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "위례119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "인창119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "적성119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "정자119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "중산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "중앙119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "차탄119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "초월119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "탄현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "태평119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "파평지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "평내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "포곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "포승119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "하대원119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "향남119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "현장대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "현장지휘단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "화재조사분석과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "회계장비담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       }
     ]
   },
   {
     "name": "광명소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "광명구조공작/영/에5",
-            "plateNumber": "998나4472"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "광명생활안전",
-            "plateNumber": "998러2030"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "보트트레일러(구조대)",
-            "plateNumber": "91다0905"
-          }
-        ]
-      },
       {
         "name": "광남119안전센터",
         "lat": 0.0,
@@ -1910,6 +703,23 @@
         ]
       },
       {
+        "name": "광명구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "광명구조공작/영/에5",
+            "plateNumber": "998나4472"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "광명생활안전",
+            "plateNumber": "998러2030"
+          }
+        ]
+      },
+      {
         "name": "광북119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -1928,28 +738,6 @@
             "type": "펌프차(기타)",
             "callSign": "광북펌프/펌뷸/에어5",
             "plateNumber": "998로3108"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "광명재난지휘",
-            "plateNumber": "998러2034"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "광명33호",
-            "plateNumber": "08저4360"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "광명24호",
-            "plateNumber": "29주0104"
           }
         ]
       },
@@ -1989,21 +777,6 @@
             "plateNumber": "998러2037"
           },
           {
-            "type": "생활구조차",
-            "callSign": "광명의소대",
-            "plateNumber": "79두0422"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "소하화물",
-            "plateNumber": "82수1844"
-          },
-          {
-            "type": "진단차(15인승)",
-            "callSign": "소하버스",
-            "plateNumber": "72거5413"
-          },
-          {
             "type": "펌프차(기타)",
             "callSign": "소하펌프/유/에5/질식",
             "plateNumber": "998러2038"
@@ -2017,28 +790,6 @@
             "type": "화학차(기타)",
             "callSign": "소하화학/10톤",
             "plateNumber": "998러2040"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(기타)",
-            "callSign": "광명장비운반",
-            "plateNumber": "79라0911"
-          },
-          {
-            "type": "생활구조차",
-            "callSign": "광명 의소대순찰",
-            "plateNumber": "998러2054"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "광명26호",
-            "plateNumber": "54조3603"
           }
         ]
       },
@@ -2078,28 +829,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "광명조사",
             "plateNumber": "998러2029"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "광명32호",
-            "plateNumber": "10도7047"
           },
           {
-            "type": "행정차(중형)",
-            "callSign": "안전조사임대",
-            "plateNumber": "05호3290"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "광명5호",
-            "plateNumber": "108무3866"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -2108,23 +842,6 @@
   {
     "name": "광주소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "광주구조공작/에어10",
-            "plateNumber": "998나1637"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "광주장비운반",
-            "plateNumber": "998나1662"
-          }
-        ]
-      },
       {
         "name": "곤지암119안전센터",
         "lat": 0.0,
@@ -2185,6 +902,23 @@
         ]
       },
       {
+        "name": "광주구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "광주구조공작/에어10",
+            "plateNumber": "998나1637"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "광주장비운반",
+            "plateNumber": "998나1662"
+          }
+        ]
+      },
+      {
         "name": "남한산성지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -2227,23 +961,6 @@
             "type": "펌프차(기타)",
             "callSign": "도척펌프",
             "plateNumber": "998버1343"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "광주재난지휘(1호차)",
-            "plateNumber": "65러9271"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "광주행정차모닝",
-            "plateNumber": "19라2998"
           }
         ]
       },
@@ -2302,52 +1019,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "광주현장대응행정",
-            "plateNumber": "19라3737"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "트레일러",
-            "callSign": "*",
-            "plateNumber": "99러2259"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "광주패트롤",
-            "plateNumber": "14다4156"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "광주행정2913",
-            "plateNumber": "43라2913"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "청문과(아이오닉)",
-            "plateNumber": "48버7959"
-          }
-        ]
-      },
-      {
         "name": "초월119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -2371,16 +1042,6 @@
             "type": "굴절차(기타)",
             "callSign": "초월굴절/35m",
             "plateNumber": "998나1633"
-          },
-          {
-            "type": "기타승합차",
-            "callSign": "광주의소대/생활안전2",
-            "plateNumber": "78어1362"
-          },
-          {
-            "type": "대형승합차",
-            "callSign": "광주생활안전의소대",
-            "plateNumber": "79조8851"
           },
           {
             "type": "물탱크차(10000)",
@@ -2428,11 +1089,6 @@
             "type": "펌프차(2800)",
             "callSign": "*퇴촌펌프/펌플",
             "plateNumber": "998나1638"
-          },
-          {
-            "type": "펌프차(3000)",
-            "callSign": "남종펌프(의소대)",
-            "plateNumber": "998나1654"
           }
         ]
       },
@@ -2462,18 +1118,11 @@
             "type": "지휘차(기타)",
             "callSign": "1광주지휘/영상",
             "plateNumber": "998나1650"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
+          },
           {
-            "type": "중형승용차",
-            "callSign": "화재안전조사(ev6)",
-            "plateNumber": "05호3292"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -2504,33 +1153,6 @@
   {
     "name": "구리소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(기타)",
-            "callSign": "구리장비운반",
-            "plateNumber": "998저1312"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "구리구조공작(M/마총)",
-            "plateNumber": "998나1243"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구리보트",
-            "plateNumber": "80주0192"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구리제트",
-            "plateNumber": "92소4232"
-          }
-        ]
-      },
       {
         "name": "갈매119안전센터",
         "lat": 0.0,
@@ -2574,7 +1196,7 @@
             "plateNumber": "998저1345"
           },
           {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "교문버스",
             "plateNumber": "78더8847"
           },
@@ -2592,16 +1214,6 @@
             "type": "생활구조차",
             "callSign": "구리생활안전",
             "plateNumber": "998저1310"
-          },
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "구리의소대순찰차",
-            "plateNumber": "709소6156"
-          },
-          {
-            "type": "중형화물차",
-            "callSign": "교문화물",
-            "plateNumber": "90무0544"
           },
           {
             "type": "펌프차(3000)",
@@ -2626,29 +1238,19 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "구리구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "구급차일반(중형)",
-            "callSign": "예비구급",
-            "plateNumber": "998저1313"
+            "type": "구조대차(기타)",
+            "callSign": "구리장비운반",
+            "plateNumber": "998저1312"
           },
           {
-            "type": "기타승용차",
-            "callSign": "구리재난지휘",
-            "plateNumber": "47가6303"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "구리행정1호",
-            "plateNumber": "49마5755"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "구리행정2호",
-            "plateNumber": "55거9507"
+            "type": "구조대차(일반)",
+            "callSign": "구리구조공작(M/마총)",
+            "plateNumber": "998나1243"
           }
         ]
       },
@@ -2693,6 +1295,11 @@
             "type": "화재조사차(기타)",
             "callSign": "구리화재조사",
             "plateNumber": "998저1306"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -2702,7 +1309,7 @@
     "name": "군포소방서",
     "centers": [
       {
-        "name": "119구조대",
+        "name": "군포구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
@@ -2763,23 +1370,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(5인승)",
-            "callSign": "하나장",
-            "plateNumber": "998부1888"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "군포재난지휘",
-            "plateNumber": "30버5658"
-          }
-        ]
-      },
-      {
         "name": "송정119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -2832,14 +1422,9 @@
             "plateNumber": "998부1886"
           },
           {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "군포버스",
             "plateNumber": "75모0652"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "군포오금화물",
-            "plateNumber": "83누0654"
           },
           {
             "type": "펌프차(1500)",
@@ -2859,32 +1444,10 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(기타)",
-            "callSign": "기타승합차",
-            "plateNumber": "998부1878"
-          },
-          {
-            "type": "기타승합차",
-            "callSign": "군포의소대(생활안전)",
-            "plateNumber": "73루5719"
-          }
-        ]
-      },
-      {
         "name": "현장대응단",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "트레일러2",
-            "plateNumber": "82저1008"
-          },
           {
             "type": "화재조사차(9인승)",
             "callSign": "군포조사(운행X)",
@@ -2906,6 +1469,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "군포조사",
             "plateNumber": "998부1875"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -2914,38 +1482,6 @@
   {
     "name": "김포소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차일반(중형)",
-            "callSign": "(특O)김포구조급차",
-            "plateNumber": "998버3588"
-          },
-          {
-            "type": "구조공작차",
-            "callSign": "김포구조공/에15/질식",
-            "plateNumber": "998버3583"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "김포장비운반/드론",
-            "plateNumber": "998버3538"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "보트트레일러/고무보",
-            "plateNumber": "82무0375"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "보트트레일러/콤비보",
-            "plateNumber": "91버4329"
-          }
-        ]
-      },
       {
         "name": "고촌119안전센터",
         "lat": 0.0,
@@ -2965,6 +1501,28 @@
             "type": "펌프차(3000)",
             "callSign": "김포고촌펌프/에5/구",
             "plateNumber": "998버3531"
+          }
+        ]
+      },
+      {
+        "name": "김포구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구급차일반(중형)",
+            "callSign": "(특O)김포구조급차",
+            "plateNumber": "998버3588"
+          },
+          {
+            "type": "구조공작차",
+            "callSign": "김포구조공/에15/질식",
+            "plateNumber": "998버3583"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "김포장비운반/드론",
+            "plateNumber": "998버3538"
           }
         ]
       },
@@ -3023,49 +1581,10 @@
         ]
       },
       {
-        "name": "소방안전특별점검단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "김포행정모닝",
-            "plateNumber": "58러8491"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "김포행정모닝2",
-            "plateNumber": "58러8495"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "김포다목적행정차",
-            "plateNumber": "39주2300"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "김포재난지휘",
-            "plateNumber": "47마0300"
-          }
-        ]
-      },
-      {
         "name": "수난구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "장비운반(트레일러)",
-            "plateNumber": "998버3527"
-          },
           {
             "type": "펌프차(기타)",
             "callSign": "수난펌프",
@@ -3087,11 +1606,6 @@
             "type": "물탱크차(기타)",
             "callSign": "김포양촌탱크/12톤",
             "plateNumber": "998버3513"
-          },
-          {
-            "type": "소형승합차",
-            "callSign": "양촌생활안전(의소대)",
-            "plateNumber": "70누0897"
           },
           {
             "type": "펌프차(3000)",
@@ -3126,24 +1640,6 @@
             "plateNumber": "998버3597"
           }
         ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "김포장비운반차",
-            "plateNumber": "74수4035"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "중앙119안전센터",
@@ -3181,14 +1677,9 @@
             "plateNumber": "998버3562"
           },
           {
-            "type": "기타승합차",
+            "type": "특수차(기타)",
             "callSign": "김포중형버스",
             "plateNumber": "76서0221"
-          },
-          {
-            "type": "기타승합차",
-            "callSign": "구조생활안전(의소대)",
-            "plateNumber": "77마3930"
           },
           {
             "type": "물탱크차(기타)",
@@ -3302,6 +1793,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "김포화재조사",
             "plateNumber": "998버6119"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -3310,28 +1806,6 @@
   {
     "name": "남양주소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "남양주장비운반(신규)",
-            "plateNumber": "998로4313"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "남양주구조공작(M)",
-            "plateNumber": "998조1646"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조보트 트레일러1",
-            "plateNumber": "998조1677"
-          }
-        ]
-      },
       {
         "name": "가운119안전센터",
         "lat": 0.0,
@@ -3356,6 +1830,23 @@
             "type": "펌프차(2800)",
             "callSign": "가운1펌프",
             "plateNumber": "998조1672"
+          }
+        ]
+      },
+      {
+        "name": "남양주구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조대차(일반)",
+            "callSign": "남양주장비운반(신규)",
+            "plateNumber": "998로4313"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "남양주구조공작(M)",
+            "plateNumber": "998조1646"
           }
         ]
       },
@@ -3410,18 +1901,6 @@
             "type": "펌프차(2800)",
             "callSign": "별내펌프",
             "plateNumber": "998조1648"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승용차",
-            "callSign": "남양주하나차",
-            "plateNumber": "998조1645"
           }
         ]
       },
@@ -3495,26 +1974,9 @@
             "plateNumber": "84도7844"
           },
           {
-            "type": "순찰차류(기타)",
-            "callSign": "와부의소대순찰차",
-            "plateNumber": "85어7146"
-          },
-          {
             "type": "펌프차(2800)",
             "callSign": "와부펌프",
             "plateNumber": "998조1695"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "물탱크차(10000)",
-            "callSign": "구)평내탱크",
-            "plateNumber": "97어1202"
           }
         ]
       },
@@ -3571,11 +2033,6 @@
             "type": "물탱크차(기타)",
             "callSign": "진접화학",
             "plateNumber": "86버4487"
-          },
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "진접의소대순찰차",
-            "plateNumber": "78무4214"
           },
           {
             "type": "펌프차(기타)",
@@ -3650,6 +2107,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "남앙주조사(영상)신규",
             "plateNumber": "998로4310"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -3674,11 +2136,6 @@
             "plateNumber": "86버4455"
           },
           {
-            "type": "순찰차류(기타)",
-            "callSign": "화도의소대순찰차",
-            "plateNumber": "72누2632"
-          },
-          {
             "type": "펌프차(기타)",
             "callSign": "화도펌프(M)",
             "plateNumber": "998조1693"
@@ -3690,33 +2147,6 @@
   {
     "name": "동두천소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "동두천구조공작",
-            "plateNumber": "998로2948"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "동두천장비운반(M)",
-            "plateNumber": "998다1314"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "동두천제트구조",
-            "plateNumber": "92부2371"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "동두천구조보트",
-            "plateNumber": "998다1340"
-          }
-        ]
-      },
       {
         "name": "광암지역대",
         "lat": 0.0,
@@ -3736,6 +2166,23 @@
             "type": "펌프차(2000)",
             "callSign": "광암펌프(지역대)",
             "plateNumber": "998다1399"
+          }
+        ]
+      },
+      {
+        "name": "동두천구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "동두천구조공작",
+            "plateNumber": "998로2948"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "동두천장비운반(M)",
+            "plateNumber": "998다1314"
           }
         ]
       },
@@ -3776,18 +2223,8 @@
           },
           {
             "type": "생활구조차",
-            "callSign": "동두천의소대순찰차",
-            "plateNumber": "71더7146"
-          },
-          {
-            "type": "생활구조차",
             "callSign": "동두천생활안전(운용)",
             "plateNumber": "998다1321"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "이동안전체험",
-            "plateNumber": "98주5030"
           },
           {
             "type": "펌프차(1200)",
@@ -3808,43 +2245,6 @@
             "type": "화학차(기타)",
             "callSign": "불현화학",
             "plateNumber": "998다1333"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타화물차",
-            "callSign": "화물차2",
-            "plateNumber": "88모2235"
-          },
-          {
-            "type": "기타화물차",
-            "callSign": "화물차1",
-            "plateNumber": "92부2255"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "행정차1",
-            "plateNumber": "309다7340"
-          },
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "행정차2",
-            "plateNumber": "309다7345"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "동두천버스",
-            "plateNumber": "76우2654"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "동두천재난지휘",
-            "plateNumber": "07노7140"
           }
         ]
       },
@@ -3876,23 +2276,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승용차",
-            "callSign": "의소대순찰차",
-            "plateNumber": "111라9529"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "안전진단차1",
-            "plateNumber": "285러4332"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -3906,23 +2289,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "동두천화재조사",
             "plateNumber": "998다1311"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(대형)",
-            "callSign": "안전체험차2",
-            "plateNumber": "98주5160"
           },
           {
-            "type": "행정차(소형)",
-            "callSign": "특별조사차",
-            "plateNumber": "56거2835"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -3931,33 +2302,6 @@
   {
     "name": "부천소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "부천구조공작/에5",
-            "plateNumber": "998어6268"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "장비운반2(공작)",
-            "plateNumber": "998라5297"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "부천장비운반/드론/영",
-            "plateNumber": "998라5264"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "부천보트트레일러",
-            "plateNumber": "87조0264"
-          }
-        ]
-      },
       {
         "name": "괴안119안전센터",
         "lat": 0.0,
@@ -4003,6 +2347,28 @@
         ]
       },
       {
+        "name": "부천구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "부천구조공작/에5",
+            "plateNumber": "998어6268"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "장비운반2(공작)",
+            "plateNumber": "998라5297"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "부천장비운반/드론/영",
+            "plateNumber": "998라5264"
+          }
+        ]
+      },
+      {
         "name": "상동119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -4043,40 +2409,6 @@
             "type": "펌프차(4000)",
             "callSign": "부천서부펌프/에5/구",
             "plateNumber": "998어6281"
-          }
-        ]
-      },
-      {
-        "name": "소방안전특별점검단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "부천재난예방경형행정",
-            "plateNumber": "42라4452"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "부천안전진단",
-            "plateNumber": "43나6401"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "부천재난지휘",
-            "plateNumber": "998어6280"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "부천화물차",
-            "plateNumber": "87다0941"
           }
         ]
       },
@@ -4196,45 +2528,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "대형승합차",
-            "callSign": "소방순찰차(의소대)",
-            "plateNumber": "214저5411"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "부천행정아이오닉2",
-            "plateNumber": "29도2229"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타화물차",
-            "callSign": "부천화물(의소대)",
-            "plateNumber": "81머6566"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "이동체험차",
-            "plateNumber": "98거5737"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "부천행정아이오닉",
-            "plateNumber": "52버5715"
-          }
-        ]
-      },
-      {
         "name": "중동119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -4287,11 +2580,6 @@
             "plateNumber": "998어6223"
           },
           {
-            "type": "기타승합차",
-            "callSign": "부천(의소대)생활안전",
-            "plateNumber": "108버4609"
-          },
-          {
             "type": "물탱크차(10000)",
             "callSign": "부천중앙고화학/10톤",
             "plateNumber": "998어6210"
@@ -4307,16 +2595,6 @@
             "plateNumber": "75두5608"
           },
           {
-            "type": "중형승합차",
-            "callSign": "부천생활안전",
-            "plateNumber": "998라5251"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "부천재난장비",
-            "plateNumber": "91다9654"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "부천중앙펌프/에15/카",
             "plateNumber": "998라5249"
@@ -4325,18 +2603,6 @@
             "type": "펌프차(3000)",
             "callSign": "중앙2펌프/카프",
             "plateNumber": "998어6277"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "부천점검단1",
-            "plateNumber": "329머2349"
           }
         ]
       },
@@ -4354,18 +2620,11 @@
             "type": "지휘차(기타)",
             "callSign": "부천안전지원",
             "plateNumber": "998어6260"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
+          },
           {
-            "type": "행정차(소형)",
-            "callSign": "부천예방2",
-            "plateNumber": "329머2341"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -4407,51 +2666,6 @@
             "plateNumber": "998주7942"
           },
           {
-            "type": "트레일러",
-            "callSign": "립보트 트레일러",
-            "plateNumber": "80마2172"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트 트레일러2",
-            "plateNumber": "81노 4396"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트 트레일러1",
-            "plateNumber": "83거7654"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트 트레일러3",
-            "plateNumber": "83거7680"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "화학 트레일러1",
-            "plateNumber": "85조8947"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "화학 트레일러2",
-            "plateNumber": "85조8967"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "709호 트레일러",
-            "plateNumber": "91저0896"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "수중음파탐지트레일러",
-            "plateNumber": "94누4716"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "제트스키 트레일러",
-            "plateNumber": "96구4832"
-          },
-          {
             "type": "특수구조대차",
             "callSign": "특수장비운반차",
             "plateNumber": "998저9014"
@@ -4462,7 +2676,7 @@
             "plateNumber": "998주7969"
           },
           {
-            "type": "특수구조버스",
+            "type": "특수차(기타)",
             "callSign": "특수구조버스",
             "plateNumber": "998주7909"
           },
@@ -4506,11 +2720,6 @@
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "구조대차(일반)",
-            "callSign": "방호장비운반차",
-            "plateNumber": "86너6494"
-          },
-          {
             "type": "소형승용차",
             "callSign": "행정차",
             "plateNumber": "06두1013"
@@ -4519,11 +2728,6 @@
             "type": "지휘차(기타)",
             "callSign": "맥써버소방지휘차",
             "plateNumber": "76소9826"
-          },
-          {
-            "type": "화재조사차(12인승)",
-            "callSign": "방호구조화재조사",
-            "plateNumber": "71루9828"
           },
           {
             "type": "화재조사차(12인승)",
@@ -4541,107 +2745,6 @@
             "type": "소형승용차",
             "callSign": "행정차(상황실)",
             "plateNumber": "358소8148"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "소방위성차",
-            "plateNumber": "75다1091"
-          }
-        ]
-      },
-      {
-        "name": "북부재난종합지휘센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차(기타)",
-            "callSign": "테스트",
-            "plateNumber": "01테스트"
-          },
-          {
-            "type": "구급차(기타)",
-            "callSign": "테스트2",
-            "plateNumber": "02테스트"
-          }
-        ]
-      },
-      {
-        "name": "소방행정기획과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(일반)",
-            "callSign": "행정장비운반차",
-            "plateNumber": "78누6895"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "행정차",
-            "plateNumber": "58러4321"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "화물차",
-            "plateNumber": "92러2625"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "행정장비차",
-            "plateNumber": "09다4407"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "재난지휘차(1호차)",
-            "plateNumber": "35도8434"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차2(행정)",
-            "plateNumber": "164마5187"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차3(행정)",
-            "plateNumber": "33무4336"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차4(행정)",
-            "plateNumber": "72라9833"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "장비운반(행정)",
-            "plateNumber": "72라9881"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "이동정비(행정)",
-            "plateNumber": "73라6435"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "이동정비차",
-            "plateNumber": "92러7834"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "재난지휘차(행정)",
-            "plateNumber": "998저9020"
-          }
-        ]
-      },
-      {
-        "name": "예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형승용차",
-            "callSign": "안전진단(예방과)",
-            "plateNumber": "159무1558"
           }
         ]
       }
@@ -4650,28 +2753,6 @@
   {
     "name": "분당소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "분당공작/영/에5",
-            "plateNumber": "998러9249"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "구조트레일러",
-            "plateNumber": "94부0884"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "분당장비운반/유압/드",
-            "plateNumber": "998러9228"
-          }
-        ]
-      },
       {
         "name": "구미119안전센터",
         "lat": 0.0,
@@ -4691,6 +2772,23 @@
             "type": "펌프차(3000)",
             "callSign": "구미펌프/에5/유압/질",
             "plateNumber": "998러9257"
+          }
+        ]
+      },
+      {
+        "name": "분당구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "분당공작/영/에5",
+            "plateNumber": "998러9249"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "분당장비운반/유압/드",
+            "plateNumber": "998러9228"
           }
         ]
       },
@@ -4753,11 +2851,6 @@
           },
           {
             "type": "기타승합차",
-            "callSign": "분당의소대",
-            "plateNumber": "79로4721"
-          },
-          {
-            "type": "기타승합차",
             "callSign": "서현생활안전",
             "plateNumber": "998러9242"
           },
@@ -4780,28 +2873,6 @@
             "type": "화학차(대형)",
             "callSign": "서현화학/16t",
             "plateNumber": "998러9230"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형화물차",
-            "callSign": "분당화물",
-            "plateNumber": "95버0646"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "분당재난지휘",
-            "plateNumber": "998러9251"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당행정차2",
-            "plateNumber": "139저6219"
           }
         ]
       },
@@ -4855,67 +2926,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "분당 의용소방대 순찰",
-            "plateNumber": "186서9912"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "통제트레일러",
-            "plateNumber": "998러9278"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당순찰2",
-            "plateNumber": "26조7885"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "특수차(기타)",
-            "callSign": "분당 이동안전체험차",
-            "plateNumber": "99거3119"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당예방 안전진단차2",
-            "plateNumber": "231어2256"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당 안전진단차(임차",
-            "plateNumber": "30허0890"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당예방 안전진단차",
-            "plateNumber": "33다2377"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "분당행정차1",
-            "plateNumber": "62도6615"
-          }
-        ]
-      },
-      {
         "name": "판교119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -4936,7 +2946,7 @@
             "plateNumber": "998러9233"
           },
           {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "분당버스",
             "plateNumber": "75더2400"
           },
@@ -4961,6 +2971,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "분당조사",
             "plateNumber": "998러9232"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -4969,28 +2984,6 @@
   {
     "name": "성남소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "성남구조공작/영/에5",
-            "plateNumber": "998러9281"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "성남장비운반/유압/드",
-            "plateNumber": "998러9222"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "성남보트트레일러",
-            "plateNumber": "84어0482"
-          }
-        ]
-      },
       {
         "name": "고등119안전센터",
         "lat": 0.0,
@@ -5073,24 +3066,19 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "성남구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "중형승용차",
-            "callSign": "성남행정",
-            "plateNumber": "30너6119"
+            "type": "구조공작차",
+            "callSign": "성남구조공작/영/에5",
+            "plateNumber": "998러9281"
           },
           {
-            "type": "지휘차(기타)",
-            "callSign": "성남재난지휘",
-            "plateNumber": "998러9258"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "성남화물",
-            "plateNumber": "89머6144"
+            "type": "구조대차(기타)",
+            "callSign": "성남장비운반/유압/드",
+            "plateNumber": "998러9222"
           }
         ]
       },
@@ -5154,40 +3142,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승합차",
-            "callSign": "성남의소대(신)",
-            "plateNumber": "211저6944"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "통제단 트레일러",
-            "plateNumber": "97서7550"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "성남행정차",
-            "plateNumber": "08다5870"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형승용차",
-            "callSign": "성남 청문인권",
-            "plateNumber": "63버7319"
-          }
-        ]
-      },
-      {
         "name": "태평119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -5230,11 +3184,6 @@
             "plateNumber": "998러9292"
           },
           {
-            "type": "기타승합차",
-            "callSign": "성남의소대",
-            "plateNumber": "79로4744"
-          },
-          {
             "type": "물탱크차(6000)",
             "callSign": "하대원탱크/6톤",
             "plateNumber": "998러9209"
@@ -5245,12 +3194,7 @@
             "plateNumber": "998러9259"
           },
           {
-            "type": "소형화물차",
-            "callSign": "성남화물/매2",
-            "plateNumber": "90라4643"
-          },
-          {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "성남진단버스",
             "plateNumber": "75더2262"
           },
@@ -5295,48 +3239,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "성남조사",
             "plateNumber": "998러9203"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형승용차",
-            "callSign": "특별조사",
-            "plateNumber": "02버4736"
           },
           {
-            "type": "소형승용차",
-            "callSign": "성남재난예방1",
-            "plateNumber": "63버7382"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "성남재난예방행정",
-            "plateNumber": "06라6062"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "안전진단(친환경)",
-            "plateNumber": "267머1564"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "안전진단(친환경)2",
-            "plateNumber": "267머1594"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "안전진단(전기차)",
-            "plateNumber": "49호9939"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "안전진단차(전기차)2",
-            "plateNumber": "49호9940"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -5345,33 +3252,6 @@
   {
     "name": "송탄소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "송탄구조공작/에어5",
-            "plateNumber": "998러5422"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "송탄생활안전/질식",
-            "plateNumber": "998가3398"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트/구조2",
-            "plateNumber": "81고5866"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트/구조1",
-            "plateNumber": "96두 5252"
-          }
-        ]
-      },
       {
         "name": "고덕119안전센터",
         "lat": 0.0,
@@ -5449,56 +3329,19 @@
         ]
       },
       {
-        "name": "소방안전특별점검단",
+        "name": "송탄구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "진단차(4인승)",
-            "callSign": "안전진단4",
-            "plateNumber": "101가9018"
+            "type": "구조공작차",
+            "callSign": "송탄구조공작/에어5",
+            "plateNumber": "998러5422"
           },
           {
-            "type": "진단차(4인승)",
-            "callSign": "안전진단3",
-            "plateNumber": "34호3264"
-          },
-          {
-            "type": "진단차(4인승)",
-            "callSign": "안전진단2",
-            "plateNumber": "34호3265"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "송탄행정3",
-            "plateNumber": "36나8109"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "송탄화물",
-            "plateNumber": "81머0442"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "송탄버스",
-            "plateNumber": "73너6294"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "송탄재난지휘",
-            "plateNumber": "39수0198"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "송탄행정1",
-            "plateNumber": "389소1624"
+            "type": "구조대차(기타)",
+            "callSign": "송탄생활안전/질식",
+            "plateNumber": "998가3398"
           }
         ]
       },
@@ -5519,11 +3362,6 @@
           },
           {
             "type": "구급차특수(중형)",
-            "callSign": "서탄급차(불용)",
-            "plateNumber": "998가3361"
-          },
-          {
-            "type": "구급차특수(중형)",
             "callSign": "신장1구급차",
             "plateNumber": "998가3363"
           },
@@ -5538,11 +3376,6 @@
             "plateNumber": "998러5410"
           },
           {
-            "type": "생활구조차",
-            "callSign": "신장의소대/생활안전2",
-            "plateNumber": "20무4097"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "신장2펌프/엘베/펌뷸x",
             "plateNumber": "998러5483"
@@ -5551,45 +3384,6 @@
             "type": "펌프차(4000)",
             "callSign": "신장1펌/구급/엘/유",
             "plateNumber": "998러5434"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "송탄의소대순찰",
-            "plateNumber": "157마9883"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "송탄행정4(대응과)",
-            "plateNumber": "91부6241"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "진단차(5인승)",
-            "callSign": "안전진단1",
-            "plateNumber": "05우1757"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "이동안전체험차",
-            "plateNumber": "99두3286"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "송탄행정2",
-            "plateNumber": "53가6210"
           }
         ]
       },
@@ -5631,16 +3425,6 @@
             "plateNumber": "998러5443"
           },
           {
-            "type": "생활구조차",
-            "callSign": "청북의소대/생활안전1",
-            "plateNumber": "815머3896"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트",
-            "plateNumber": "81고5815"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "청북펌프/영/구조/에5",
             "plateNumber": "998가3335"
@@ -5671,6 +3455,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "송탄조사",
             "plateNumber": "998가3355"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -5679,28 +3468,6 @@
   {
     "name": "수원남부소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "남부구조공작(에5층)",
-            "plateNumber": "998더8912"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "남부장비운반(드론)",
-            "plateNumber": "998더1944"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "트레일러/구조대",
-            "plateNumber": "89보5839"
-          }
-        ]
-      },
       {
         "name": "고색119안전센터",
         "lat": 0.0,
@@ -5757,11 +3524,6 @@
             "type": "물탱크차(6000)",
             "callSign": "권선탱크",
             "plateNumber": "998더8919"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "권선화물",
-            "plateNumber": "82더0179"
           },
           {
             "type": "펌프차(3000)",
@@ -5835,19 +3597,19 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "수원남부구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "행정차(중형)",
-            "callSign": "소방행정과",
-            "plateNumber": "341구6249"
+            "type": "구조공작차",
+            "callSign": "남부구조공작(에5층)",
+            "plateNumber": "998더8912"
           },
           {
-            "type": "행정차(중형)",
-            "callSign": "재난지휘차",
-            "plateNumber": "998더8952"
+            "type": "구조대차(일반)",
+            "callSign": "남부장비운반(드론)",
+            "plateNumber": "998더1944"
           }
         ]
       },
@@ -5860,48 +3622,6 @@
             "type": "중형승용차",
             "callSign": "임차차량5",
             "plateNumber": "05호3294"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "임차차량1",
-            "plateNumber": "34호3267"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "예비구급차",
-            "plateNumber": "998나1609"
-          },
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "광역구급차",
-            "plateNumber": "998더8928"
-          },
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "의용소방대순찰차",
-            "plateNumber": "998더8955"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "수남의소대",
-            "plateNumber": "71저1770"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "재난대응과",
-            "plateNumber": "174주4396"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "임차차량4",
-            "plateNumber": "49호9267"
           }
         ]
       },
@@ -5933,18 +3653,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형승용차",
-            "callSign": "청문인권담당관",
-            "plateNumber": "109더6597"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -5958,6 +3666,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "남부화재조사",
             "plateNumber": "998더1916"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -5987,38 +3700,6 @@
             "plateNumber": "998더8934"
           }
         ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "남부재난2",
-            "plateNumber": "43조2170"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "남부재난3",
-            "plateNumber": "51가8142"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "화재예방과1",
-            "plateNumber": "138버7928"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "임차차량2",
-            "plateNumber": "34호3268"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "임차차량3",
-            "plateNumber": "34호3269"
-          }
-        ]
       }
     ]
   },
@@ -6026,7 +3707,7 @@
     "name": "수원소방서",
     "centers": [
       {
-        "name": "119구조대",
+        "name": "수원구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
@@ -6039,45 +3720,6 @@
             "type": "구조대차(일반)",
             "callSign": "수원장비운반(드론)",
             "plateNumber": "998더1948"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "수난트레일러",
-            "plateNumber": "89라5154"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "보트 트레일러",
-            "plateNumber": "89보5838"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "정자2실버",
-            "plateNumber": "75나2132"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "1",
-            "plateNumber": "경기70라8502"
-          }
-        ]
-      },
-      {
-        "name": "수원소방서",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차(기타)",
-            "callSign": "수원테스트구급3",
-            "plateNumber": "60소7741"
           }
         ]
       },
@@ -6163,29 +3805,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차일반(중형)",
-            "callSign": "수원(예비)구급차",
-            "plateNumber": "998더1962"
-          },
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "원천2(수원음압)",
-            "plateNumber": "998더8966"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "정자119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -6211,29 +3830,9 @@
             "plateNumber": "998더1934"
           },
           {
-            "type": "기타승합차",
-            "callSign": "수원의소대",
-            "plateNumber": "71저1776"
-          },
-          {
             "type": "배연차(배연)",
             "callSign": "정자조연/배연고성능",
             "plateNumber": "998더1979"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "정자화물",
-            "plateNumber": "97구6474"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "수원통제단트레일러",
-            "plateNumber": "89라5133"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "수원전기차화재진압트",
-            "plateNumber": "986조4815"
           },
           {
             "type": "펌프차(3000)",
@@ -6305,18 +3904,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "수원화재조사",
             "plateNumber": "998더1945"
-          }
-        ]
-      },
-      {
-        "name": "화재조사분석과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
+          },
           {
-            "type": "화재조사차(9인승)",
-            "callSign": "수원조사(불용)",
-            "plateNumber": "34거6063"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -6325,28 +3917,6 @@
   {
     "name": "시흥소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "시흥구조공작/드/에5",
-            "plateNumber": "998로3191"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "시흥장비운반",
-            "plateNumber": "998로3190"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조트레일러1",
-            "plateNumber": "87오2901"
-          }
-        ]
-      },
       {
         "name": "군서119안전센터",
         "lat": 0.0,
@@ -6388,24 +3958,9 @@
             "plateNumber": "998로3101"
           },
           {
-            "type": "배연차(배연)",
+            "type": "특수차(기타)",
             "callSign": "군서조연차(지원버스)",
             "plateNumber": "998로3186"
-          },
-          {
-            "type": "생활구조차",
-            "callSign": "시흥의소대",
-            "plateNumber": "75무1567"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "시흥화물",
-            "plateNumber": "89모4989"
-          },
-          {
-            "type": "진단차(25인승)",
-            "callSign": "시흥대형승합(버스)",
-            "plateNumber": "76가9530"
           },
           {
             "type": "펌프차(3000)",
@@ -6479,19 +4034,19 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "시흥구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "소형승용차",
-            "callSign": "시흥행정1",
-            "plateNumber": "20루4377"
+            "type": "구조공작차",
+            "callSign": "시흥구조공작/드/에5",
+            "plateNumber": "998로3191"
           },
           {
-            "type": "지휘차(기타)",
-            "callSign": "시흥재난지휘차",
-            "plateNumber": "125나1399"
+            "type": "구조대차(일반)",
+            "callSign": "시흥장비운반",
+            "plateNumber": "998로3190"
           }
         ]
       },
@@ -6550,38 +4105,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(기타)",
-            "callSign": "시흥생활안전",
-            "plateNumber": "998로3109"
-          },
-          {
-            "type": "대형승용차",
-            "callSign": "의소대1",
-            "plateNumber": "998루7562"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "재난대응트레일러1",
-            "plateNumber": "90다4254"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "재난대응과행정차",
-            "plateNumber": "06너6770"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "재난대응모닝2",
-            "plateNumber": "20거4612"
-          }
-        ]
-      },
-      {
         "name": "정왕119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -6604,18 +4127,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "청문인권1",
-            "plateNumber": "253어8734"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -6629,23 +4140,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "시흥조사/질식",
             "plateNumber": "998로3166"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "화재예방모닝2",
-            "plateNumber": "20거4486"
           },
           {
-            "type": "행정차(소형)",
-            "callSign": "화재예방1",
-            "plateNumber": "253어8767"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -6654,23 +4153,6 @@
   {
     "name": "안산소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "안산구조공작/드/영",
-            "plateNumber": "998도2905"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "안산장비운반",
-            "plateNumber": "998도2991"
-          }
-        ]
-      },
       {
         "name": "고잔119안전센터",
         "lat": 0.0,
@@ -6707,22 +4189,7 @@
             "plateNumber": "998도2940"
           },
           {
-            "type": "생활구조차",
-            "callSign": "안산의소대2",
-            "plateNumber": "57라4080"
-          },
-          {
-            "type": "생활구조차",
-            "callSign": "안산의소대",
-            "plateNumber": "714러4252"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "고잔화물",
-            "plateNumber": "89노0102"
-          },
-          {
-            "type": "특수구조버스",
+            "type": "특수차(기타)",
             "callSign": "회복지원차/버스",
             "plateNumber": "998머2232"
           },
@@ -6771,11 +4238,6 @@
             "plateNumber": "998도2992"
           },
           {
-            "type": "기타화물차",
-            "callSign": "대부구조보트트레일러",
-            "plateNumber": "998버3558"
-          },
-          {
             "type": "물탱크차(6000)",
             "callSign": "대부탱크/6톤",
             "plateNumber": "998도2924"
@@ -6784,11 +4246,6 @@
             "type": "산불진화차(1톤)",
             "callSign": "풍도소형펌프",
             "plateNumber": "89고0628"
-          },
-          {
-            "type": "짚형승용차",
-            "callSign": "대부장비운반(렉스턴)",
-            "plateNumber": "998버3595"
           },
           {
             "type": "펌프차(4000)",
@@ -6923,28 +4380,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "안산행정지원2",
-            "plateNumber": "224조3462"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "안산행정지원1",
-            "plateNumber": "35루1040"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "안산재난지휘",
-            "plateNumber": "998도2920"
-          }
-        ]
-      },
-      {
         "name": "신길119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -6973,6 +4408,23 @@
             "type": "펌프차(3000)",
             "callSign": "신길예비펌프",
             "plateNumber": "998도2973"
+          }
+        ]
+      },
+      {
+        "name": "안산구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "안산구조공작/드/영",
+            "plateNumber": "998도2905"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "안산장비운반",
+            "plateNumber": "998도2991"
           }
         ]
       },
@@ -7021,50 +4473,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타화물차",
-            "callSign": "재난대응과트레일러",
-            "plateNumber": "82오0210"
-          },
-          {
-            "type": "소형승합차",
-            "callSign": "재난대응과장비운반",
-            "plateNumber": "998우6901"
-          },
-          {
-            "type": "진단차(기타)",
-            "callSign": "안산진단",
-            "plateNumber": "998도2963"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "재난대응행정1",
-            "plateNumber": "183거4131"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "재난대응과안전진단",
-            "plateNumber": "266보1940"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "청문인권행정1",
-            "plateNumber": "266보1924"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -7088,43 +4496,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "안산조사",
             "plateNumber": "998우6987"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "화재예방행정2",
-            "plateNumber": "17거7266"
           },
           {
-            "type": "행정차(소형)",
-            "callSign": "화재예방행정1",
-            "plateNumber": "05거5640"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "화재예방임대1",
-            "plateNumber": "49호9946"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "화재예방임대2",
-            "plateNumber": "49호9947"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "화재예방임대3",
-            "plateNumber": "49호9948"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "화재예방임대4",
-            "plateNumber": "49호9951"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -7133,38 +4509,6 @@
   {
     "name": "안성소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "안성구조구급",
-            "plateNumber": "998모3150"
-          },
-          {
-            "type": "구조공작차",
-            "callSign": "안성구조공/에5/질식",
-            "plateNumber": "998모3109"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "안성생단",
-            "plateNumber": "998모3194"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "안성보트트레일러",
-            "plateNumber": "81가2501"
-          },
-          {
-            "type": "펌프차(기타)",
-            "callSign": "안성구조펌프",
-            "plateNumber": "998모3115"
-          }
-        ]
-      },
       {
         "name": "공도119안전센터",
         "lat": 0.0,
@@ -7223,16 +4567,6 @@
             "plateNumber": "998모3128"
           },
           {
-            "type": "기타승합차",
-            "callSign": "도기의소대(출동X)",
-            "plateNumber": "71마9173"
-          },
-          {
-            "type": "기타승합차",
-            "callSign": "의소대생활안전",
-            "plateNumber": "97보0251"
-          },
-          {
             "type": "물탱크차(6000)",
             "callSign": "도기탱크/6톤/",
             "plateNumber": "998모3168"
@@ -7243,7 +4577,7 @@
             "plateNumber": "998모3145"
           },
           {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "도기버스",
             "plateNumber": "79나9974"
           },
@@ -7287,29 +4621,29 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "안성구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "소형승용차",
-            "callSign": "안성행정소형",
-            "plateNumber": "58머0907"
+            "type": "구급차특수(중형)",
+            "callSign": "안성구조구급",
+            "plateNumber": "998모3150"
           },
           {
-            "type": "소형화물차",
-            "callSign": "안성화물",
-            "plateNumber": "94노0947"
+            "type": "구조공작차",
+            "callSign": "안성구조공/에5/질식",
+            "plateNumber": "998모3109"
           },
           {
-            "type": "장비운반차",
-            "callSign": "안성장비운반",
-            "plateNumber": "998모3179"
+            "type": "구조대차(기타)",
+            "callSign": "안성생단",
+            "plateNumber": "998모3194"
           },
           {
-            "type": "지휘차(기타)",
-            "callSign": "안성재난지휘",
-            "plateNumber": "998나4040"
+            "type": "펌프차(기타)",
+            "callSign": "안성구조펌프",
+            "plateNumber": "998모3115"
           }
         ]
       },
@@ -7360,18 +4694,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "안성순찰",
-            "plateNumber": "205거9883"
-          }
-        ]
-      },
-      {
         "name": "죽산119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -7399,18 +4721,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "진단차(5인승)",
-            "callSign": "안성진단3",
-            "plateNumber": "328머8820"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -7424,43 +4734,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "안성조사",
             "plateNumber": "998모3137"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "진단차(5인승)",
-            "callSign": "안성특별조사",
-            "plateNumber": "29호8546"
           },
           {
-            "type": "진단차(5인승)",
-            "callSign": "안성진단2",
-            "plateNumber": "328머8819"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "안성진단1",
-            "plateNumber": "50가6422"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "안성민원",
-            "plateNumber": "23조7311"
-          },
-          {
-            "type": "행정차(대형)",
-            "callSign": "안성이동체험",
-            "plateNumber": "98보8033"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "안성자체점검",
-            "plateNumber": "23조7500"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -7515,11 +4793,6 @@
             "type": "구조대차(일반)",
             "callSign": "안양장비운반",
             "plateNumber": "998어7758"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "안양보트트레일러",
-            "plateNumber": "82머6454"
           }
         ]
       },
@@ -7630,7 +4903,7 @@
             "plateNumber": "998어7778"
           },
           {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "안양부림중형버스",
             "plateNumber": "75주6861"
           },
@@ -7638,11 +4911,6 @@
             "type": "배연차(배연)",
             "callSign": "부림조연",
             "plateNumber": "998어7792"
-          },
-          {
-            "type": "중형화물차",
-            "callSign": "부림화물/소화수조",
-            "plateNumber": "80나6903"
           },
           {
             "type": "펌프차(3000)",
@@ -7679,45 +4947,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(중형)",
-            "callSign": "안양행정",
-            "plateNumber": "68가6110"
-          },
-          {
-            "type": "행정차(중형)",
-            "callSign": "안양재난지휘/1호차",
-            "plateNumber": "998어7789"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "생활안전차량",
-            "plateNumber": "998어7750"
-          },
-          {
-            "type": "생활구조차",
-            "callSign": "안양의소대",
-            "plateNumber": "259소5794"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "안양(행정)재난대응과",
-            "plateNumber": "21부9045"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -7731,43 +4960,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "안양조사",
             "plateNumber": "998어7785"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타화물차",
-            "callSign": "안양 화물차",
-            "plateNumber": "87마2048"
           },
           {
-            "type": "진단차(5인승)",
-            "callSign": "안양안전진단3",
-            "plateNumber": "286너8435"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "안양안전진단2",
-            "plateNumber": "286너8439"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "안양행정/모닝",
-            "plateNumber": "07무2864"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "안양행정/코나",
-            "plateNumber": "152서8441"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "안양안전진단/모닝",
-            "plateNumber": "08구2036"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -7776,28 +4973,6 @@
   {
     "name": "양주소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "양주구조공작",
-            "plateNumber": "998노9480"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "양주구조공작(5층)",
-            "plateNumber": "998노9414"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "양주장비운반",
-            "plateNumber": "998노9486"
-          }
-        ]
-      },
       {
         "name": "고읍119안전센터",
         "lat": 0.0,
@@ -7920,11 +5095,6 @@
             "plateNumber": "998노9489"
           },
           {
-            "type": "트레일러",
-            "callSign": "양주트레일러",
-            "plateNumber": "86저4901"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "백석펌프(M/카프)",
             "plateNumber": "998노9419"
@@ -7932,19 +5102,24 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "양주구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "중형승합차",
-            "callSign": "양주승합",
-            "plateNumber": "74다5295"
+            "type": "구조공작차",
+            "callSign": "양주구조공작",
+            "plateNumber": "998노9480"
           },
           {
-            "type": "행정차(기타)",
-            "callSign": "양주재난지휘",
-            "plateNumber": "31가1405"
+            "type": "구조대차(기타)",
+            "callSign": "양주구조공작(5층)",
+            "plateNumber": "998노9414"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "양주장비운반",
+            "plateNumber": "998노9486"
           }
         ]
       },
@@ -8010,18 +5185,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "장비운반차",
-            "callSign": "양주재난장비",
-            "plateNumber": "92러8001"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -8035,6 +5198,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "양주조사",
             "plateNumber": "998노9437"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -8070,28 +5238,6 @@
   {
     "name": "양평소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "양평구조공작/에어5",
-            "plateNumber": "998거5590"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "양평장비운반",
-            "plateNumber": "998거5504"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조보트운반트레일러",
-            "plateNumber": "86라0840"
-          }
-        ]
-      },
       {
         "name": "강상119안전센터",
         "lat": 0.0,
@@ -8169,7 +5315,7 @@
             "plateNumber": "998거5575"
           },
           {
-            "type": "구조버스",
+            "type": "특수차(기타)",
             "callSign": "구조버스",
             "plateNumber": "74가4024"
           },
@@ -8187,28 +5333,6 @@
             "type": "펌프차(3000)",
             "callSign": "공흥1펌프/에5",
             "plateNumber": "998거5534"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "양평재난지휘(1호차)",
-            "plateNumber": "998거5587"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "안전진단차3",
-            "plateNumber": "46노2746"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "(풍수해)행정",
-            "plateNumber": "56모7440"
           }
         ]
       },
@@ -8262,6 +5386,23 @@
         ]
       },
       {
+        "name": "양평구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "양평구조공작/에어5",
+            "plateNumber": "998거5590"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "양평장비운반",
+            "plateNumber": "998거5504"
+          }
+        ]
+      },
+      {
         "name": "양평수난구조대",
         "lat": 0.0,
         "lng": 0.0,
@@ -8282,11 +5423,6 @@
             "plateNumber": "998거5595"
           },
           {
-            "type": "트레일러(제트스키)",
-            "callSign": "보트트레일러",
-            "plateNumber": "807무9945"
-          },
-          {
             "type": "펌프차(기타)",
             "callSign": "수난펌프/구급/에5",
             "plateNumber": "998거5553"
@@ -8302,11 +5438,6 @@
             "type": "구급차특수(중형)",
             "callSign": "옥천구급",
             "plateNumber": "998거5523"
-          },
-          {
-            "type": "대형승합차",
-            "callSign": "옥천생활안전의소대",
-            "plateNumber": "31머3153"
           },
           {
             "type": "펌프차(3000)",
@@ -8326,11 +5457,6 @@
             "plateNumber": "998거5589"
           },
           {
-            "type": "대형승합차",
-            "callSign": "용문생활안전의소대",
-            "plateNumber": "161조7619"
-          },
-          {
             "type": "물탱크차(6000)",
             "callSign": "용문탱크/6톤",
             "plateNumber": "998거5576"
@@ -8348,18 +5474,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "(풍수해)화물차",
-            "plateNumber": "81누3932"
-          }
-        ]
-      },
-      {
         "name": "지평119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -8368,18 +5482,6 @@
             "type": "펌프차(3000)",
             "callSign": "지평펌프",
             "plateNumber": "998거5566"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "해당없음",
-            "plateNumber": "22조3324"
           }
         ]
       },
@@ -8419,28 +5521,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "양평조사/모바일",
             "plateNumber": "998거5546"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "진단차(4인승)",
-            "callSign": "안전진단차2",
-            "plateNumber": "240어3002"
           },
           {
-            "type": "진단차(5인승)",
-            "callSign": "임차1",
-            "plateNumber": "29호8538"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "임차2",
-            "plateNumber": "29호8539"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -8449,23 +5534,6 @@
   {
     "name": "여주소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "여주구조공작/에어5",
-            "plateNumber": "998모8668"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "여주장비운반",
-            "plateNumber": "998모8659"
-          }
-        ]
-      },
       {
         "name": "가남119안전센터",
         "lat": 0.0,
@@ -8606,34 +5674,19 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "여주구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "기타화물차",
-            "callSign": "행정화물차",
-            "plateNumber": "97로0502"
+            "type": "구조공작차",
+            "callSign": "여주구조공작/에어5",
+            "plateNumber": "998모8668"
           },
           {
-            "type": "중형승용차",
-            "callSign": "여주11",
-            "plateNumber": "07너8263"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "여주재난지휘",
-            "plateNumber": "998모8667"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "여주행정2호차",
-            "plateNumber": "37가9234"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "행정차3(모닝)",
-            "plateNumber": "52보1204"
+            "type": "구조대차(일반)",
+            "callSign": "여주장비운반",
+            "plateNumber": "998모8659"
           }
         ]
       },
@@ -8683,11 +5736,6 @@
             "plateNumber": "998모8675"
           },
           {
-            "type": "소형화물차",
-            "callSign": "여주화물(소형)",
-            "plateNumber": "95러1114"
-          },
-          {
             "type": "장비운반차",
             "callSign": "여주화물(중형)",
             "plateNumber": "90어4870"
@@ -8701,11 +5749,6 @@
             "type": "펌프차(3000)",
             "callSign": "월송2펌",
             "plateNumber": "998모8684"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "월송행정차",
-            "plateNumber": "73거1465"
           },
           {
             "type": "화학차(고성능)",
@@ -8732,18 +5775,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "진단차(5인승)",
-            "callSign": "청문안전진단",
-            "plateNumber": "12주8035"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -8757,43 +5788,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "여주화재조사",
             "plateNumber": "998모8658"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "대형승합차",
-            "callSign": "안전체험차",
-            "plateNumber": "98거4202"
           },
           {
-            "type": "진단차(4인승)",
-            "callSign": "예방진단차2",
-            "plateNumber": "12고3134"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "예방진단차(아이오닉)",
-            "plateNumber": "284거6406"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "예방안전진단",
-            "plateNumber": "29호8540"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "예방안전진단2",
-            "plateNumber": "29호8541"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "예방행정차",
-            "plateNumber": "284거6409"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -8814,53 +5813,6 @@
   {
     "name": "연천소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "연천구조공작(마총)",
-            "plateNumber": "998어2081"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "연천장비운반",
-            "plateNumber": "998어2006"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "연천보트1",
-            "plateNumber": "91거6761"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "연천보트2",
-            "plateNumber": "91거6772"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "연천보트3",
-            "plateNumber": "95부5512"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "연천보트4",
-            "plateNumber": "95부5529"
-          },
-          {
-            "type": "트레일러(제트스키)",
-            "callSign": "연천제트1",
-            "plateNumber": "91주4540"
-          },
-          {
-            "type": "트레일러(제트스키)",
-            "callSign": "연천제트2",
-            "plateNumber": "92우2918"
-          }
-        ]
-      },
       {
         "name": "군남119안전센터",
         "lat": 0.0,
@@ -8906,23 +5858,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(5인승)",
-            "callSign": "연천재난지휘차",
-            "plateNumber": "998어2087"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "연천행정1",
-            "plateNumber": "09무3401"
-          }
-        ]
-      },
-      {
         "name": "신서119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -8936,6 +5871,23 @@
             "type": "펌프차(3000)",
             "callSign": "신서펌프",
             "plateNumber": "998어2073"
+          }
+        ]
+      },
+      {
+        "name": "연천구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "연천구조공작(마총)",
+            "plateNumber": "998어2081"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "연천장비운반",
+            "plateNumber": "998어2006"
           }
         ]
       },
@@ -8965,7 +5917,7 @@
             "plateNumber": "998어2070"
           },
           {
-            "type": "기타승합차",
+            "type": "특수차(기타)",
             "callSign": "연천버스",
             "plateNumber": "76루3233"
           },
@@ -8973,11 +5925,6 @@
             "type": "기타승합차",
             "callSign": "은대생활안전",
             "plateNumber": "998어2080"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "은대화물",
-            "plateNumber": "83루4573"
           },
           {
             "type": "조연차(기타)",
@@ -9051,18 +5998,6 @@
         ]
       },
       {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "연천청문행정",
-            "plateNumber": "04보4428"
-          }
-        ]
-      },
-      {
         "name": "청산119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -9080,46 +6015,14 @@
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "순찰차류(일반)",
-            "callSign": "연천현장대응의소대순",
-            "plateNumber": "244누8228"
-          },
-          {
             "type": "지휘차(기타)",
             "callSign": "연천지휘",
             "plateNumber": "998어2088"
           },
           {
-            "type": "행정차(소형)",
-            "callSign": "연천현장대응행정차",
-            "plateNumber": "04보4458"
-          },
-          {
             "type": "화재조사차(기타)",
             "callSign": "연천조사",
             "plateNumber": "998어2002"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "연천화재예방화물차",
-            "plateNumber": "83루4535"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "연천화재예방안전진단",
-            "plateNumber": "05마9582"
-          },
-          {
-            "type": "진단차(기타)",
-            "callSign": "화재예방안전진단2",
-            "plateNumber": "305거5639"
           }
         ]
       }
@@ -9128,38 +6031,6 @@
   {
     "name": "오산소방서",
     "centers": [
-      {
-        "name": "119구조구급대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "오산구조급차",
-            "plateNumber": "998머2210"
-          },
-          {
-            "type": "구조공작차",
-            "callSign": "오산구조공작/에어10/",
-            "plateNumber": "998머2219"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "오산장비(드론)",
-            "plateNumber": "998머2227"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "오산보트",
-            "plateNumber": "88거6426"
-          },
-          {
-            "type": "펌프차(4000)",
-            "callSign": "오산구조펌프",
-            "plateNumber": "998머2230"
-          }
-        ]
-      },
       {
         "name": "세교119안전센터",
         "lat": 0.0,
@@ -9206,16 +6077,6 @@
             "plateNumber": "998머2253"
           },
           {
-            "type": "소형화물차",
-            "callSign": "오산화물차(소화수조)",
-            "plateNumber": "83가4343"
-          },
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "오산의소대",
-            "plateNumber": "77마6888"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "오산세교펌/질식/카프",
             "plateNumber": "998머2268"
@@ -9233,19 +6094,29 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "오산구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "펌프차(2800)",
-            "callSign": "오산예비펌프/질식/카",
-            "plateNumber": "998머2278"
+            "type": "구급차특수(중형)",
+            "callSign": "오산구조급차",
+            "plateNumber": "998머2210"
           },
           {
-            "type": "행정차(중형)",
-            "callSign": "오산행정",
-            "plateNumber": "29보6848"
+            "type": "구조공작차",
+            "callSign": "오산구조공작/에어10/",
+            "plateNumber": "998머2219"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "오산장비(드론)",
+            "plateNumber": "998머2227"
+          },
+          {
+            "type": "펌프차(4000)",
+            "callSign": "오산구조펌프",
+            "plateNumber": "998머2230"
           }
         ]
       },
@@ -9273,33 +6144,6 @@
             "type": "펌프차(2800)",
             "callSign": "원동펌프/영상/구급",
             "plateNumber": "998머2221"
-          }
-        ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "장비운반차",
-            "callSign": "오산장비운반",
-            "plateNumber": "19수4038"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "소방특별조사1",
-            "plateNumber": "07두2445"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "오산특별조사2",
-            "plateNumber": "08수1544"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "오산안전진단차",
-            "plateNumber": "63다2559"
           }
         ]
       },
@@ -9344,6 +6188,11 @@
             "type": "화재조사차(기타)",
             "callSign": "오산조사",
             "plateNumber": "998머2209"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -9352,23 +6201,6 @@
   {
     "name": "용인서부소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "서부구조공작/영/에5",
-            "plateNumber": "998버5382"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "서부장비운반",
-            "plateNumber": "998버5379"
-          }
-        ]
-      },
       {
         "name": "구갈119안전센터",
         "lat": 0.0,
@@ -9520,18 +6352,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "용인서부하나",
-            "plateNumber": "998부9686"
-          }
-        ]
-      },
-      {
         "name": "수지119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -9564,6 +6384,23 @@
         ]
       },
       {
+        "name": "용인서부구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "서부구조공작/영/에5",
+            "plateNumber": "998버5382"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "서부장비운반",
+            "plateNumber": "998버5379"
+          }
+        ]
+      },
+      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -9577,6 +6414,11 @@
             "type": "화재조사차(기타)",
             "callSign": "용인서부조사(조사)",
             "plateNumber": "998버5306"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -9585,28 +6427,6 @@
   {
     "name": "용인소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조대차(기타)",
-            "callSign": "용인구조공/영상/에5",
-            "plateNumber": "998버5361"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "용인생활안전",
-            "plateNumber": "998부9661"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "용인보트",
-            "plateNumber": "96저3853"
-          }
-        ]
-      },
       {
         "name": "남사119안전센터",
         "lat": 0.0,
@@ -9767,21 +6587,6 @@
             "plateNumber": "998부9683"
           },
           {
-            "type": "소형화물차",
-            "callSign": "역북화물",
-            "plateNumber": "89서5015"
-          },
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "역북의소대",
-            "plateNumber": "97저6513"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "역북진단",
-            "plateNumber": "75구9201"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "역북1펌/질식/영상",
             "plateNumber": "998더8972"
@@ -9790,6 +6595,23 @@
             "type": "화학차(고성능)",
             "callSign": "역북화학/10톤/",
             "plateNumber": "998부9665"
+          }
+        ]
+      },
+      {
+        "name": "용인구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조대차(기타)",
+            "callSign": "용인구조공/영상/에5",
+            "plateNumber": "998버5361"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "용인생활안전",
+            "plateNumber": "998부9661"
           }
         ]
       },
@@ -9843,12 +6665,6 @@
         ]
       },
       {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "포곡119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -9884,6 +6700,11 @@
             "type": "지휘차(기타)",
             "callSign": "용인안전지원",
             "plateNumber": "998부9691"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -9915,28 +6736,6 @@
     "name": "의왕소방서",
     "centers": [
       {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "의왕구조공작/유압/드",
-            "plateNumber": "998누2126"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "의왕장비운반",
-            "plateNumber": "998누2114"
-          },
-          {
-            "type": "트레일러(고무보트)",
-            "callSign": "구조보트트레일러",
-            "plateNumber": "81오0875"
-          }
-        ]
-      },
-      {
         "name": "고천119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -9962,17 +6761,7 @@
             "plateNumber": "998누2132"
           },
           {
-            "type": "생활구조차",
-            "callSign": "의왕의소대",
-            "plateNumber": "138고1519"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "의왕화물",
-            "plateNumber": "91부5280"
-          },
-          {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "의왕버스",
             "plateNumber": "74수2098"
           },
@@ -9998,11 +6787,6 @@
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
-          {
-            "type": "구급차특수(중형)",
-            "callSign": "불용예정",
-            "plateNumber": "998누2113"
-          },
           {
             "type": "구급차특수(중형)",
             "callSign": "의왕백운구급",
@@ -10048,23 +6832,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승용차",
-            "callSign": "의왕행정",
-            "plateNumber": "10나4560"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "의왕재난지휘",
-            "plateNumber": "998누2125"
-          }
-        ]
-      },
-      {
         "name": "오전출동대",
         "lat": 0.0,
         "lng": 0.0,
@@ -10082,22 +6849,21 @@
         ]
       },
       {
-        "name": "재난대응과",
+        "name": "의왕구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "순찰차류(기타)",
-            "callSign": "의왕순찰",
-            "plateNumber": "74수2061"
+            "type": "구조공작차",
+            "callSign": "의왕구조공작/유압/드",
+            "plateNumber": "998누2126"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "의왕장비운반",
+            "plateNumber": "998누2114"
           }
         ]
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "현장지휘단",
@@ -10113,6 +6879,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "의왕화재조사",
             "plateNumber": "998누2120"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -10121,28 +6892,6 @@
   {
     "name": "의정부소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "의정부구조공작",
-            "plateNumber": "998주7905"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "의정부장비운반",
-            "plateNumber": "998주7950"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "트레일러(고무보트)",
-            "plateNumber": "81주0890"
-          }
-        ]
-      },
       {
         "name": "금오119안전센터",
         "lat": 0.0,
@@ -10167,11 +6916,6 @@
             "type": "생활구조차",
             "callSign": "의정부생활안전차",
             "plateNumber": "998저9077"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "의정부화물",
-            "plateNumber": "86러0858"
           },
           {
             "type": "펌프차(4000)",
@@ -10242,53 +6986,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "순찰차류(기타)",
-            "callSign": "의정부재난지휘차",
-            "plateNumber": "998저9033"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "의정부재난지휘",
-            "plateNumber": "998저9009"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "의정부안전진단2",
-            "plateNumber": "124버3819"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "의정부안전진단3",
-            "plateNumber": "356무4694"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "의정부안전진단1",
-            "plateNumber": "39어6007"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "의정부행정1",
-            "plateNumber": "03거9694"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "의정부행정2",
-            "plateNumber": "03서5025"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "의정부행정3",
-            "plateNumber": "13무6164"
-          }
-        ]
-      },
-      {
         "name": "송산119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -10326,14 +7023,19 @@
         ]
       },
       {
-        "name": "재난대응과",
+        "name": "의정부구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "구급차특수(중형)",
-            "callSign": "금오음압",
-            "plateNumber": "998저9002"
+            "type": "구조공작차",
+            "callSign": "의정부구조공작",
+            "plateNumber": "998주7905"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "의정부장비운반",
+            "plateNumber": "998주7950"
           }
         ]
       },
@@ -10351,6 +7053,11 @@
             "type": "지휘차(기타)",
             "callSign": "의정부지휘/영상o",
             "plateNumber": "998주7970"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -10373,23 +7080,6 @@
             "type": "펌프차(2800)",
             "callSign": "호원펌프/구급/영상o",
             "plateNumber": "998저9070"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "트레일러",
-            "callSign": "의정부지하철체험",
-            "plateNumber": "98나9373"
-          },
-          {
-            "type": "특수차(기타)",
-            "callSign": "의정부이동안전체험",
-            "plateNumber": "99두3699"
           }
         ]
       },
@@ -10468,28 +7158,6 @@
     "name": "이천소방서",
     "centers": [
       {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "이천구조공작/에5/영",
-            "plateNumber": "998무6579"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "이천장비운반(구)",
-            "plateNumber": "998무6565"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "이천장비운반/드론영",
-            "plateNumber": "998무6582"
-          }
-        ]
-      },
-      {
         "name": "관고119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -10520,7 +7188,7 @@
             "plateNumber": "998무6591"
           },
           {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "관고버스",
             "plateNumber": "74도4626"
           },
@@ -10540,16 +7208,6 @@
             "plateNumber": "998무6551"
           },
           {
-            "type": "생활구조차",
-            "callSign": "이천생활안전의소대",
-            "plateNumber": "329러3557"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "관고화물",
-            "plateNumber": "94소0417"
-          },
-          {
             "type": "안전지원차",
             "callSign": "생활안전",
             "plateNumber": "998무6546"
@@ -10558,11 +7216,6 @@
             "type": "펌프차(3000)",
             "callSign": "관고1펌/에5/질식",
             "plateNumber": "998무6545"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "이천행정2",
-            "plateNumber": "52라9335"
           }
         ]
       },
@@ -10590,11 +7243,6 @@
             "type": "물탱크차(6000)",
             "callSign": "(양여예정)대월탱크",
             "plateNumber": "998무6527"
-          },
-          {
-            "type": "펌프차(2800)",
-            "callSign": "(구)대월1펌/불용예정",
-            "plateNumber": "998무6525"
           },
           {
             "type": "펌프차(기타)",
@@ -10694,18 +7342,6 @@
         ]
       },
       {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "지휘차(기타)",
-            "callSign": "이천재난지휘",
-            "plateNumber": "998무6590"
-          }
-        ]
-      },
-      {
         "name": "율면지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -10714,6 +7350,28 @@
             "type": "펌프차(3000)",
             "callSign": "율면펌프",
             "plateNumber": "998무6564"
+          }
+        ]
+      },
+      {
+        "name": "이천구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "이천구조공작/에5/영",
+            "plateNumber": "998무6579"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "이천장비운반(구)",
+            "plateNumber": "998무6565"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "이천장비운반/드론영",
+            "plateNumber": "998무6582"
           }
         ]
       },
@@ -10740,23 +7398,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "이천행정1",
-            "plateNumber": "23저2589"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "재난카니발",
-            "plateNumber": "303도9510"
-          }
-        ]
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -10775,6 +7416,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "이천화재조사",
             "plateNumber": "998무6575"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -10794,91 +7440,12 @@
             "plateNumber": "998우8078"
           }
         ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방정보조사",
-            "plateNumber": "05호3269"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방모닝",
-            "plateNumber": "16버4940"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "안전진단",
-            "plateNumber": "262어7134"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방진단2",
-            "plateNumber": "262어7143"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방정보조사2",
-            "plateNumber": "32호3259"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방정보조사1",
-            "plateNumber": "34호3258"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방모닝2",
-            "plateNumber": "36너1274"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방화물",
-            "plateNumber": "88오4046"
-          }
-        ]
       }
     ]
   },
   {
     "name": "일산소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차특수(소형)",
-            "callSign": "일산구조구급",
-            "plateNumber": "998라6153"
-          },
-          {
-            "type": "구조공작차",
-            "callSign": "일산구조공작(M/마총)",
-            "plateNumber": "998라6191"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "일산장비운반",
-            "plateNumber": "998라6106"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "제트스키트레일러1",
-            "plateNumber": "814노5832"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "고무보트트레일러",
-            "plateNumber": "91가0718"
-          }
-        ]
-      },
       {
         "name": "고봉119안전센터",
         "lat": 0.0,
@@ -10988,19 +7555,24 @@
         ]
       },
       {
-        "name": "소방행정과",
+        "name": "일산구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "중형승용차",
-            "callSign": "일산재난지휘차",
-            "plateNumber": "998라6165"
+            "type": "구급차특수(소형)",
+            "callSign": "일산구조구급",
+            "plateNumber": "998라6153"
           },
           {
-            "type": "행정차(기타)",
-            "callSign": "일산3행정차",
-            "plateNumber": "52버5482"
+            "type": "구조공작차",
+            "callSign": "일산구조공작(M/마총)",
+            "plateNumber": "998라6191"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "일산장비운반",
+            "plateNumber": "998라6106"
           }
         ]
       },
@@ -11030,12 +7602,7 @@
             "plateNumber": "998라6125"
           },
           {
-            "type": "기타화물차",
-            "callSign": "화물차(장항)",
-            "plateNumber": "95서0368"
-          },
-          {
-            "type": "대형승합차",
+            "type": "특수차(기타)",
             "callSign": "장항버스",
             "plateNumber": "71어1313"
           },
@@ -11063,18 +7630,6 @@
             "type": "펌프차(기타)",
             "callSign": "장항펌프(AP)/구급",
             "plateNumber": "998라6135"
-          }
-        ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "트레일러",
-            "callSign": "일산트레일러",
-            "plateNumber": "83무3602"
           }
         ]
       },
@@ -11195,48 +7750,11 @@
             "type": "화재조사차(9인승)",
             "callSign": "일산조사",
             "plateNumber": "998라6102"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승용차",
-            "callSign": "안전진단6",
-            "plateNumber": "04보8606"
           },
           {
-            "type": "소형승용차",
-            "callSign": "안전진단7",
-            "plateNumber": "336라5387"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "예방과화물차",
-            "plateNumber": "94서0617"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "안전진단5",
-            "plateNumber": "336라5357"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "일산트레일러1",
-            "plateNumber": "99더1890"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방과1행정차",
-            "plateNumber": "26누5424"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "예방과3행정차",
-            "plateNumber": "52무2778"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -11245,23 +7763,6 @@
   {
     "name": "파주소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "파주구조공작(M)",
-            "plateNumber": "998저1322"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "파주장비운반(신형)",
-            "plateNumber": "998나1245"
-          }
-        ]
-      },
       {
         "name": "광탄119안전센터",
         "lat": 0.0,
@@ -11322,11 +7823,6 @@
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "대형승합차",
-            "callSign": "교하의소대전담펌프",
-            "plateNumber": "94서1019"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "교하전담펌프",
             "plateNumber": "998나1275"
@@ -11374,11 +7870,6 @@
             "type": "펌프차(1500)",
             "callSign": "동부펌프(무상양여)",
             "plateNumber": "99소3225"
-          },
-          {
-            "type": "펌프차(4000)",
-            "callSign": "동부의소대전담펌프",
-            "plateNumber": "998거5547"
           }
         ]
       },
@@ -11406,33 +7897,6 @@
             "type": "펌프차(기타)",
             "callSign": "법원미니펌프",
             "plateNumber": "998나1249"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "파주재난(1호차)",
-            "plateNumber": "12나6896"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "행정차",
-            "plateNumber": "54나7467"
-          },
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "순찰차",
-            "plateNumber": "92노5829"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "266마1621",
-            "plateNumber": "266마1621"
           }
         ]
       },
@@ -11496,33 +7960,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "생활구조차",
-            "callSign": "998나1247",
-            "plateNumber": "998나1247"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "화물차",
-            "plateNumber": "89부4122"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "206루4366",
-            "plateNumber": "206루4366"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "65다4834",
-            "plateNumber": "65다4834"
-          }
-        ]
-      },
-      {
         "name": "적성119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -11546,30 +7983,6 @@
             "type": "펌프차(2800)",
             "callSign": "적성펌프(구급구조AP)",
             "plateNumber": "998나1280"
-          }
-        ]
-      },
-      {
-        "name": "조리지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "중형승합차",
-            "callSign": "조리전담의소대펌프",
-            "plateNumber": "998나1279"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(소형)",
-            "callSign": "240라6126",
-            "plateNumber": "240라6126"
           }
         ]
       },
@@ -11646,14 +8059,9 @@
             "plateNumber": "998나1277"
           },
           {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "인력수송버스",
             "plateNumber": "76두8239"
-          },
-          {
-            "type": "중형화물차",
-            "callSign": "호흡정비",
-            "plateNumber": "91루6317"
           },
           {
             "type": "펌프차(3000)",
@@ -11664,6 +8072,23 @@
             "type": "화학차(기타)",
             "callSign": "통일화학",
             "plateNumber": "998나1258"
+          }
+        ]
+      },
+      {
+        "name": "파주구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "파주구조공작(M)",
+            "plateNumber": "998저1322"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "파주장비운반(신형)",
+            "plateNumber": "998나1245"
           }
         ]
       },
@@ -11715,43 +8140,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "파주조사",
             "plateNumber": "998나1248"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "02버3251",
-            "plateNumber": "02버3251"
           },
           {
-            "type": "행정차(기타)",
-            "callSign": "65루3472",
-            "plateNumber": "65루3472"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "240라6148",
-            "plateNumber": "240라6148"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "29호8524",
-            "plateNumber": "29호8524"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "29호8525",
-            "plateNumber": "29호8525"
-          },
-          {
-            "type": "행정차(소형)",
-            "callSign": "29호8526",
-            "plateNumber": "29호8526"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -11760,28 +8153,6 @@
   {
     "name": "평택소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "평택구조공작",
-            "plateNumber": "998가3368"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "평택장비운반",
-            "plateNumber": "998가3347"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "구조대 보트트레일러",
-            "plateNumber": "81고5887"
-          }
-        ]
-      },
       {
         "name": "비전119안전센터",
         "lat": 0.0,
@@ -11816,16 +8187,6 @@
             "type": "배연차(고발포겸용)",
             "callSign": "비전조연",
             "plateNumber": "998러5413"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "비전화물",
-            "plateNumber": "89오7230"
-          },
-          {
-            "type": "진단차(25인승)",
-            "callSign": "평택승합/버스",
-            "plateNumber": "77너8338"
           },
           {
             "type": "펌프차(3000)",
@@ -11865,11 +8226,6 @@
             "plateNumber": "998러5418"
           },
           {
-            "type": "생활구조차",
-            "callSign": "평택의소대/벌집",
-            "plateNumber": "20무1210"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "평택세교펌프/엘베/",
             "plateNumber": "998러5421"
@@ -11885,38 +8241,6 @@
             "type": "소형승용차",
             "callSign": "평택행정",
             "plateNumber": "08조5104"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구급차일반(중형)",
-            "callSign": "무상양여구급차",
-            "plateNumber": "998가3353"
-          },
-          {
-            "type": "중형승용차",
-            "callSign": "재난지휘",
-            "plateNumber": "998러5401"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "평택재난지휘",
-            "plateNumber": "998러5400"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "행정과안전진단차",
-            "plateNumber": "06우3109"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차(화물)",
-            "plateNumber": "87저5860"
           }
         ]
       },
@@ -11963,11 +8287,6 @@
             "plateNumber": "998러5408"
           },
           {
-            "type": "트레일러",
-            "callSign": "안중 보트트레일러",
-            "plateNumber": "81고5881"
-          },
-          {
             "type": "펌프차(3000)",
             "callSign": "안중P/에5/급/구",
             "plateNumber": "998러5416"
@@ -11997,45 +8316,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "기타승합차",
-            "callSign": "생활안전차/평택",
-            "plateNumber": "998가3381"
-          },
-          {
-            "type": "소형승용차",
-            "callSign": "다목적승용차",
-            "plateNumber": "58버0591"
-          },
-          {
-            "type": "순찰차류(일반)",
-            "callSign": "의소대 순찰차",
-            "plateNumber": "157마9882"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "대응과 트레일러",
-            "plateNumber": "85오0204"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차(청문)",
-            "plateNumber": "21부4594"
-          }
-        ]
-      },
-      {
         "name": "팽성119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -12058,6 +8338,23 @@
         ]
       },
       {
+        "name": "평택구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "평택구조공작",
+            "plateNumber": "998가3368"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "평택장비운반",
+            "plateNumber": "998가3347"
+          }
+        ]
+      },
+      {
         "name": "포승119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -12066,21 +8363,6 @@
             "type": "구급차특수(중형)",
             "callSign": "포승급차",
             "plateNumber": "998가3351"
-          },
-          {
-            "type": "대형화물차",
-            "callSign": "포승제독차",
-            "plateNumber": "998러5403"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "포승 보트트레일러(2)",
-            "plateNumber": "804구5206"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "포승 보트트레일러(1)",
-            "plateNumber": "83어8119"
           },
           {
             "type": "펌프차(기타)",
@@ -12108,43 +8390,11 @@
             "type": "화재조사차(6인승)",
             "callSign": "평택화재조사",
             "plateNumber": "998가3317"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "소형화물차",
-            "callSign": "예방화물1",
-            "plateNumber": "90너5013"
           },
           {
-            "type": "진단차(5인승)",
-            "callSign": "화재안전진단1",
-            "plateNumber": "171수8223"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "화재안전진단2",
-            "plateNumber": "171수8235"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "화재안전진단4",
-            "plateNumber": "49호9941"
-          },
-          {
-            "type": "진단차(5인승)",
-            "callSign": "화재안전진단3",
-            "plateNumber": "49호9957"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "행정차(예방과)",
-            "plateNumber": "21부4465"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -12153,28 +8403,6 @@
   {
     "name": "포천소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "포천구조공작",
-            "plateNumber": "998다1362"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "포천장비운반",
-            "plateNumber": "91저7574"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "포천트레일러",
-            "plateNumber": "83두2484"
-          }
-        ]
-      },
       {
         "name": "가산119안전센터",
         "lat": 0.0,
@@ -12334,28 +8562,6 @@
             "type": "화학차(대형)",
             "callSign": "선단화학",
             "plateNumber": "998로2959"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "대형승합차",
-            "callSign": "중형승합",
-            "plateNumber": "76부4209"
-          },
-          {
-            "type": "소형화물차",
-            "callSign": "소형화물",
-            "plateNumber": "92오6069"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "포천재난지휘",
-            "plateNumber": "998로2913"
           }
         ]
       },
@@ -12527,18 +8733,6 @@
         ]
       },
       {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "회복지원",
-            "plateNumber": "21주6149"
-          }
-        ]
-      },
-      {
         "name": "창수119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -12547,6 +8741,23 @@
             "type": "펌프차(기타)",
             "callSign": "창수펌프/구급",
             "plateNumber": "998로2941"
+          }
+        ]
+      },
+      {
+        "name": "포천구조대",
+        "lat": 0.0,
+        "lng": 0.0,
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "포천구조공작",
+            "plateNumber": "998다1362"
+          },
+          {
+            "type": "구조대차(일반)",
+            "callSign": "포천장비운반",
+            "plateNumber": "91저7574"
           }
         ]
       },
@@ -12564,6 +8775,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "포천조사",
             "plateNumber": "998로2972"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
@@ -12584,28 +8800,6 @@
   {
     "name": "하남소방서",
     "centers": [
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "하남공작/에5/유압",
-            "plateNumber": "998우8091"
-          },
-          {
-            "type": "구조대차(일반)",
-            "callSign": "하남장비운반/드론",
-            "plateNumber": "998우8006"
-          },
-          {
-            "type": "트레일러",
-            "callSign": "하남트레일러",
-            "plateNumber": "81두0203"
-          }
-        ]
-      },
       {
         "name": "감일119안전센터",
         "lat": 0.0,
@@ -12676,36 +8870,9 @@
             "plateNumber": "998우8089"
           },
           {
-            "type": "중형승합차",
-            "callSign": "하남의용소방대(구)",
-            "plateNumber": "71나1858"
-          },
-          {
             "type": "펌프차(2800)",
             "callSign": "미사펌프/유압/에5/질",
             "plateNumber": "998우8087"
-          }
-        ]
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "하남행정1호",
-            "plateNumber": "03머3741"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "하남행정2호",
-            "plateNumber": "55머1944"
-          },
-          {
-            "type": "행정차(기타)",
-            "callSign": "하남하나",
-            "plateNumber": "998우8080"
           }
         ]
       },
@@ -12745,17 +8912,7 @@
             "plateNumber": "998우8099"
           },
           {
-            "type": "소형화물차",
-            "callSign": "하남화물",
-            "plateNumber": "81러4418"
-          },
-          {
-            "type": "중형승합차",
-            "callSign": "하남의용소방대(신)",
-            "plateNumber": "356더8041"
-          },
-          {
-            "type": "중형승합차",
+            "type": "특수차(기타)",
             "callSign": "하남버스",
             "plateNumber": "78러7900"
           },
@@ -12787,31 +8944,19 @@
         ]
       },
       {
-        "name": "재난대응과",
+        "name": "하남구조대",
         "lat": 0.0,
         "lng": 0.0,
         "vehicles": [
           {
-            "type": "중형화물차",
-            "callSign": "통제단장비운반",
-            "plateNumber": "998우8047"
+            "type": "구조공작차",
+            "callSign": "하남공작/에5/유압",
+            "plateNumber": "998우8091"
           },
           {
-            "type": "행정차(소형)",
-            "callSign": "대응행정",
-            "plateNumber": "52주7464"
-          }
-        ]
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "행정차(기타)",
-            "callSign": "청문행정",
-            "plateNumber": "109가5833"
+            "type": "구조대차(일반)",
+            "callSign": "하남장비운반/드론",
+            "plateNumber": "998우8006"
           }
         ]
       },
@@ -12829,18 +8974,11 @@
             "type": "화재조사차(12인승)",
             "callSign": "하남조사",
             "plateNumber": "998우8032"
-          }
-        ]
-      },
-      {
-        "name": "화재예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
+          },
           {
-            "type": "행정차(기타)",
-            "callSign": "예방행정",
-            "plateNumber": "66주8884"
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       }
@@ -12849,119 +8987,6 @@
   {
     "name": "화성소방서",
     "centers": [
-      {
-        "name": "119구조구급대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "119구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "구조공작차",
-            "callSign": "화성구조공작/영/에5",
-            "plateNumber": "998러2048"
-          },
-          {
-            "type": "구조대차(기타)",
-            "callSign": "화성장비운반",
-            "plateNumber": "998소4305"
-          }
-        ]
-      },
-      {
-        "name": "119종합상황실",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "가남119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "강상119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도119특수대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도북부119특수대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "경기도소방학교",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "고잔119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "관양119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "교문119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "구미119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "군내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "군서119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "권선119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "금오119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "기흥119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
       {
         "name": "남양119안전센터",
         "lat": 0.0,
@@ -13005,24 +9030,6 @@
         ]
       },
       {
-        "name": "남한산성지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "대곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "도기119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "마도119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -13038,12 +9045,6 @@
             "plateNumber": "998누2139"
           }
         ]
-      },
-      {
-        "name": "마산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "매송119지역대",
@@ -13100,12 +9101,6 @@
         ]
       },
       {
-        "name": "문화119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "반송119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -13148,36 +9143,6 @@
         ]
       },
       {
-        "name": "백사지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "백석119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "백운119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "별내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "보정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "봉담119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -13215,18 +9180,6 @@
         ]
       },
       {
-        "name": "부림119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "불현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "비봉119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -13242,24 +9195,6 @@
             "plateNumber": "89로5805"
           }
         ]
-      },
-      {
-        "name": "비전119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "상동119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "상록수119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "새솔119안전센터",
@@ -13289,12 +9224,6 @@
         ]
       },
       {
-        "name": "서둔119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "서신119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -13317,83 +9246,6 @@
         ]
       },
       {
-        "name": "서현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "성곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "성복119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "세교119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소방안전특별점검단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소방행정과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": [
-          {
-            "type": "고가차(기타)",
-            "callSign": "반송고가/46m/에어20",
-            "plateNumber": "99라1133"
-          },
-          {
-            "type": "지휘차(기타)",
-            "callSign": "화성재난지휘",
-            "plateNumber": "20누0316"
-          }
-        ]
-      },
-      {
-        "name": "소방행정기획과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소요119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소하119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "소흘119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "송산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "송산119지역대",
         "lat": 0.0,
         "lng": 0.0,
@@ -13404,46 +9256,11 @@
             "plateNumber": "998소4302"
           },
           {
-            "type": "생활구조차",
-            "callSign": "송산의소대",
-            "plateNumber": "92무4710"
-          },
-          {
             "type": "펌프차(4000)",
             "callSign": "송산펌프(험지펌프)",
             "plateNumber": "998나4403"
           }
         ]
-      },
-      {
-        "name": "송정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "수내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신상119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신서119지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "신장119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "양감119지역대",
@@ -13463,72 +9280,6 @@
         ]
       },
       {
-        "name": "양촌119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "양평수난구조대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "영중119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "오남119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "오정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "옥정119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "용문119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "원당119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "월송119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "위례119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "인창119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "장안119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -13542,11 +9293,6 @@
             "type": "물탱크차(기타)",
             "callSign": "장안화학/10톤",
             "plateNumber": "998나4411"
-          },
-          {
-            "type": "생활구조차",
-            "callSign": "의소대/우정벌집제거",
-            "plateNumber": "980오2959"
           },
           {
             "type": "펌프차(1500)",
@@ -13564,24 +9310,6 @@
             "plateNumber": "998부9604"
           }
         ]
-      },
-      {
-        "name": "재난대응과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "재난예방과",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "적성119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "정남119안전센터",
@@ -13604,12 +9332,6 @@
             "plateNumber": "998나4444"
           }
         ]
-      },
-      {
-        "name": "정자119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "제2현장지휘단",
@@ -13646,42 +9368,6 @@
         ]
       },
       {
-        "name": "중산119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "중앙119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "차탄119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "청문인권담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "초월119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "탄현119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "태안119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -13707,18 +9393,6 @@
             "plateNumber": "998나4407"
           }
         ]
-      },
-      {
-        "name": "태평119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "파평지역대",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       },
       {
         "name": "팔탄119안전센터",
@@ -13748,30 +9422,6 @@
         ]
       },
       {
-        "name": "평내119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "포곡119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "포승119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
-        "name": "하대원119안전센터",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "향남119안전센터",
         "lat": 0.0,
         "lng": 0.0,
@@ -13792,11 +9442,6 @@
             "plateNumber": "998나4433"
           },
           {
-            "type": "기타화물차",
-            "callSign": "향남화물차",
-            "plateNumber": "82어2631"
-          },
-          {
             "type": "물탱크차(10000)",
             "callSign": "향남탱크/12톤",
             "plateNumber": "998나4418"
@@ -13807,7 +9452,7 @@
             "plateNumber": "998나4424"
           },
           {
-            "type": "진단차(기타)",
+            "type": "특수차(기타)",
             "callSign": "향남버스",
             "plateNumber": "71보5840"
           },
@@ -13829,12 +9474,6 @@
         ]
       },
       {
-        "name": "현장대응단",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
-      },
-      {
         "name": "현장지휘단",
         "lat": 0.0,
         "lng": 0.0,
@@ -13848,14 +9487,30 @@
             "type": "지휘차(기타)",
             "callSign": "화성지휘/영상",
             "plateNumber": "998소4361"
+          },
+          {
+            "type": "중장비(포크레인)",
+            "callSign": "포크레인",
+            "plateNumber": ""
           }
         ]
       },
       {
-        "name": "화재예방과",
+        "name": "화성구조대",
         "lat": 0.0,
         "lng": 0.0,
-        "vehicles": []
+        "vehicles": [
+          {
+            "type": "구조공작차",
+            "callSign": "화성구조공작/영/에5",
+            "plateNumber": "998러2048"
+          },
+          {
+            "type": "구조대차(기타)",
+            "callSign": "화성장비운반",
+            "plateNumber": "998소4305"
+          }
+        ]
       },
       {
         "name": "화재조사분석과",
@@ -13873,12 +9528,6 @@
             "plateNumber": "998나4464"
           }
         ]
-      },
-      {
-        "name": "회계장비담당관",
-        "lat": 0.0,
-        "lng": 0.0,
-        "vehicles": []
       }
     ]
   }

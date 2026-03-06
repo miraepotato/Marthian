@@ -13,20 +13,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.marthianclean.R
 
 private val TextPrimary = Color(0xFFF0F0F0)
 
 /**
- * ✅ 트레이/프리뷰 공용 칩
+ * ✅ 트레이/목록용 차량 칩 (무선호출명 우선 표시)
  */
 @Composable
 fun VehicleStickerChip(
+    callSign: String = "",
+    stationName: String = "",
     department: String,
     equipment: String,
     modifier: Modifier = Modifier
 ) {
     val iconRes = VehicleIconMapper.iconResForEquip(equipment)
-    val label = VehicleIconMapper.deptLabel(department)
+
+    // 무선호출명이 있으면 호출명으로, 없으면 지능형 라벨로 생성
+    val label = VehicleIconMapper.customVehicleLabel(callSign, stationName, department, equipment)
 
     Row(
         modifier = modifier
@@ -54,24 +59,31 @@ fun VehicleStickerChip(
 
 /**
  * ✅ 지도/상황판 배치용 실제 차량 스티커
+ * - 형님께서 직접 제작하신 고유 아이콘들과 무선호출명이 결합됩니다.
  */
 @Composable
 fun VehicleMapSticker(
-    stationName: String,
-    unitName: String,
-    equipment: String,
+    callSign: String,      // 현장 무선호출명 (예: 향남펌프, 수지조명)
+    stationName: String,   // 소속 소방서 (예: 화성소방서)
+    unitName: String,      // 소속 부서 (예: 향남119안전센터)
+    equipment: String,     // 장비 종류 (예: 펌프차, 조명차)
     modifier: Modifier = Modifier
 ) {
     val iconRes = VehicleIconMapper.iconResForEquip(equipment)
 
-    // ✅ 에러 수정: 업그레이드된 customVehicleLabel 함수 호출 및 파라미터(equipment) 추가 전달
-    val customFullLabel = VehicleIconMapper.customVehicleLabel(stationName, unitName, equipment)
+    // ✅ 업데이트된 Mapper 로직 적용: 4개의 파라미터를 정확히 전달
+    val customFullLabel = VehicleIconMapper.customVehicleLabel(
+        callSign = callSign,
+        stationName = stationName,
+        department = unitName,
+        equipment = equipment
+    )
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. 차량 아이콘
+        // 1. 차량 아이콘 (형님께서 제작하신 신규 아이콘 반영)
         Image(
             painter = painterResource(id = iconRes),
             contentDescription = null,
@@ -80,7 +92,7 @@ fun VehicleMapSticker(
 
         Spacer(Modifier.height(2.dp))
 
-        // 2. 지능형 커스텀 라벨 (예: 화성구조, 향남펌프 등)
+        // 2. 무선호출명 라벨 (검정 반투명 배경에 흰색 글씨로 시인성 확보)
         Box(
             modifier = Modifier
                 .background(Color(0xCC000000), RoundedCornerShape(4.dp))

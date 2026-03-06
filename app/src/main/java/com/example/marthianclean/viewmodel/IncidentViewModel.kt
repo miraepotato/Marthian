@@ -277,6 +277,16 @@ class IncidentViewModel : ViewModel() {
         dispatchEquipments = equipments
     }
 
+    fun toggleMatrixCell(r: Int, c: Int) {
+        if (r !in dispatchMatrix.indices || c !in dispatchMatrix[r].indices) return
+        val currentVal = dispatchMatrix[r][c]
+        val newVal = if (currentVal == 0) 1 else 0
+
+        val mutableMatrix = dispatchMatrix.map { it.toMutableList() }.toMutableList()
+        mutableMatrix[r][c] = newVal
+        dispatchMatrix = mutableMatrix
+    }
+
     fun updateDispatchMatrix(matrix: List<List<Int>>) { dispatchMatrix = matrix }
 
     fun getDispatchCount(valueToCount: Int = 1): Int {
@@ -288,16 +298,15 @@ class IncidentViewModel : ViewModel() {
     }
 
     /**
-     * ✅ [핵심수정] 119구조대 등 중복 명칭 혼선 방지를 위한 StationName + UnitName 페어링
+     * ✅ [마션 1.0 최종 보완] 동적 매트릭스 헤더 강제 고정 로직
+     * - 데이터의 불규칙성에 휘둘리지 않고, 현장 지휘관이 필수적으로 관리해야 할 15개 차종을 고정적으로 노출합니다.
      */
     fun setupDynamicDispatch(context: Context, stationName: String, incidentLatLng: LatLng) {
-        // 소방서명과 부서명을 묶어서 관리 (동일한 이름의 센터 혼선 방지)
         val mandatoryUnits = mutableListOf<Pair<String, String>>()
         val validStationName = if (stationName.isNotBlank()) stationName else "관할소방서"
 
-        // 1. 필수 3부서 세팅
+        // 1. 필수 3부서 세팅 (본서, 구조대, 현장대응단)
         mandatoryUnits.add(validStationName to validStationName)
-
         val stationUnits = FireStationCoords.getCentersForStation(validStationName)
         val rescue = stationUnits.find { it.contains("구조대") } ?: "119구조대"
         val invest = stationUnits.find { it.contains("조사") || it.contains("대응단") } ?: "현장대응단"
@@ -305,9 +314,8 @@ class IncidentViewModel : ViewModel() {
         if (!mandatoryUnits.any { it.second == rescue }) mandatoryUnits.add(validStationName to rescue)
         if (!mandatoryUnits.any { it.second == invest }) mandatoryUnits.add(validStationName to invest)
 
-        // 2. 근거리 5개 필터링 (Triple: 소방서명, 센터명, 거리)
+        // 2. 근거리 5개 부서 필터링
         val allOtherUnits = mutableListOf<Triple<String, String, Double>>()
-
         FireStationCoords.stationHqMap.keys.forEach { sName ->
             val units = FireStationCoords.getCentersForStation(sName)
             units.forEach { uName ->
@@ -315,53 +323,27 @@ class IncidentViewModel : ViewModel() {
                 if (!isMandatory && (uName.contains("센터") || uName.contains("지역대") || uName.contains("출동대"))) {
                     val unitLatLng = FireStationCoords.getCenterLatLng(uName, sName)
                     if (unitLatLng.latitude > 0.0) {
-                        val dist = calculateDistance(
-                            incidentLatLng.latitude, incidentLatLng.longitude,
-                            unitLatLng.latitude, unitLatLng.longitude
-                        )
+                        val dist = calculateDistance(incidentLatLng.latitude, incidentLatLng.longitude, unitLatLng.latitude, unitLatLng.longitude)
                         allOtherUnits.add(Triple(sName, uName, dist))
                     }
                 }
             }
         }
 
-        // 거리순 정렬 후 5개 추출
         val nearbyFive = allOtherUnits.sortedBy { it.third }.take(5).map { it.first to it.second }
         val finalUnits = mandatoryUnits + nearbyFive
-
-        // 화면에 보여줄 부서명 리스트
         val finalDepts = finalUnits.map { it.second }
 
-        // 3. 차량 최대공약수(합집합) 도출 (소방서-부서 매칭을 통해 정확한 데이터 검색)
-        val repo = FireResourceRepository(context)
-        val allStations = repo.loadAllStations()
-        val equipSet = mutableSetOf<String>()
-
-        finalUnits.forEach { (sName, uName) ->
-            val station = allStations.find { it.name == sName }
-            if (uName != sName) { // 본서 자체가 아닌 경우 소속 센터 차량 검색
-                val center = station?.centers?.find { it.name == uName }
-                center?.vehicles?.forEach { v ->
-                    val type = v.type.replace("차", "").trim()
-                    if (type.isNotBlank() && type != "-" && type != "지휘") {
-                        equipSet.add(type)
-                    }
-                }
-            }
-        }
-
-        // 4. 차량 정렬 표준화 (배연, 조명, 구조공작 등 특수차량 포함)
-        val standardOrder = listOf("펌프", "물탱크", "탱크", "화학", "구조공작", "구조", "사다리", "고가", "굴절", "구급", "배연", "조명", "기타")
-        val finalEquips = equipSet.toList().sortedWith(compareBy({
-            val idx = standardOrder.indexOf(it)
-            if (idx == -1) 999 else idx
-        }, { it }))
-
-        val fallbackEquips = listOf("펌프", "탱크", "화학", "사다리", "구급", "기타")
+        // ✅ 3. [핵심] JSON 데이터 스캔 대신 핵심 15개 차종 헤더를 강제 고정
+        val fixedEquipments = listOf(
+            "지휘", "펌프", "탱크", "화학", "구조공작", "장비운반", "구조", "사다리", "구급", "조명", "배연", "무인파괴", "회복지원", "험지펌프", "포크레인"
+        )
 
         dispatchDepartments = finalDepts
-        dispatchEquipments = if (finalEquips.isNotEmpty()) finalEquips else fallbackEquips
-        dispatchMatrix = List(finalDepts.size) { List(dispatchEquipments.size) { 0 } }
+        dispatchEquipments = fixedEquipments
+
+        // 부서 개수(행)와 고정 차종 개수(열)에 맞춰 매트릭스 초기화
+        dispatchMatrix = List(finalDepts.size) { List(fixedEquipments.size) { 0 } }
     }
 
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
@@ -453,9 +435,6 @@ class IncidentViewModel : ViewModel() {
         return out
     }
 
-    // =========================================================================
-    // 기상 데이터 연동 (예외 처리 단단하게 보강)
-    // =========================================================================
     private val stationList = listOf(
         WeatherStation(108, "서울", 37.5714, 126.9658),
         WeatherStation(112, "인천", 37.4777, 126.6249),
@@ -521,7 +500,6 @@ class IncidentViewModel : ViewModel() {
                 if (lines.isNotEmpty()) {
                     val lastData = lines.last().trim().split(Regex("\\s+"))
 
-                    // 기상 데이터가 짧게 넘어오는 경우 방어 로직 추가
                     val wd = if (lastData.size > 2) lastData[2].toDoubleOrNull() ?: 0.0 else 0.0
                     val ws = if (lastData.size > 3) lastData[3] else "-"
                     val ta = if (lastData.size > 11) lastData[11] else "-"
@@ -563,7 +541,6 @@ class IncidentViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                // 네트워크 에러 발생 시 앱이 죽지 않도록 조치 (기존 데이터 유지)
                 e.printStackTrace()
             }
         }
