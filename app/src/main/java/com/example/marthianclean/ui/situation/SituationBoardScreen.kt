@@ -56,6 +56,7 @@ import com.example.marthianclean.model.MarkerIconMapper
 import com.example.marthianclean.ui.sticker.VehicleIconMapper
 import com.example.marthianclean.model.IncidentMeta
 import com.example.marthianclean.viewmodel.IncidentViewModel
+import com.example.marthianclean.util.AreaCalculator
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
 import com.naver.maps.map.CameraUpdate
@@ -134,7 +135,6 @@ fun SituationBoardScreen(
     val density = LocalDensity.current
 
     val incident by incidentViewModel.incident.collectAsState()
-    // ✅ 끊어졌던 실시간 날씨 데이터 연결 복구!
     val weatherData by incidentViewModel.weatherData.collectAsState()
 
     var rightMode by remember { mutableStateOf(RightPanelMode.NONE) }
@@ -142,8 +142,14 @@ fun SituationBoardScreen(
     var sectorTargetVehicleId by remember { mutableStateOf<String?>(null) }
     var isMarkerLocked by remember { mutableStateOf(false) }
     var isSceneMovable by remember { mutableStateOf(false) }
+
     var isMeasuringDistance by remember { mutableStateOf(false) }
     val measurePoints = remember { mutableStateListOf<LatLng>() }
+
+    var isMeasuringArea by remember { mutableStateOf(false) }
+    var areaPoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    var isAreaCompleted by remember { mutableStateOf(false) }
+    val areaResultText = if (isAreaCompleted) AreaCalculator.getFormattedArea(areaPoints) else "측정 대기 중"
 
     val coroutineScope = rememberCoroutineScope()
     val cameraPositionState = rememberCameraPositionState()
@@ -168,7 +174,6 @@ fun SituationBoardScreen(
 
     val panelActive = rightMode != RightPanelMode.NONE
 
-    // ✅ 화면 띄울 때 기상청 데이터 자동으로 불러오게 호출
     LaunchedEffect(Unit) {
         incidentViewModel.fetchRealtimeWeather()
     }
@@ -254,7 +259,7 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable, isMeasuringDistance) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable, isMeasuringDistance, isMeasuringArea) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             val longPressChange = awaitLongPressOrCancellation(down.id)
@@ -270,7 +275,7 @@ fun SituationBoardScreen(
                                 return@awaitEachGesture
                             }
 
-                            if (isMeasuringDistance) return@awaitEachGesture
+                            if (isMeasuringDistance || isMeasuringArea) return@awaitEachGesture
 
                             val nearScene = isNearSceneMarker(longPressChange.position)
                             val canDragMarkers = !isMarkerLocked && rightMode != RightPanelMode.BRIEFING
@@ -328,6 +333,10 @@ fun SituationBoardScreen(
                             measurePoints.add(clickedLatLng)
                             strongVibrate(context)
                         }
+                        if (isMeasuringArea && !isAreaCompleted) {
+                            areaPoints = areaPoints.toList() + clickedLatLng
+                            strongVibrate(context)
+                        }
                     }
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
@@ -349,7 +358,11 @@ fun SituationBoardScreen(
                                 totalDistance += measurePoints[index - 1].distanceTo(pt)
                             }
 
-                            val distText = if (index == 0) "시작" else if (totalDistance < 1000) "${totalDistance.roundToInt()}m" else String.format("%.2fkm", totalDistance / 1000.0)
+                            val distText = if (index == 0) "시작" else {
+                                val d = if (totalDistance < 1000) "${totalDistance.roundToInt()}m" else String.format("%.2fkm", totalDistance / 1000.0)
+                                val hoseCount = kotlin.math.ceil(totalDistance / 15.0).toInt()
+                                "$d\n${hoseCount}벌"
+                            }
 
                             Marker(
                                 state = MarkerState(position = pt),
@@ -360,8 +373,41 @@ fun SituationBoardScreen(
                                 captionText = distText,
                                 captionColor = Color.White,
                                 captionHaloColor = MarsOrange,
-                                captionTextSize = 18.sp,
+                                captionTextSize = 16.sp,
                                 zIndex = 200
+                            )
+                        }
+                    }
+
+                    if (areaPoints.isNotEmpty()) {
+                        if (areaPoints.size >= 2 && !isAreaCompleted) {
+                            PathOverlay(
+                                coords = areaPoints.toList(),
+                                width = 3.dp,
+                                color = Color.Yellow,
+                                outlineWidth = 1.dp,
+                                outlineColor = Color.Black
+                            )
+                        }
+
+                        if (isAreaCompleted && areaPoints.size >= 3) {
+                            PolygonOverlay(
+                                coords = areaPoints.toList(),
+                                color = Color(0x66FF1744),
+                                outlineWidth = 2.dp,
+                                outlineColor = Color.Red
+                            )
+                        }
+
+                        areaPoints.forEach { pt ->
+                            Marker(
+                                state = MarkerState(position = pt),
+                                icon = MarkerIcons.BLACK,
+                                iconTintColor = if (isAreaCompleted) Color.Red else Color.Yellow,
+                                width = 12.dp,
+                                height = 12.dp,
+                                anchor = Offset(0.5f, 0.5f),
+                                zIndex = 210
                             )
                         }
                     }
@@ -383,7 +429,10 @@ fun SituationBoardScreen(
                             val isCommand = pv.equipment.contains("지휘")
                             val st = rememberMarkerState(position = pv.position)
                             val iconRes = VehicleIconMapper.iconResForEquip(pv.equipment)
-                            val label = VehicleIconMapper.deptLabel(pv.department)
+
+                            // ✅ [수정] 지도 마커에도 지능형 라벨 적용 (예: 화성구조, 향남펌프)
+                            val hqName = incidentViewModel.selectedStationName.ifBlank { "관할" }
+                            val label = VehicleIconMapper.customVehicleLabel(hqName, pv.department, pv.equipment)
 
                             val scale = if (isCommand) 5.0f else vehicleScaleFor(pv.equipment)
                             val baseSize = 26.dp
@@ -464,6 +513,7 @@ fun SituationBoardScreen(
 
             if (mapLoaded) {
                 val bearing = cameraPositionState.position.bearing.toFloat()
+
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -488,6 +538,51 @@ fun SituationBoardScreen(
                     }
                 }
 
+                if (areaPoints.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 100.dp, start = 20.dp)
+                            .background(Color(0xCC000000), RoundedCornerShape(8.dp))
+                            .border(1.dp, MarsOrange, RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("면적 산출(추정)", color = MarsOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(text = areaResultText, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+
+                            Spacer(Modifier.height(10.dp))
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(if (areaPoints.size >= 3 && !isAreaCompleted) MarsOrange else Color.DarkGray, RoundedCornerShape(4.dp))
+                                        .clickable(enabled = areaPoints.size >= 3 && !isAreaCompleted) {
+                                            isAreaCompleted = true
+                                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("측정", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF333333), RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            areaPoints = emptyList()
+                                            isAreaCompleted = false
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("초기화", color = Color.LightGray, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (rightMode != RightPanelMode.BRIEFING) {
                     Column(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -497,14 +592,31 @@ fun SituationBoardScreen(
                         }
                         TopBarButton(text = if (isMarkerLocked) "📌 마커 잠금됨" else "🔓 마커 이동 가능", isActive = isMarkerLocked, onClick = { isMarkerLocked = !isMarkerLocked })
                         TopBarButton(text = if (isSceneMovable) "📍 현장 변경 ON" else "📍 현장 변경", isActive = isSceneMovable, onClick = { isSceneMovable = !isSceneMovable })
-                        TopBarButton(text = if (isMeasuringDistance) "📏 측정 종료" else "📏 거리측정", isActive = isMeasuringDistance, onClick = {
+
+                        TopBarButton(text = if (isMeasuringDistance) "📏 측정 종료" else "📏 거리측정(65mm)", isActive = isMeasuringDistance, onClick = {
                             isMeasuringDistance = !isMeasuringDistance
                             if (!isMeasuringDistance) measurePoints.clear()
+                            if (isMeasuringDistance) {
+                                isMeasuringArea = false
+                                areaPoints = emptyList()
+                                isAreaCompleted = false
+                            }
+                        })
+
+                        TopBarButton(text = if (isMeasuringArea) "📐 면적 종료" else "📐 면적측정", isActive = isMeasuringArea, onClick = {
+                            isMeasuringArea = !isMeasuringArea
+                            if (!isMeasuringArea) {
+                                areaPoints = emptyList()
+                                isAreaCompleted = false
+                            }
+                            if (isMeasuringArea) {
+                                isMeasuringDistance = false
+                                measurePoints.clear()
+                            }
                         })
                     }
                 }
 
-                // ✅ 좌하단 실시간 기상 데이터 표출 (API 데이터 우선, 없으면 입력된 과거 데이터, 둘 다 없으면 기본 텍스트)
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -540,9 +652,11 @@ fun SituationBoardScreen(
                         notPlaced.forEach { item ->
                             val isBeingDragged = dragState.active && dragState.payload?.id == item.id
                             key(item.id) {
+                                // ✅ [수정] 대기열 트레이 스티커에도 지능형 명칭 반영
+                                val hqName = incidentViewModel.selectedStationName.ifBlank { "관할" }
                                 TrayChipDraggableAfterLongPress(
                                     item = item,
-                                    deptLabel = VehicleIconMapper.deptLabel(item.department),
+                                    deptLabel = VehicleIconMapper.customVehicleLabel(hqName, item.department, item.equipment),
                                     iconRes = VehicleIconMapper.iconResForEquip(item.equipment),
                                     onLift = { windowPos -> hapticArm(); dragState = DragState(active = true, payload = DragPayload(item.id, item.department, item.equipment), windowPos = windowPos, wobble = true) },
                                     onMove = { windowPos -> if (dragState.active && dragState.payload?.id == item.id) { dragState = dragState.copy(windowPos = windowPos, wobble = true) } },
@@ -573,7 +687,14 @@ fun SituationBoardScreen(
                 Box(modifier = Modifier.offset { IntOffset(dragState.windowPos.x.roundToInt() - halfPxX, dragState.windowPos.y.roundToInt() - halfPxY) }, contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.width(markerWidth).height(markerHeight).alpha(0.75f))
-                        Text(text = VehicleIconMapper.deptLabel(payload.department), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp))
+
+                        // ✅ [수정] 드래그 중인 잔상(섀도우)에도 지능형 명칭 반영
+                        val hqName = incidentViewModel.selectedStationName.ifBlank { "관할" }
+                        Text(
+                            text = VehicleIconMapper.customVehicleLabel(hqName, payload.department, payload.equipment),
+                            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                            modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }
@@ -655,7 +776,6 @@ private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () 
         }
         Spacer(Modifier.height(24.dp))
 
-        // ✅ 브리핑 패널도 실시간 기상 데이터 반영 (찌꺼기 처리)
         val sky = if (weatherData.sky != "-") weatherData.sky else meta.기상_날씨.takeIf { it.isNotBlank() && it != "-" } ?: "맑음"
         val temp = if (weatherData.temp != "-") "${weatherData.temp}℃" else meta.기상_기온.takeIf { it.isNotBlank() && it != "-" }?.let { "${it}℃" } ?: "-"
         val windDir = if (weatherData.windDirStr != "-") weatherData.windDirStr else meta.기상_풍향.takeIf { it.isNotBlank() && it != "-" } ?: "-"

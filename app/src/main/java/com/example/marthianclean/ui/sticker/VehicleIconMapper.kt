@@ -3,9 +3,7 @@ package com.example.marthianclean.ui.sticker
 import com.example.marthianclean.R
 
 /**
- * ✅ 프로젝트 전역에서 "차량 아이콘 / 부서 라벨"을 여기로 통일
- * - drawable 폴더 실존 리소스명 기준 매핑
- * - 부서 표기는 "(향남)" 형태로 반환
+ * ✅ 프로젝트 전역 차량 아이콘 및 지능형 명칭 생성
  */
 object VehicleIconMapper {
 
@@ -22,48 +20,58 @@ object VehicleIconMapper {
             e.contains("굴삭") || e.contains("포크") || e.contains("excava") -> R.drawable.ic_vehicle_excavator
             e.contains("구급") || e.contains("ambul") -> R.drawable.ic_vehicle_ambulance
             e.contains("구조") || e.contains("rescue") -> R.drawable.ic_vehicle_rescue
-
-            // ✅ 지휘차는 "지휘차" 먼저
             e.contains("지휘차") || e.contains("command") -> R.drawable.ic_vehicle_command
-
-            // ✅ 회복지원: "회복지원차" / "회복지원버스" / "회복" / "버스" 전부 커버
-            e.contains("회복지원차") || e.contains("회복지원버스") ||
-                    e.contains("회복지원") || e.contains("회복") || e.contains("버스") ||
-                    e.contains("recovery") || e.contains("bus") -> R.drawable.ic_vehicle_recovery_bus
-
+            e.contains("회복") || e.contains("버스") || e.contains("recovery") || e.contains("bus") -> R.drawable.ic_vehicle_recovery_bus
             else -> R.drawable.ic_vehicle_equipment
         }
     }
 
     /**
-     * ✅ 부서명을 괄호 라벨로 바꿔서 반환: "(향남)"
-     * - "향남센터" -> "(향남)"
-     * - "양감지역대" -> "(양감)"
-     * - "안중센터(평택)" -> "(안중)"
+     * ✅ [마션 1.0 핵심] 지능형 차량 라벨 생성
+     * - 지휘단, 구조대, 조사는 본서명(예: 화성구조)으로 표기
+     * - 나머지는 소속 센터명(예: 향남펌프, 팔탄탱크)으로 자동 파싱
      */
+    fun customVehicleLabel(stationName: String, department: String, equipment: String): String {
+        val sName = stationName.replace("소방서", "").trim()
+
+        // 1. 본서 직할 부서인지 판별
+        val isHqUnit = department.contains("소방서") ||
+                department.contains("구조대") ||
+                department.contains("대응단") ||
+                department.contains("조사") ||
+                equipment.contains("지휘") // 지휘차는 무조건 본서 소속
+
+        // 2. 접두사 결정 (본서명 vs 센터명)
+        val prefix = if (isHqUnit) {
+            sName
+        } else {
+            department.replace("119", "")
+                .replace("안전", "")
+                .replace("센터", "")
+                .replace("지역대", "")
+                .replace("출동대", "")
+                .trim()
+        }
+
+        // 3. 장비명 축약 (예: '구조공작차' -> '구조공작', '물탱크' -> '탱크')
+        val equipShort = equipment.replace("차", "")
+            .replace("물탱크", "탱크")
+            .trim()
+
+        return "$prefix$equipShort"
+    }
+
     fun deptLabel(raw: String): String {
         val base = normalizeDeptName(raw)
         return "(${shortDept(base)})"
     }
 
     private fun normalizeDeptName(raw: String): String {
-        return raw.trim()
-            .replace("소방서", "")
-            .replace("센터", "센터")
-            .replace("지역대", "지역대")
+        return raw.trim().replace("소방서", "").replace("센터", "센터").replace("지역대", "지역대")
     }
 
     private fun shortDept(raw: String): String {
-        // 괄호 내용 제거: "안중센터(평택)" -> "안중센터"
         val noParen = raw.replace(Regex("\\(.*?\\)"), "").trim()
-
-        // 접미어 제거
-        return noParen
-            .removeSuffix("센터")
-            .removeSuffix("지역대")
-            .removeSuffix("구조대")
-            .removeSuffix("지휘단")
-            .trim()
-            .ifBlank { raw.trim() }
+        return noParen.removeSuffix("센터").removeSuffix("지역대").removeSuffix("구조대").removeSuffix("지휘단").trim().ifBlank { raw.trim() }
     }
 }

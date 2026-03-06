@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.example.marthianclean.ui.dispatch
 
 import android.view.HapticFeedbackConstants
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -32,7 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.marthianclean.viewmodel.BlackboardViewModel
 import com.example.marthianclean.viewmodel.IncidentViewModel
-
+import com.naver.maps.geometry.LatLng
+import androidx.compose.foundation.shape.RoundedCornerShape
 /* COLORS */
 private val BackgroundBlack = Color(0xFF0E0E0E)
 private val TextPrimary = Color(0xFFF0F0F0)
@@ -47,14 +51,14 @@ private val ColumnWidth = 140.dp
 private val RowHeaderWidth = 220.dp
 private val CellPadding = 4.dp
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DispatchMatrixScreen(
     incidentViewModel: IncidentViewModel,
-    blackboardViewModel: BlackboardViewModel,
+    blackboardViewModel: BlackboardViewModel, // 파라미터는 유지하되, 이 화면에서는 덮어쓰기 기능 제외
     onBack: () -> Unit,
     onDone: () -> Unit
 ) {
+    val context = LocalContext.current
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
 
@@ -65,70 +69,40 @@ fun DispatchMatrixScreen(
     val equipments = remember { mutableStateListOf<String>() }
     val matrix = remember { mutableStateListOf<SnapshotStateList<Int>>() }
 
-    // ✅ BlackboardViewModel의 동적 데이터 관찰
-    val dynamicDepts by blackboardViewModel.matrixDepartments.collectAsState()
-    val dynamicEquips by blackboardViewModel.matrixEquipments.collectAsState()
-    val dynamicMatrix by blackboardViewModel.dynamicMatrix.collectAsState()
-
     fun syncAllToVm() {
-        incidentViewModel.updateDispatchMeta(
-            departments = departments.toList(),
-            equipments = equipments.toList()
-        )
-        incidentViewModel.updateDispatchMatrix(
-            matrix = matrix.map { it.toList() }
-        )
+        incidentViewModel.updateDispatchMeta(departments.toList(), equipments.toList())
+        incidentViewModel.updateDispatchMatrix(matrix.map { it.toList() })
     }
 
     var initialized by remember { mutableStateOf(false) }
 
-    // ✅ 1. 화면 진입 시 초기화 로직
+    // ✅ [핵심수정] 칠판 데이터 덮어쓰기를 원천 차단하고 오직 8개 부서 연산 결과만 사용
     LaunchedEffect(Unit) {
         if (!initialized) {
+            val currentIncident = incidentViewModel.incident.value
             val vmDepts = incidentViewModel.dispatchDepartments
-            // 저장된 과거 현장 데이터가 있다면 그대로 불러옵니다.
+
             if (vmDepts.isNotEmpty()) {
-                departments.clear()
                 departments.addAll(vmDepts)
-
-                equipments.clear()
                 equipments.addAll(incidentViewModel.dispatchEquipments)
-
-                matrix.clear()
                 incidentViewModel.dispatchMatrix.forEach { row ->
                     matrix.add(row.toMutableStateList())
                 }
+            } else if (currentIncident != null) {
+                val stationName = incidentViewModel.selectedStationName
+                val latLng = LatLng(currentIncident.latitude, currentIncident.longitude)
+
+                // Context 넘겨서 진짜 차량 데이터 합집합 추출
+                incidentViewModel.setupDynamicDispatch(context, stationName, latLng)
+
+                departments.addAll(incidentViewModel.dispatchDepartments)
+                equipments.addAll(incidentViewModel.dispatchEquipments)
+                incidentViewModel.dispatchMatrix.forEach { row ->
+                    matrix.add(row.toMutableStateList())
+                }
+                syncAllToVm()
             }
             initialized = true
-        }
-    }
-
-    // ✅ 2. 블랙보드에서 동적 계산 결과가 내려오면 화면 덮어쓰기
-    LaunchedEffect(dynamicDepts, dynamicEquips, dynamicMatrix) {
-        if (dynamicDepts.isNotEmpty() && dynamicEquips.isNotEmpty()) {
-            var useEquips = dynamicEquips
-            var useMatrix = dynamicMatrix
-
-            // 지휘차 자동 필터링 로직 (상황판엔 1대 고정이므로 매트릭스 표에선 숨김)
-            if (useEquips.contains("지휘차")) {
-                val removeIdx = useEquips.indexOf("지휘차")
-                useEquips = useEquips.filterIndexed { index, _ -> index != removeIdx }
-                if (useMatrix.isNotEmpty()) {
-                    useMatrix = useMatrix.map { row -> row.filterIndexed { index, _ -> index != removeIdx } }
-                }
-            }
-
-            departments.clear()
-            departments.addAll(dynamicDepts)
-
-            equipments.clear()
-            equipments.addAll(useEquips)
-
-            matrix.clear()
-            useMatrix.forEach { row ->
-                matrix.add(row.toMutableStateList())
-            }
-            syncAllToVm() // 자동 동기화
         }
     }
 
@@ -152,7 +126,7 @@ fun DispatchMatrixScreen(
                 color = OrangePrimary,
                 fontSize = 16.sp,
                 modifier = Modifier
-                    .border(1.dp, BorderGray)
+                    .border(1.dp, BorderGray, RoundedCornerShape(4.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .clickable { onBack() }
             )
@@ -164,7 +138,7 @@ fun DispatchMatrixScreen(
                 color = OrangePrimary,
                 fontSize = 16.sp,
                 modifier = Modifier
-                    .border(1.dp, BorderGray)
+                    .border(1.dp, BorderGray, RoundedCornerShape(4.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .clickable {
                         syncAllToVm()
@@ -181,7 +155,7 @@ fun DispatchMatrixScreen(
                 .fillMaxSize()
                 .padding(8.dp)
         ) {
-            // 1) 본문 그리드
+            // 1) 데이터 셀 그리드
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -202,15 +176,13 @@ fun DispatchMatrixScreen(
                                 }
                             }
                         }
-
-                        // 헤더에 있는 "차량 추가" 버튼 너비만큼 바디에도 빈칸을 채워줘야 스크롤 시 밀리지 않음
                         Spacer(modifier = Modifier.width(ColumnWidth).height(CellHeight))
                     }
                 }
                 Spacer(modifier = Modifier.height(CellHeight))
             }
 
-            // 2) 상단 고정 헤더행
+            // 2) 상단 고정 헤더 (차량 종류)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -256,7 +228,7 @@ fun DispatchMatrixScreen(
                 }
             }
 
-            // 3) 좌측 고정 부서열
+            // 3) 좌측 고정 열 (부서명)
             Column(
                 modifier = Modifier
                     .width(RowHeaderWidth)
@@ -305,7 +277,7 @@ fun DispatchMatrixScreen(
                 }
             }
 
-            // 4) 좌상단 코너 덮기
+            // 4) 코너 덮개
             Box(
                 modifier = Modifier
                     .width(RowHeaderWidth)
@@ -363,7 +335,7 @@ fun EditableHeaderCell(
                 )
             )
         } else {
-            Text(text, color = TextPrimary, fontSize = 15.sp)
+            Text(text = text, color = TextPrimary, fontSize = 15.sp, textAlign = TextAlign.Center)
         }
     }
 }
@@ -384,7 +356,7 @@ fun AddHeaderCell(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = OrangePrimary, fontSize = 15.sp)
+        Text(text = text, color = OrangePrimary, fontSize = 15.sp)
     }
 }
 
@@ -412,6 +384,6 @@ fun StatusCell(value: Int, onClick: () -> Unit) {
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = Color.Black, fontSize = 16.sp)
+        Text(text = label, color = if(value > 0) Color.Black else TextPrimary, fontSize = 16.sp)
     }
 }

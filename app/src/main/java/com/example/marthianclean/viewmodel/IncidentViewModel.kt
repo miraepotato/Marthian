@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marthianclean.BuildConfig
 import com.example.marthianclean.data.IncidentStore
+import com.example.marthianclean.data.FireStationCoords
+import com.example.marthianclean.data.FireResourceRepository
 import com.example.marthianclean.model.Incident
 import com.example.marthianclean.model.IncidentMeta
 import com.example.marthianclean.model.VehiclePlacement
@@ -43,7 +45,7 @@ data class WeatherData(
     val windSpeed: String = "-",
     val windDir: Double = 0.0,
     val windDirStr: String = "-",
-    val sky: String = "-", // ✅ 구름양에 따른 날씨 상태 추가
+    val sky: String = "-",
     val stationName: String = "-"
 )
 
@@ -56,7 +58,6 @@ data class WeatherStation(
 
 class IncidentViewModel : ViewModel() {
 
-    // ✅ 소방서 선택 정보 (지휘차 자동 생성용)
     var selectedStationName: String = ""
 
     private val _incident = MutableStateFlow<Incident?>(null)
@@ -286,6 +287,83 @@ class IncidentViewModel : ViewModel() {
         return sum
     }
 
+    /**
+     * ✅ [핵심수정] 119구조대 등 중복 명칭 혼선 방지를 위한 StationName + UnitName 페어링
+     */
+    fun setupDynamicDispatch(context: Context, stationName: String, incidentLatLng: LatLng) {
+        // 소방서명과 부서명을 묶어서 관리 (동일한 이름의 센터 혼선 방지)
+        val mandatoryUnits = mutableListOf<Pair<String, String>>()
+        val validStationName = if (stationName.isNotBlank()) stationName else "관할소방서"
+
+        // 1. 필수 3부서 세팅
+        mandatoryUnits.add(validStationName to validStationName)
+
+        val stationUnits = FireStationCoords.getCentersForStation(validStationName)
+        val rescue = stationUnits.find { it.contains("구조대") } ?: "119구조대"
+        val invest = stationUnits.find { it.contains("조사") || it.contains("대응단") } ?: "현장대응단"
+
+        if (!mandatoryUnits.any { it.second == rescue }) mandatoryUnits.add(validStationName to rescue)
+        if (!mandatoryUnits.any { it.second == invest }) mandatoryUnits.add(validStationName to invest)
+
+        // 2. 근거리 5개 필터링 (Triple: 소방서명, 센터명, 거리)
+        val allOtherUnits = mutableListOf<Triple<String, String, Double>>()
+
+        FireStationCoords.stationHqMap.keys.forEach { sName ->
+            val units = FireStationCoords.getCentersForStation(sName)
+            units.forEach { uName ->
+                val isMandatory = mandatoryUnits.any { it.first == sName && it.second == uName }
+                if (!isMandatory && (uName.contains("센터") || uName.contains("지역대") || uName.contains("출동대"))) {
+                    val unitLatLng = FireStationCoords.getCenterLatLng(uName, sName)
+                    if (unitLatLng.latitude > 0.0) {
+                        val dist = calculateDistance(
+                            incidentLatLng.latitude, incidentLatLng.longitude,
+                            unitLatLng.latitude, unitLatLng.longitude
+                        )
+                        allOtherUnits.add(Triple(sName, uName, dist))
+                    }
+                }
+            }
+        }
+
+        // 거리순 정렬 후 5개 추출
+        val nearbyFive = allOtherUnits.sortedBy { it.third }.take(5).map { it.first to it.second }
+        val finalUnits = mandatoryUnits + nearbyFive
+
+        // 화면에 보여줄 부서명 리스트
+        val finalDepts = finalUnits.map { it.second }
+
+        // 3. 차량 최대공약수(합집합) 도출 (소방서-부서 매칭을 통해 정확한 데이터 검색)
+        val repo = FireResourceRepository(context)
+        val allStations = repo.loadAllStations()
+        val equipSet = mutableSetOf<String>()
+
+        finalUnits.forEach { (sName, uName) ->
+            val station = allStations.find { it.name == sName }
+            if (uName != sName) { // 본서 자체가 아닌 경우 소속 센터 차량 검색
+                val center = station?.centers?.find { it.name == uName }
+                center?.vehicles?.forEach { v ->
+                    val type = v.type.replace("차", "").trim()
+                    if (type.isNotBlank() && type != "-" && type != "지휘") {
+                        equipSet.add(type)
+                    }
+                }
+            }
+        }
+
+        // 4. 차량 정렬 표준화 (배연, 조명, 구조공작 등 특수차량 포함)
+        val standardOrder = listOf("펌프", "물탱크", "탱크", "화학", "구조공작", "구조", "사다리", "고가", "굴절", "구급", "배연", "조명", "기타")
+        val finalEquips = equipSet.toList().sortedWith(compareBy({
+            val idx = standardOrder.indexOf(it)
+            if (idx == -1) 999 else idx
+        }, { it }))
+
+        val fallbackEquips = listOf("펌프", "탱크", "화학", "사다리", "구급", "기타")
+
+        dispatchDepartments = finalDepts
+        dispatchEquipments = if (finalEquips.isNotEmpty()) finalEquips else fallbackEquips
+        dispatchMatrix = List(finalDepts.size) { List(dispatchEquipments.size) { 0 } }
+    }
+
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
         private set
 
@@ -346,7 +424,6 @@ class IncidentViewModel : ViewModel() {
     fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
         val out = ArrayList<StickerItem>(64)
 
-        // 1. 무조건 지휘차 1대 선행 주입
         val hqName = if (dispatchDepartments.isNotEmpty()) {
             dispatchDepartments.firstOrNull { it.contains("소방서") } ?: selectedStationName
         } else {
@@ -357,7 +434,6 @@ class IncidentViewModel : ViewModel() {
             out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "지휘차"))
         }
 
-        // 2. 나머지 매트릭스 결과 주입
         val depts = dispatchDepartments
         val equips = dispatchEquipments
         val m = dispatchMatrix
@@ -378,7 +454,7 @@ class IncidentViewModel : ViewModel() {
     }
 
     // =========================================================================
-    // 기상청 실시간 지상관측(ASOS) 연동
+    // 기상 데이터 연동 (예외 처리 단단하게 보강)
     // =========================================================================
     private val stationList = listOf(
         WeatherStation(108, "서울", 37.5714, 126.9658),
@@ -392,12 +468,12 @@ class IncidentViewModel : ViewModel() {
     )
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val R = 6371e3
+        val r = 6371e3
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = sin(dLat / 2) * sin(dLat / 2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return R * c
+        return r * c
     }
 
     private fun findNearestStation(lat: Double, lng: Double): WeatherStation {
@@ -424,12 +500,11 @@ class IncidentViewModel : ViewModel() {
         val targetStation = if (curIncident?.latitude != null && curIncident.longitude != null) {
             findNearestStation(curIncident.latitude, curIncident.longitude)
         } else {
-            stationList.find { it.stnId == 119 } ?: stationList[0] // 기본값: 수원
+            stationList.find { it.stnId == 119 } ?: stationList[0]
         }
 
         viewModelScope.launch {
             try {
-                // 안전하게 1시간 전 정각 데이터 요청
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.HOUR_OF_DAY, -1)
                 val tmFormat = SimpleDateFormat("yyyyMMddHH00", Locale.KOREA)
@@ -441,17 +516,17 @@ class IncidentViewModel : ViewModel() {
                     help = 1
                 )
                 val rawText = responseBody.string()
-
                 val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
+
                 if (lines.isNotEmpty()) {
                     val lastData = lines.last().trim().split(Regex("\\s+"))
 
-                    val wd = lastData.getOrNull(2)?.toDoubleOrNull() ?: 0.0
-                    val ws = lastData.getOrNull(3) ?: "-"
-                    val ta = lastData.getOrNull(11) ?: "-"
+                    // 기상 데이터가 짧게 넘어오는 경우 방어 로직 추가
+                    val wd = if (lastData.size > 2) lastData[2].toDoubleOrNull() ?: 0.0 else 0.0
+                    val ws = if (lastData.size > 3) lastData[3] else "-"
+                    val ta = if (lastData.size > 11) lastData[11] else "-"
+                    val caTotStr = if (lastData.size > 30) lastData[30] else "-9"
 
-                    // ✅ 30번 인덱스(CA_TOT, 전운량) 추출 및 날씨 텍스트 변환 로직 추가
-                    val caTotStr = lastData.getOrNull(30) ?: "-9"
                     val cloudCover = caTotStr.toDoubleOrNull()?.toInt() ?: -9
                     val skyState = when {
                         cloudCover in 0..2 -> "맑음"
@@ -464,7 +539,6 @@ class IncidentViewModel : ViewModel() {
                     val finalTa = if (ta.startsWith("-9") || ta == "-9.0") "-" else ta
                     val finalWs = if (ws.startsWith("-9")) "-" else ws
                     val finalWd = if (wd < 0.0 || wd > 360.0) 0.0 else wd
-
                     val dirStr = if (finalWs == "-") "-" else convertWindDirToStr(finalWd)
 
                     _weatherData.value = WeatherData(
@@ -476,7 +550,6 @@ class IncidentViewModel : ViewModel() {
                         stationName = targetStation.name
                     )
 
-                    // 현재 열려있는 현장 정보(meta)에도 실시간 기상 자동 업데이트
                     if (curIncident != null) {
                         val meta = curIncident.meta
                         _incident.value = curIncident.copy(
@@ -490,6 +563,7 @@ class IncidentViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
+                // 네트워크 에러 발생 시 앱이 죽지 않도록 조치 (기존 데이터 유지)
                 e.printStackTrace()
             }
         }
