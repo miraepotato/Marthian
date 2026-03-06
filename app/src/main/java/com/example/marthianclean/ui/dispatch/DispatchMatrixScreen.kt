@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.marthianclean.viewmodel.BlackboardViewModel
 import com.example.marthianclean.viewmodel.IncidentViewModel
 
 /* COLORS */
@@ -50,6 +51,7 @@ private val CellPadding = 4.dp
 @Composable
 fun DispatchMatrixScreen(
     incidentViewModel: IncidentViewModel,
+    blackboardViewModel: BlackboardViewModel,
     onBack: () -> Unit,
     onDone: () -> Unit
 ) {
@@ -59,26 +61,14 @@ fun DispatchMatrixScreen(
     val hScroll = rememberScrollState()
     val vScroll = rememberScrollState()
 
-    val defaultDepartments = listOf(
-        "향남센터", "양감지역대", "남양센터", "서신지역대", "제부지역대",
-        "팔탄센터", "장안센터", "새솔센터", "화성구조대",
-        "정남센터", "반송센터", "태안센터", "마도지역대",
-        "매송지역대", "목동센터",
-        "안중센터(평택)", "포승센터(평택)", "서탄센터(송탄)",
-        "세교센터(오산)", "청학센터(오산)", "반월센터(안산)"
-    )
-
-    // ✅ 지휘차 항목 영구 삭제 (현장당 1대는 자동 배치되므로)
-    val defaultEquipments = listOf(
-        "펌프차", "탱크차", "화학차", "고가사다리차",
-        "굴절차", "무인방수파괴", "구조공작차",
-        "장비운반차", "구급차",
-        "포크레인", "회복지원버스"
-    )
-
     val departments = remember { mutableStateListOf<String>() }
     val equipments = remember { mutableStateListOf<String>() }
     val matrix = remember { mutableStateListOf<SnapshotStateList<Int>>() }
+
+    // ✅ BlackboardViewModel의 동적 데이터 관찰
+    val dynamicDepts by blackboardViewModel.matrixDepartments.collectAsState()
+    val dynamicEquips by blackboardViewModel.matrixEquipments.collectAsState()
+    val dynamicMatrix by blackboardViewModel.dynamicMatrix.collectAsState()
 
     fun syncAllToVm() {
         incidentViewModel.updateDispatchMeta(
@@ -90,60 +80,55 @@ fun DispatchMatrixScreen(
         )
     }
 
-    fun loadFromVmOrDefault() {
-        val vmDepts = incidentViewModel.dispatchDepartments
-        val vmEquips = incidentViewModel.dispatchEquipments
-        val vmMatrix = incidentViewModel.dispatchMatrix
+    var initialized by remember { mutableStateOf(false) }
 
-        val useDepts = if (vmDepts.isNotEmpty()) vmDepts else defaultDepartments
-        var useEquips = if (vmEquips.isNotEmpty()) vmEquips else defaultEquipments
-        var useMatrix = vmMatrix
+    // ✅ 1. 화면 진입 시 초기화 로직
+    LaunchedEffect(Unit) {
+        if (!initialized) {
+            val vmDepts = incidentViewModel.dispatchDepartments
+            // 저장된 과거 현장 데이터가 있다면 그대로 불러옵니다.
+            if (vmDepts.isNotEmpty()) {
+                departments.clear()
+                departments.addAll(vmDepts)
 
-        // ✅ 과거에 저장된 현장 데이터에 '지휘차'가 남아있다면 자동으로 걸러내고 표를 깔끔하게 잘라냅니다.
-        if (useEquips.contains("지휘차")) {
-            val removeIdx = useEquips.indexOf("지휘차")
-            useEquips = useEquips.filterIndexed { index, _ -> index != removeIdx }
-            if (useMatrix.isNotEmpty()) {
-                useMatrix = useMatrix.map { row -> row.filterIndexed { index, _ -> index != removeIdx } }
+                equipments.clear()
+                equipments.addAll(incidentViewModel.dispatchEquipments)
+
+                matrix.clear()
+                incidentViewModel.dispatchMatrix.forEach { row ->
+                    matrix.add(row.toMutableStateList())
+                }
             }
-        }
-
-        departments.clear()
-        departments.addAll(useDepts)
-
-        equipments.clear()
-        equipments.addAll(useEquips)
-
-        matrix.clear()
-        val matrixOk =
-            useMatrix.isNotEmpty() &&
-                    useMatrix.size == useDepts.size &&
-                    useMatrix.all { it.size == useEquips.size }
-
-        if (matrixOk) {
-            useMatrix.forEach { row ->
-                matrix.add(row.toMutableStateList())
-            }
-        } else {
-            repeat(useDepts.size) {
-                matrix.add(
-                    mutableStateListOf<Int>().apply {
-                        repeat(useEquips.size) { add(0) }
-                    }
-                )
-            }
-        }
-
-        if (vmDepts.isEmpty() || vmEquips.isEmpty() || vmMatrix.isEmpty()) {
-            syncAllToVm()
+            initialized = true
         }
     }
 
-    var initialized by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (!initialized) {
-            loadFromVmOrDefault()
-            initialized = true
+    // ✅ 2. 블랙보드에서 동적 계산 결과가 내려오면 화면 덮어쓰기
+    LaunchedEffect(dynamicDepts, dynamicEquips, dynamicMatrix) {
+        if (dynamicDepts.isNotEmpty() && dynamicEquips.isNotEmpty()) {
+            var useEquips = dynamicEquips
+            var useMatrix = dynamicMatrix
+
+            // 지휘차 자동 필터링 로직 (상황판엔 1대 고정이므로 매트릭스 표에선 숨김)
+            if (useEquips.contains("지휘차")) {
+                val removeIdx = useEquips.indexOf("지휘차")
+                useEquips = useEquips.filterIndexed { index, _ -> index != removeIdx }
+                if (useMatrix.isNotEmpty()) {
+                    useMatrix = useMatrix.map { row -> row.filterIndexed { index, _ -> index != removeIdx } }
+                }
+            }
+
+            departments.clear()
+            departments.addAll(dynamicDepts)
+
+            equipments.clear()
+            equipments.addAll(useEquips)
+
+            matrix.clear()
+            useMatrix.forEach { row ->
+                matrix.add(row.toMutableStateList())
+            }
+            syncAllToVm() // 자동 동기화
         }
     }
 
@@ -155,6 +140,7 @@ fun DispatchMatrixScreen(
             .fillMaxSize()
             .background(BackgroundBlack)
     ) {
+        // [상단 툴바]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -189,6 +175,7 @@ fun DispatchMatrixScreen(
             )
         }
 
+        // [본문 그리드 영역]
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -207,14 +194,16 @@ fun DispatchMatrixScreen(
                     Row {
                         Spacer(modifier = Modifier.width(RowHeaderWidth).height(CellHeight))
 
-                        matrix[r].forEachIndexed { c, value ->
-                            StatusCell(value) {
-                                matrix[r][c] = (value + 1) % 3
-                                syncAllToVm()
+                        if (r < matrix.size) {
+                            matrix[r].forEachIndexed { c, value ->
+                                StatusCell(value) {
+                                    matrix[r][c] = (value + 1) % 3
+                                    syncAllToVm()
+                                }
                             }
                         }
 
-                        // ✅ [핵심 버그 수정] 헤더에 있는 "차량 추가" 버튼 너비만큼 바디에도 빈칸을 채워줘야 스크롤 시 밀리지 않습니다!!
+                        // 헤더에 있는 "차량 추가" 버튼 너비만큼 바디에도 빈칸을 채워줘야 스크롤 시 밀리지 않음
                         Spacer(modifier = Modifier.width(ColumnWidth).height(CellHeight))
                     }
                 }

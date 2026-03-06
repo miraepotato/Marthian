@@ -19,13 +19,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class PlaceCandidate(
     val title: String,
     val address: String
 )
 
-// ✅ 지도 배치(스티커)용 (UI에서 쓰는 상태)
 data class PlacedVehicle(
     val id: String,
     val department: String,
@@ -33,14 +38,31 @@ data class PlacedVehicle(
     val position: LatLng
 )
 
+data class WeatherData(
+    val temp: String = "-",
+    val windSpeed: String = "-",
+    val windDir: Double = 0.0,
+    val windDirStr: String = "-",
+    val sky: String = "-", // ✅ 구름양에 따른 날씨 상태 추가
+    val stationName: String = "-"
+)
+
+data class WeatherStation(
+    val stnId: Int,
+    val name: String,
+    val lat: Double,
+    val lng: Double
+)
+
 class IncidentViewModel : ViewModel() {
+
+    // ✅ 소방서 선택 정보 (지휘차 자동 생성용)
+    var selectedStationName: String = ""
 
     private val _incident = MutableStateFlow<Incident?>(null)
     val incident: StateFlow<Incident?> = _incident.asStateFlow()
 
     private val geocodingRepo = GeocodingRepository(RetrofitClient.geocodingService)
-
-    // ✅ ReverseGeocoding
     private val reverseRepo = ReverseGeocodingRepository(RetrofitClient.reverseGeocodingService)
 
     private val _candidates = MutableStateFlow<List<PlaceCandidate>>(emptyList())
@@ -52,9 +74,9 @@ class IncidentViewModel : ViewModel() {
     private val _searchError = MutableStateFlow<String?>(null)
     val searchError: StateFlow<String?> = _searchError.asStateFlow()
 
-    // =========================
-    // 지도 줌 유지(복원)용
-    // =========================
+    private val _weatherData = MutableStateFlow(WeatherData())
+    val weatherData: StateFlow<WeatherData> = _weatherData.asStateFlow()
+
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
@@ -62,16 +84,30 @@ class IncidentViewModel : ViewModel() {
         preferredMapZoom = zoom
     }
 
+    private fun dateTimeNow(): String {
+        val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA)
+        return fmt.format(Date())
+    }
+
     fun setIncident(value: Incident) {
         _incident.value = value
-        // ✅ 주소검색으로 들어온 주소를 현장정보수정에 “자동 표시”되게 싱크
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
+        fetchRealtimeWeather()
     }
 
     fun updateIncidentMeta(newMeta: IncidentMeta) {
         val cur = _incident.value ?: return
         _incident.value = cur.copy(meta = newMeta)
+    }
+
+    fun updateAddress(newAddress: String) {
+        val cur = _incident.value ?: return
+        val newMeta = cur.meta.copy(재난발생위치 = newAddress)
+        _incident.value = cur.copy(
+            address = newAddress,
+            meta = newMeta
+        )
     }
 
     fun setIncidentAndRestoreAll(value: Incident) {
@@ -90,9 +126,9 @@ class IncidentViewModel : ViewModel() {
         dispatchDepartments = value.dispatchPlan.departments
         dispatchEquipments = value.dispatchPlan.equipments
 
-        // ✅ 지난현장 불러와도 “현장정보수정” 주소 자동 표출 싱크
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
+        fetchRealtimeWeather()
     }
 
     private fun syncMetaAddressIfBlank() {
@@ -108,8 +144,20 @@ class IncidentViewModel : ViewModel() {
         )
     }
 
+    private fun syncDefaultDatesIfBlank() {
+        val cur = _incident.value ?: return
+        val meta = cur.meta
+
+        if (meta.신고접수일시.isBlank()) {
+            _incident.value = cur.copy(
+                meta = meta.copy(신고접수일시 = dateTimeNow())
+            )
+        }
+    }
+
     fun clearIncident() {
         _incident.value = null
+        _weatherData.value = WeatherData()
     }
 
     fun clearCandidates() {
@@ -151,13 +199,12 @@ class IncidentViewModel : ViewModel() {
                 }
 
                 if (out.isEmpty()) {
-                    _searchError.value = "검색 결과가 없습니다. (주소로도 한 번 시도해보세요)"
+                    _searchError.value = "검색 결과가 없습니다."
                 }
-
                 _candidates.value = out
                 onDone()
             } catch (e: Exception) {
-                _searchError.value = "장소 검색 실패: ${e.message ?: "unknown"}"
+                _searchError.value = "장소 검색 실패: ${e.message}"
                 _candidates.value = emptyList()
             } finally {
                 _searchLoading.value = false
@@ -165,11 +212,7 @@ class IncidentViewModel : ViewModel() {
         }
     }
 
-    fun geocodeAndApply(
-        query: String,
-        onSuccess: () -> Unit,
-        onFail: (String) -> Unit
-    ) {
+    fun geocodeAndApply(query: String, onSuccess: () -> Unit, onFail: (String) -> Unit) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
             onFail("검색어가 비어 있습니다.")
@@ -181,7 +224,6 @@ class IncidentViewModel : ViewModel() {
                 is GeocodingRepository.Outcome.Fail -> onFail(out.reason)
                 is GeocodingRepository.Outcome.Ok -> {
                     val data = out.data
-
                     val current = _incident.value
                     val updated = current?.copy(
                         address = data.resolvedAddress,
@@ -192,70 +234,40 @@ class IncidentViewModel : ViewModel() {
                         latitude = data.latitude,
                         longitude = data.longitude
                     )
-
                     _incident.value = updated
-                    // ✅ 주소검색 성공 시 meta.재난발생위치 자동 채움(비어있을 때만)
                     syncMetaAddressIfBlank()
 
+                    fetchRealtimeWeather()
                     onSuccess()
                 }
             }
         }
     }
 
-    // =========================
-    // ✅ 현장 마커 이동 → 좌표/주소/메타 연동
-    // =========================
     fun updateSceneLocationFromDrag(context: Context, latLng: LatLng) {
         val cur = _incident.value ?: return
+        _incident.value = cur.copy(latitude = latLng.latitude, longitude = latLng.longitude)
 
-        // 1) 좌표는 즉시 갱신
-        _incident.value = cur.copy(
-            latitude = latLng.latitude,
-            longitude = latLng.longitude
-        )
-
-        // 2) reverse geocode로 주소 갱신 후 incident.address + meta.재난발생위치 같이 갱신
         viewModelScope.launch {
             when (val out = reverseRepo.reverse(latLng.latitude, latLng.longitude)) {
-                is ReverseGeocodingRepository.Outcome.Fail -> {
-                    // 실패해도 좌표는 이미 반영됨 (운영상 유리)
-                    saveCurrentIncident(context)
-                }
+                is ReverseGeocodingRepository.Outcome.Fail -> saveCurrentIncident(context)
                 is ReverseGeocodingRepository.Outcome.Ok -> {
                     val now = _incident.value ?: return@launch
                     val addr = out.address
-
-                    val meta = now.meta
-                    val newMeta = meta.copy(
-                        재난발생위치 = addr
-                    )
-
-                    _incident.value = now.copy(
-                        address = addr,
-                        meta = newMeta
-                    )
-
+                    val newMeta = now.meta.copy(재난발생위치 = addr)
+                    _incident.value = now.copy(address = addr, meta = newMeta)
                     saveCurrentIncident(context)
+
+                    fetchRealtimeWeather()
                 }
             }
         }
     }
 
-    /* =========================
-       출동대 편성(매트릭스) + 메타
-       ========================= */
-
     var dispatchMatrix by mutableStateOf<List<List<Int>>>(emptyList())
         private set
-
-    fun updateDispatchMatrix(matrix: List<List<Int>>) {
-        dispatchMatrix = matrix
-    }
-
     var dispatchDepartments by mutableStateOf<List<String>>(emptyList())
         private set
-
     var dispatchEquipments by mutableStateOf<List<String>>(emptyList())
         private set
 
@@ -264,90 +276,26 @@ class IncidentViewModel : ViewModel() {
         dispatchEquipments = equipments
     }
 
+    fun updateDispatchMatrix(matrix: List<List<Int>>) { dispatchMatrix = matrix }
+
     fun getDispatchCount(valueToCount: Int = 1): Int {
         val m = dispatchMatrix
         if (m.isEmpty()) return 0
         var sum = 0
-        for (r in m.indices) {
-            val row = m[r]
-            for (c in row.indices) {
-                if (row[c] == valueToCount) sum += 1
-            }
-        }
+        m.forEach { row -> row.forEach { if (it == valueToCount) sum++ } }
         return sum
     }
 
-    fun getPlacedCount(): Int = placedVehicles.size
-
-    fun getRemainingToPlace(): Int {
-        val remaining = getDispatchCount(1) - getPlacedCount()
-        return if (remaining < 0) 0 else remaining
-    }
-
-    data class StickerItem(
-        val id: String,
-        val department: String,
-        val equipment: String
-    )
-
-    fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
-        val depts = dispatchDepartments
-        val equips = dispatchEquipments
-        val m = dispatchMatrix
-
-        if (depts.isEmpty() || equips.isEmpty() || m.isEmpty()) return emptyList()
-
-        val out = ArrayList<StickerItem>(64)
-        val rMax = minOf(m.size, depts.size)
-
-        for (r in 0 until rMax) {
-            val row = m[r]
-            val cMax = minOf(row.size, equips.size)
-
-            for (c in 0 until cMax) {
-                if (row[c] == valueToInclude) {
-                    out.add(
-                        StickerItem(
-                            id = "r${r}_c${c}",
-                            department = depts[r],
-                            equipment = equips[c]
-                        )
-                    )
-                }
-            }
-        }
-        return out
-    }
-
-    /* =========================
-       지도 스티커 배치 상태 (UI)
-       ========================= */
-
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
         private set
-
-    fun clearPlacedVehicles() {
-        placedVehicles = emptyList()
-    }
 
     fun placeVehicle(id: String, department: String, equipment: String, latLng: LatLng) {
         val current = placedVehicles
         val idx = current.indexOfFirst { it.id == id }
         placedVehicles = if (idx >= 0) {
-            current.toMutableList().apply {
-                this[idx] = this[idx].copy(
-                    department = department,
-                    equipment = equipment,
-                    position = latLng
-                )
-            }
+            current.toMutableList().apply { this[idx] = this[idx].copy(department = department, equipment = equipment, position = latLng) }
         } else {
-            current + PlacedVehicle(
-                id = id,
-                department = department,
-                equipment = equipment,
-                position = latLng
-            )
+            current + PlacedVehicle(id = id, department = department, equipment = equipment, position = latLng)
         }
     }
 
@@ -355,40 +303,17 @@ class IncidentViewModel : ViewModel() {
         val current = placedVehicles
         val idx = current.indexOfFirst { it.id == id }
         if (idx < 0) return
-        placedVehicles = current.toMutableList().apply {
-            this[idx] = this[idx].copy(position = newLatLng)
-        }
+        placedVehicles = current.toMutableList().apply { this[idx] = this[idx].copy(position = newLatLng) }
     }
 
-    fun removeVehicle(id: String) {
-        placedVehicles = placedVehicles.filterNot { it.id == id }
-    }
+    fun removeVehicle(id: String) { placedVehicles = placedVehicles.filterNot { it.id == id } }
+
+    fun clearPlacedVehicles() { placedVehicles = emptyList() }
+
+    fun getPlacedCount(): Int = placedVehicles.size
 
     private fun buildPlacementsForSave(): List<VehiclePlacement> {
-        return placedVehicles.map { pv ->
-            VehiclePlacement(
-                id = pv.id,
-                department = pv.department,
-                equipment = pv.equipment,
-                lat = pv.position.latitude,
-                lng = pv.position.longitude
-            )
-        }
-    }
-
-    private fun todayString(): String {
-        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.KOREA)
-        return fmt.format(java.util.Date())
-    }
-
-    private fun syncDefaultDatesIfBlank() {
-        val cur = _incident.value ?: return
-        val meta = cur.meta
-
-        // ✅ “날짜 관련” 대표: 신고접수
-        if (meta.신고접수.isBlank()) {
-            _incident.value = cur.copy(meta = meta.copy(신고접수 = todayString()))
-        }
+        return placedVehicles.map { VehiclePlacement(it.id, it.department, it.equipment, it.position.latitude, it.position.longitude) }
     }
 
     fun snapshotIncidentForSave(): Incident? {
@@ -405,22 +330,168 @@ class IncidentViewModel : ViewModel() {
 
     fun saveCurrentIncident(context: Context) {
         val snap = snapshotIncidentForSave() ?: return
-        viewModelScope.launch {
-            IncidentStore.upsert(context, snap)
-        }
+        viewModelScope.launch { IncidentStore.upsert(context, snap) }
     }
 
     fun loadPastIncidents(context: Context, onLoaded: (List<Incident>) -> Unit) {
-        viewModelScope.launch {
-            val list = IncidentStore.loadAll(context)
-            onLoaded(list)
-        }
+        viewModelScope.launch { onLoaded(IncidentStore.loadAll(context)) }
     }
 
     fun deletePastIncidents(context: Context, ids: List<String>, onDone: () -> Unit = {}) {
+        viewModelScope.launch { IncidentStore.deleteMany(context, ids); onDone() }
+    }
+
+    data class StickerItem(val id: String, val department: String, val equipment: String)
+
+    fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
+        val out = ArrayList<StickerItem>(64)
+
+        // 1. 무조건 지휘차 1대 선행 주입
+        val hqName = if (dispatchDepartments.isNotEmpty()) {
+            dispatchDepartments.firstOrNull { it.contains("소방서") } ?: selectedStationName
+        } else {
+            selectedStationName
+        }
+
+        if (hqName.isNotBlank()) {
+            out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "지휘차"))
+        }
+
+        // 2. 나머지 매트릭스 결과 주입
+        val depts = dispatchDepartments
+        val equips = dispatchEquipments
+        val m = dispatchMatrix
+
+        if (depts.isEmpty() || equips.isEmpty() || m.isEmpty()) return out
+
+        val rMax = minOf(m.size, depts.size)
+        for (r in 0 until rMax) {
+            val row = m[r]
+            val cMax = minOf(row.size, equips.size)
+            for (c in 0 until cMax) {
+                if (row[c] == valueToInclude) {
+                    out.add(StickerItem(id = "r${r}_c${c}", department = depts[r], equipment = equips[c]))
+                }
+            }
+        }
+        return out
+    }
+
+    // =========================================================================
+    // 기상청 실시간 지상관측(ASOS) 연동
+    // =========================================================================
+    private val stationList = listOf(
+        WeatherStation(108, "서울", 37.5714, 126.9658),
+        WeatherStation(112, "인천", 37.4777, 126.6249),
+        WeatherStation(119, "수원", 37.2723, 126.9853),
+        WeatherStation(232, "이천", 37.2640, 127.4842),
+        WeatherStation(212, "양평", 37.4886, 127.4945),
+        WeatherStation(98, "동두천", 37.9019, 127.0607),
+        WeatherStation(99, "파주", 37.8859, 126.7661),
+        WeatherStation(201, "강화", 37.7074, 126.4463)
+    )
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371e3
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+    }
+
+    private fun findNearestStation(lat: Double, lng: Double): WeatherStation {
+        var nearestStn = stationList[0]
+        var minDistance = Double.MAX_VALUE
+        for (station in stationList) {
+            val dist = calculateDistance(lat, lng, station.lat, station.lng)
+            if (dist < minDistance) {
+                minDistance = dist
+                nearestStn = station
+            }
+        }
+        return nearestStn
+    }
+
+    private fun convertWindDirToStr(wd: Double): String {
+        val directions = arrayOf("북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서", "북")
+        val index = Math.round((wd % 360) / 22.5).toInt()
+        return directions[index]
+    }
+
+    fun fetchRealtimeWeather() {
+        val curIncident = _incident.value
+        val targetStation = if (curIncident?.latitude != null && curIncident.longitude != null) {
+            findNearestStation(curIncident.latitude, curIncident.longitude)
+        } else {
+            stationList.find { it.stnId == 119 } ?: stationList[0] // 기본값: 수원
+        }
+
         viewModelScope.launch {
-            IncidentStore.deleteMany(context, ids)
-            onDone()
+            try {
+                // 안전하게 1시간 전 정각 데이터 요청
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.HOUR_OF_DAY, -1)
+                val tmFormat = SimpleDateFormat("yyyyMMddHH00", Locale.KOREA)
+                val tm = tmFormat.format(cal.time)
+
+                val responseBody = RetrofitClient.kmaService.getStationWeather(
+                    time = tm,
+                    stnId = targetStation.stnId,
+                    help = 1
+                )
+                val rawText = responseBody.string()
+
+                val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
+                if (lines.isNotEmpty()) {
+                    val lastData = lines.last().trim().split(Regex("\\s+"))
+
+                    val wd = lastData.getOrNull(2)?.toDoubleOrNull() ?: 0.0
+                    val ws = lastData.getOrNull(3) ?: "-"
+                    val ta = lastData.getOrNull(11) ?: "-"
+
+                    // ✅ 30번 인덱스(CA_TOT, 전운량) 추출 및 날씨 텍스트 변환 로직 추가
+                    val caTotStr = lastData.getOrNull(30) ?: "-9"
+                    val cloudCover = caTotStr.toDoubleOrNull()?.toInt() ?: -9
+                    val skyState = when {
+                        cloudCover in 0..2 -> "맑음"
+                        cloudCover in 3..5 -> "구름조금"
+                        cloudCover in 6..8 -> "구름많음"
+                        cloudCover in 9..10 -> "흐림"
+                        else -> "-"
+                    }
+
+                    val finalTa = if (ta.startsWith("-9") || ta == "-9.0") "-" else ta
+                    val finalWs = if (ws.startsWith("-9")) "-" else ws
+                    val finalWd = if (wd < 0.0 || wd > 360.0) 0.0 else wd
+
+                    val dirStr = if (finalWs == "-") "-" else convertWindDirToStr(finalWd)
+
+                    _weatherData.value = WeatherData(
+                        temp = finalTa,
+                        windSpeed = finalWs,
+                        windDir = finalWd,
+                        windDirStr = dirStr,
+                        sky = skyState,
+                        stationName = targetStation.name
+                    )
+
+                    // 현재 열려있는 현장 정보(meta)에도 실시간 기상 자동 업데이트
+                    if (curIncident != null) {
+                        val meta = curIncident.meta
+                        _incident.value = curIncident.copy(
+                            meta = meta.copy(
+                                기상_기온 = if (finalTa != "-") "${finalTa}℃" else meta.기상_기온,
+                                기상_풍속 = if (finalWs != "-") "${finalWs}m/s" else meta.기상_풍속,
+                                기상_풍향 = if (dirStr != "-") dirStr else meta.기상_풍향,
+                                기상_날씨 = if (skyState != "-") skyState else meta.기상_날씨
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
