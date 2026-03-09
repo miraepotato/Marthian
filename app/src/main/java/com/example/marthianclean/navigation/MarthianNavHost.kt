@@ -59,11 +59,13 @@ fun MarthianNavHost() {
         }
 
         composable(Routes.FieldSelect) {
-            // ✅ 해결 2: 필요 없는 context 파라미터를 제거했습니다. (No parameter found 에러 해결)
             FieldSelectScreen(
                 onPastIncidents = { navController.navigate(Routes.PastIncidents) },
-                onStationSelected = { stationName ->
-                    incidentViewModel.selectedStationName = stationName // ✅ 추가: 선택된 소방서 기억하기
+                onNewIncident = { stationName ->
+                    // 👇 이 줄을 추가하여 소방서 선택 시 무조건 이전 잔상을 완전히 폭파시킵니다.
+                    incidentViewModel.clearIncident()
+
+                    incidentViewModel.selectedStationName = stationName
                     blackboardViewModel.selectStation(stationName)
                     navController.navigate(Routes.AddressSearch)
                 }

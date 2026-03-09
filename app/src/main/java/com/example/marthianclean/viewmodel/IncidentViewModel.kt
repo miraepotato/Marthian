@@ -92,6 +92,13 @@ class IncidentViewModel : ViewModel() {
 
     fun setIncident(value: Incident) {
         _incident.value = value
+
+        // ✅ [잔상 해결] 새로운 현장 검색 시, 이전 현장의 매트릭스와 차량 배치 데이터를 완전히 초기화합니다.
+        dispatchMatrix = emptyList()
+        dispatchDepartments = emptyList()
+        dispatchEquipments = emptyList()
+        placedVehicles = emptyList()
+
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
         fetchRealtimeWeather()
@@ -159,6 +166,12 @@ class IncidentViewModel : ViewModel() {
     fun clearIncident() {
         _incident.value = null
         _weatherData.value = WeatherData()
+
+        // ✅ [잔상 해결] 명시적 초기화 시에도 매트릭스 잔상을 완벽히 지웁니다.
+        dispatchMatrix = emptyList()
+        dispatchDepartments = emptyList()
+        dispatchEquipments = emptyList()
+        placedVehicles = emptyList()
     }
 
     fun clearCandidates() {
@@ -297,15 +310,10 @@ class IncidentViewModel : ViewModel() {
         return sum
     }
 
-    /**
-     * ✅ [마션 1.0 최종 보완] 동적 매트릭스 헤더 강제 고정 로직
-     * - 데이터의 불규칙성에 휘둘리지 않고, 현장 지휘관이 필수적으로 관리해야 할 15개 차종을 고정적으로 노출합니다.
-     */
     fun setupDynamicDispatch(context: Context, stationName: String, incidentLatLng: LatLng) {
         val mandatoryUnits = mutableListOf<Pair<String, String>>()
         val validStationName = if (stationName.isNotBlank()) stationName else "관할소방서"
 
-        // 1. 필수 3부서 세팅 (본서, 구조대, 현장대응단)
         mandatoryUnits.add(validStationName to validStationName)
         val stationUnits = FireStationCoords.getCentersForStation(validStationName)
         val rescue = stationUnits.find { it.contains("구조대") } ?: "119구조대"
@@ -314,7 +322,6 @@ class IncidentViewModel : ViewModel() {
         if (!mandatoryUnits.any { it.second == rescue }) mandatoryUnits.add(validStationName to rescue)
         if (!mandatoryUnits.any { it.second == invest }) mandatoryUnits.add(validStationName to invest)
 
-        // 2. 근거리 5개 부서 필터링
         val allOtherUnits = mutableListOf<Triple<String, String, Double>>()
         FireStationCoords.stationHqMap.keys.forEach { sName ->
             val units = FireStationCoords.getCentersForStation(sName)
@@ -334,7 +341,6 @@ class IncidentViewModel : ViewModel() {
         val finalUnits = mandatoryUnits + nearbyFive
         val finalDepts = finalUnits.map { it.second }
 
-        // ✅ 3. [핵심] JSON 데이터 스캔 대신 핵심 15개 차종 헤더를 강제 고정
         val fixedEquipments = listOf(
             "지휘", "펌프", "탱크", "화학", "구조공작", "장비운반", "구조", "사다리", "구급", "조명", "배연", "무인파괴", "회복지원", "험지펌프", "포크레인"
         )
@@ -342,7 +348,6 @@ class IncidentViewModel : ViewModel() {
         dispatchDepartments = finalDepts
         dispatchEquipments = fixedEquipments
 
-        // 부서 개수(행)와 고정 차종 개수(열)에 맞춰 매트릭스 초기화
         dispatchMatrix = List(finalDepts.size) { List(fixedEquipments.size) { 0 } }
     }
 
