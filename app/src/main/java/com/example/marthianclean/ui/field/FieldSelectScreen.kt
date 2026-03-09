@@ -107,10 +107,13 @@ fun FieldSelectScreen(
             )
         }
 
-        // 소방서 선택 다이얼로그
+        // 소방서 선택 다이얼로그 (다크 테마 적용)
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
+                containerColor = Color(0xFF1C1C1C), // 다이얼로그 배경색 다크 그레이
+                titleContentColor = Color.White,    // 타이틀 색상 흰색
+                textContentColor = Color.White,     // 본문 텍스트 색상 흰색
                 title = { Text("내 소방서 설정", fontWeight = FontWeight.Bold) },
                 text = {
                     LazyColumn(modifier = Modifier.height(300.dp)) {
@@ -118,6 +121,7 @@ fun FieldSelectScreen(
                             Text(
                                 text = name,
                                 fontSize = 16.sp,
+                                color = Color.White, // 리스트 아이템 텍스트 색상 흰색 명시
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -126,13 +130,13 @@ fun FieldSelectScreen(
                                     }
                                     .padding(vertical = 12.dp)
                             )
-                            HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                            HorizontalDivider(color = Color(0xFF2E2E2E), thickness = 0.5.dp) // 구분선 어둡게
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { showDialog = false }) {
-                        Text("닫기", color = Color(0xFFFF8C00))
+                        Text("닫기", color = Color(0xFFFF8C00)) // 오렌지색 확인 버튼
                     }
                 }
             )

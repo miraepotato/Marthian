@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.marthianclean.BuildConfig
 import com.example.marthianclean.data.IncidentStore
 import com.example.marthianclean.data.FireStationCoords
-import com.example.marthianclean.data.FireResourceRepository
 import com.example.marthianclean.model.Incident
 import com.example.marthianclean.model.IncidentMeta
 import com.example.marthianclean.model.VehiclePlacement
@@ -310,44 +309,72 @@ class IncidentViewModel : ViewModel() {
         return sum
     }
 
+    /**
+     * ✅ [Marthian 2.0] 동적 편성 엔진 (부서명 교정 로직 포함)
+     */
     fun setupDynamicDispatch(context: Context, stationName: String, incidentLatLng: LatLng) {
-        val mandatoryUnits = mutableListOf<Pair<String, String>>()
         val validStationName = if (stationName.isNotBlank()) stationName else "관할소방서"
+        val shortStationName = validStationName.replace("소방서", "").trim()
+        val operationalUnits = mutableListOf<Pair<String, String>>()
 
-        mandatoryUnits.add(validStationName to validStationName)
-        val stationUnits = FireStationCoords.getCentersForStation(validStationName)
-        val rescue = stationUnits.find { it.contains("구조대") } ?: "119구조대"
-        val invest = stationUnits.find { it.contains("조사") || it.contains("대응단") } ?: "현장대응단"
+        // 1. 관할 구조대 우선 추가
+        val rescue = FireStationCoords.getCentersForStation(validStationName).find { it.contains("구조대") }
+        if (rescue != null) {
+            // ✅ [핵심 수정] "119구조대"를 "화성119구조대"로 자동 교정해서 데이터 매칭 오류 해결!
+            val fixedRescueName = if (rescue == "119구조대" || rescue == "구조대") {
+                "${shortStationName}119구조대"
+            } else {
+                rescue
+            }
+            operationalUnits.add(validStationName to fixedRescueName)
+        }
 
-        if (!mandatoryUnits.any { it.second == rescue }) mandatoryUnits.add(validStationName to rescue)
-        if (!mandatoryUnits.any { it.second == invest }) mandatoryUnits.add(validStationName to invest)
-
+        // 2. 행정/지휘 부서 제외 및 실전 부서 탐색
         val allOtherUnits = mutableListOf<Triple<String, String, Double>>()
         FireStationCoords.stationHqMap.keys.forEach { sName ->
+            val shortSName = sName.replace("소방서", "").trim()
             val units = FireStationCoords.getCentersForStation(sName)
             units.forEach { uName ->
-                val isMandatory = mandatoryUnits.any { it.first == sName && it.second == uName }
-                if (!isMandatory && (uName.contains("센터") || uName.contains("지역대") || uName.contains("출동대"))) {
-                    val unitLatLng = FireStationCoords.getCenterLatLng(uName, sName)
-                    if (unitLatLng.latitude > 0.0) {
-                        val dist = calculateDistance(incidentLatLng.latitude, incidentLatLng.longitude, unitLatLng.latitude, unitLatLng.longitude)
-                        allOtherUnits.add(Triple(sName, uName, dist))
+                val isExcluded = uName.contains("지휘단") || uName.contains("대응단") || uName == sName
+
+                if (!isExcluded && (uName.contains("센터") || uName.contains("구조대") || uName.contains("지역대"))) {
+
+                    // ✅ [핵심 수정] 인근 타 소방서 구조대(예: 수원119구조대)도 이름 자동 교정
+                    val fixedUName = if (uName == "119구조대" || uName == "구조대") {
+                        "${shortSName}119구조대"
+                    } else {
+                        uName
+                    }
+
+                    if (!operationalUnits.any { it.first == sName && it.second == fixedUName }) {
+                        // 거리 계산은 기존 좌표록의 이름(uName)으로, 화면 표출은 교정된 이름(fixedUName)으로!
+                        val unitLatLng = FireStationCoords.getCenterLatLng(uName, sName)
+                        if (unitLatLng.latitude > 0.0) {
+                            val dist = calculateDistance(incidentLatLng.latitude, incidentLatLng.longitude, unitLatLng.latitude, unitLatLng.longitude)
+                            allOtherUnits.add(Triple(sName, fixedUName, dist))
+                        }
                     }
                 }
             }
         }
 
-        val nearbyFive = allOtherUnits.sortedBy { it.third }.take(5).map { it.first to it.second }
-        val finalUnits = mandatoryUnits + nearbyFive
-        val finalDepts = finalUnits.map { it.second }
+        // 거리순으로 가까운 센터 7개 추가 (구조대 포함 총 8개 부서)
+        val nearbyUnits = allOtherUnits.sortedBy { it.third }.take(7).map { it.first to it.second }
+        val finalUnits = operationalUnits + nearbyUnits
+        val finalDepts = finalUnits.map { it.second }.toMutableList()
 
+        // ✅ 항상 마지막에 '민간' 부서 강제 추가
+        if (!finalDepts.contains("민간")) {
+            finalDepts.add("민간")
+        }
+
+        // 차량 기본 헤더
         val fixedEquipments = listOf(
-            "지휘", "펌프", "탱크", "화학", "구조공작", "장비운반", "구조", "사다리", "구급", "조명", "배연", "무인파괴", "회복지원", "험지펌프", "포크레인"
+            "펌프", "구조공작", "장비운반", "탱크", "화학", "굴절", "고가", "무인파괴", "내폭화학", "구급", "포크레인"
         )
 
         dispatchDepartments = finalDepts
         dispatchEquipments = fixedEquipments
-
         dispatchMatrix = List(finalDepts.size) { List(fixedEquipments.size) { 0 } }
     }
 
@@ -411,15 +438,10 @@ class IncidentViewModel : ViewModel() {
     fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
         val out = ArrayList<StickerItem>(64)
 
-        val hqName = if (dispatchDepartments.isNotEmpty()) {
-            dispatchDepartments.firstOrNull { it.contains("소방서") } ?: selectedStationName
-        } else {
-            selectedStationName
-        }
-
-        if (hqName.isNotBlank()) {
-            out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "지휘차"))
-        }
+        // ✅ [고정] 선택된 소방서의 지휘차는 매트릭스 선택 여부와 무관하게 무조건 1번으로 추가
+        val hqName = if (selectedStationName.isNotBlank()) selectedStationName else "관할소방서"
+        val shortHqName = hqName.replace("소방서", "").trim()
+        out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "${shortHqName}지휘"))
 
         val depts = dispatchDepartments
         val equips = dispatchEquipments
