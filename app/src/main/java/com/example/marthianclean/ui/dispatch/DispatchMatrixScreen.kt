@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions // ✅ 키보드 액션 추가
-import androidx.compose.foundation.text.KeyboardOptions // ✅ 키보드 옵션 추가
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -23,10 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController // ✅ 키보드 컨트롤러 추가
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction // ✅ 엔터키 모양 변경
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.marthianclean.viewmodel.BlackboardViewModel
 import com.example.marthianclean.viewmodel.IncidentViewModel
 import com.example.marthianclean.viewmodel.MarthianDepartment
+import com.example.marthianclean.viewmodel.DisasterMode
 import com.naver.maps.geometry.LatLng
 
 private val BackgroundBlack = Color(0xFF0E0E0E)
@@ -56,11 +57,14 @@ fun DispatchMatrixScreen(
     val selectedCallsigns = remember { mutableStateListOf<String>() }
     var showAddDialog by remember { mutableStateOf(false) }
 
+    // 🚀 모드 선택창 상태
+    var showModeDialog by remember { mutableStateOf(false) }
+    val currentMode by incidentViewModel.currentMode.collectAsState()
+
     val depts = incidentViewModel.dispatchDepartments
 
     LaunchedEffect(Unit) {
         if (!initialized) {
-            // 🚀 [핵심 수정 1] 화면이 켜질 때 JSON 데이터를 강제로 로드합니다!
             if (incidentViewModel.allDepartments.value.isEmpty()) {
                 incidentViewModel.loadFireData(context)
             }
@@ -83,14 +87,39 @@ fun DispatchMatrixScreen(
             // 상단 툴바
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "나가기", color = OrangePrimary, fontSize = 16.sp,
                     modifier = Modifier.border(1.dp, BorderGray, RoundedCornerShape(4.dp))
                         .padding(horizontal = 14.dp, vertical = 10.dp).clickable { onBack() }
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // 🚀 핵심: 특수재난 모드 전환 버튼
+                Box(
+                    modifier = Modifier
+                        .background(if(currentMode == DisasterMode.NORMAL) Color.Transparent else OrangePrimary, RoundedCornerShape(4.dp))
+                        .border(1.dp, OrangePrimary, RoundedCornerShape(4.dp))
+                        .clickable { showModeDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = when(currentMode) {
+                            DisasterMode.NORMAL -> "⚠️ 특수재난 모드"
+                            DisasterMode.WATER -> "⚓ 수난구조 모드"
+                            DisasterMode.APARTMENT -> "🏢 공동주택 모드"
+                            else -> "모드 선택"
+                        },
+                        color = if(currentMode == DisasterMode.NORMAL) OrangePrimary else BackgroundBlack,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
                 Text(
                     text = "편성 완료", color = BackgroundBlack, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.background(OrangePrimary, RoundedCornerShape(4.dp))
@@ -194,6 +223,17 @@ fun DispatchMatrixScreen(
             Text("+ 추가 편성", fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
 
+        // 🚀 특수재난 선택 다이얼로그
+        if (showModeDialog) {
+            ModeSelectionDialog(
+                onModeSelected = {
+                    incidentViewModel.setDisasterMode(it)
+                    showModeDialog = false
+                },
+                onDismiss = { showModeDialog = false }
+            )
+        }
+
         if (showAddDialog) {
             AddDispatchDialog(
                 incidentViewModel = incidentViewModel,
@@ -224,8 +264,48 @@ fun DispatchMatrixScreen(
     }
 }
 
-/* ================= 거리순 추천 및 검색 다이얼로그 ================= */
-/* ================= 거리순 추천 및 검색 다이얼로그 ================= */
+// 🚀 특수재난 모드 선택 다이얼로그
+@Composable
+fun ModeSelectionDialog(
+    onModeSelected: (DisasterMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = SurfaceDark,
+            border = BorderStroke(1.dp, BorderGray)
+        ) {
+            Column(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
+                Text("특수재난 전술 모드 선택", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 모드별 버튼들
+                ModeButton("🚒 일반 화재/구조", DisasterMode.NORMAL, onModeSelected)
+                ModeButton("⚓ 수난구조 (수색/범위)", DisasterMode.WATER, onModeSelected)
+                ModeButton("🏢 공동주택 (인명수색)", DisasterMode.APARTMENT, onModeSelected)
+
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    Text("취소", color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModeButton(label: String, mode: DisasterMode, onSelected: (DisasterMode) -> Unit) {
+    Button(
+        onClick = { onSelected(mode) },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = BorderGray),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(label, color = TextWhite, textAlign = TextAlign.Left, modifier = Modifier.fillMaxWidth())
+    }
+}
+
 /* ================= 거리순 추천 및 검색 다이얼로그 ================= */
 @Composable
 fun AddDispatchDialog(
@@ -239,22 +319,18 @@ fun AddDispatchDialog(
 
     val currentDepts = incidentViewModel.dispatchDepartments
 
-    // 🚀 [해결 1] 명칭 불일치 방지용 정규화 함수 ('119', '안전', '띄어쓰기' 모두 무시하고 순수 이름만 비교)
     val normalizeName: (String) -> String = { name ->
         name.replace("119", "").replace("안전", "").replace(" ", "")
     }
     val normalizedCurrentDepts = currentDepts.map { normalizeName(it) }
 
-    // 🚀 [해결 2] 사용자가 입력한 검색어에서 띄어쓰기 완전 제거 ("평택 " -> "평택")
     val cleanQuery = searchQuery.replace("\\s".toRegex(), "")
 
     val displayList = if (cleanQuery.isBlank()) {
-        // 이미 편성된 부서를 '정규화된 이름'으로 정확히 걸러내고 10개를 꽉 채워 추천!
         allDepts.filter { dept ->
             !normalizedCurrentDepts.contains(normalizeName(dept.deptName))
         }.sortedBy { it.distance }.take(10)
     } else {
-        // 검색 시에도 띄어쓰기 무시하고 유연하게 검색되도록 적용!
         allDepts.filter { dept ->
             !normalizedCurrentDepts.contains(normalizeName(dept.deptName)) &&
                     (normalizeName(dept.deptName).contains(cleanQuery, ignoreCase = true) ||
@@ -292,8 +368,8 @@ fun AddDispatchDialog(
                     ),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
                         onSearch = { keyboardController?.hide() }
                     )
                 )

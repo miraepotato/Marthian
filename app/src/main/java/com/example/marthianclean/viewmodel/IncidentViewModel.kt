@@ -20,14 +20,54 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONArray // ✅ JSON 파싱용 Import 추가
-import java.io.InputStreamReader // ✅ 파일 읽기용 Import 추가
+import org.json.JSONArray
+import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlinx.coroutines.Dispatchers
+
+// =========================================================
+// ✅ [Marthian 2.0] 특수재난 모드 및 현황판 데이터 모델 추가
+// =========================================================
+
+enum class DisasterMode {
+    NORMAL,      // 일반 화재/구조
+    WATER,       // 수난 구조 (수색/범위)
+    APARTMENT    // 공동주택 (인명수색)
+}
+
+enum class SearchStatus {
+    WAITING,     // 수색 전 (미확인)
+    SEARCHING,   // 수색 중
+    COMPLETED,   // 수색 완료 (안전)
+    DANGER       // 요구조자 발생/위험
+}
+
+data class ApartmentData(
+    val totalFloors: Int = 0,
+    val lines: Int = 0,
+    val gridStatus: Map<String, SearchStatus> = emptyMap()
+)
+
+data class WaterSearchZone(
+    val day: Int,           // 수색 일차
+    val radiusMeter: Double, // 반경 (m)
+    val center: LatLng       // 중심점
+)
+
+data class WaterData(
+    val commandPost: LatLng? = null, // 지휘소(CP) 위치
+    val searchZones: List<WaterSearchZone> = emptyList(),
+    val isSatellite: Boolean = true
+)
+
+// =========================================================
+// 기존 데이터 모델
+// =========================================================
 
 data class PlaceCandidate(
     val title: String,
@@ -57,9 +97,6 @@ data class WeatherStation(
     val lng: Double
 )
 
-// =========================================================
-// ✅ [Marthian 2.0] 거리순 추천 및 차량 검색을 위한 데이터 모델
-// =========================================================
 data class MarthianVehicle(
     val originalCallSign: String,
     val marthianName: String,
@@ -101,14 +138,73 @@ class IncidentViewModel : ViewModel() {
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
-    // =========================================================
-    // ✅ [Marthian 2.0] 부서 거리순 추천 상태 관리 (StateFlow)
-    // =========================================================
     private val _allDepartments = MutableStateFlow<List<MarthianDepartment>>(emptyList())
     val allDepartments: StateFlow<List<MarthianDepartment>> = _allDepartments.asStateFlow()
 
     private val _recommendedDepartments = MutableStateFlow<List<MarthianDepartment>>(emptyList())
     val recommendedDepartments: StateFlow<List<MarthianDepartment>> = _recommendedDepartments.asStateFlow()
+
+    // =========================================================
+    // ✅ [Marthian 2.0] 특수재난 모드 상태 관리
+    // =========================================================
+
+    private val _currentMode = MutableStateFlow(DisasterMode.NORMAL)
+    val currentMode: StateFlow<DisasterMode> = _currentMode.asStateFlow()
+
+    // 브리핑용 화면 잠금 상태 (터치 방지)
+    var isBriefingLocked by mutableStateOf(false)
+        private set
+
+    private val _apartmentData = MutableStateFlow(ApartmentData())
+    val apartmentData: StateFlow<ApartmentData> = _apartmentData.asStateFlow()
+
+    private val _waterData = MutableStateFlow(WaterData())
+    val waterData: StateFlow<WaterData> = _waterData.asStateFlow()
+
+    fun setDisasterMode(mode: DisasterMode) {
+        _currentMode.value = mode
+    }
+
+    fun toggleBriefingLock() {
+        isBriefingLocked = !isBriefingLocked
+    }
+
+    // 🏢 공동주택 데이터 컨트롤
+    fun setupApartmentGrid(floors: Int, lines: Int) {
+        _apartmentData.value = ApartmentData(totalFloors = floors, lines = lines)
+    }
+
+    fun toggleApartmentSearchStatus(cellId: String) {
+        if (isBriefingLocked) return // 잠금 시 조작 불가
+        val currentMap = _apartmentData.value.gridStatus.toMutableMap()
+        val currentStatus = currentMap[cellId] ?: SearchStatus.WAITING
+
+        val nextStatus = when (currentStatus) {
+            SearchStatus.WAITING -> SearchStatus.SEARCHING
+            SearchStatus.SEARCHING -> SearchStatus.COMPLETED
+            SearchStatus.COMPLETED -> SearchStatus.DANGER
+            SearchStatus.DANGER -> SearchStatus.WAITING
+        }
+        currentMap[cellId] = nextStatus
+        _apartmentData.value = _apartmentData.value.copy(gridStatus = currentMap)
+    }
+
+    // ⚓ 수난구조 데이터 컨트롤
+    fun setWaterCommandPost(latLng: LatLng) {
+        if (isBriefingLocked) return
+        _waterData.value = _waterData.value.copy(commandPost = latLng)
+    }
+
+    fun addWaterSearchZone(day: Int, radiusMeter: Double, center: LatLng) {
+        if (isBriefingLocked) return
+        val currentZones = _waterData.value.searchZones.toMutableList()
+        currentZones.add(WaterSearchZone(day, radiusMeter, center))
+        _waterData.value = _waterData.value.copy(searchZones = currentZones)
+    }
+
+    // =========================================================
+    // 기존 로직 유지
+    // =========================================================
 
     fun setMapPreferredZoom(zoom: Double?) {
         preferredMapZoom = zoom
@@ -122,7 +218,6 @@ class IncidentViewModel : ViewModel() {
     fun setIncident(value: Incident) {
         _incident.value = value
 
-        // ✅ [잔상 해결] 새로운 현장 검색 시, 이전 현장의 매트릭스와 차량 배치 데이터를 완전히 초기화합니다.
         dispatchMatrix = emptyList()
         dispatchDepartments = emptyList()
         dispatchEquipments = emptyList()
@@ -131,7 +226,7 @@ class IncidentViewModel : ViewModel() {
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
         fetchRealtimeWeather()
-        updateRecommendations() // ✅ 좌표가 바뀌었으니 거리순 추천 즉시 업데이트
+        updateRecommendations()
     }
 
     fun updateIncidentMeta(newMeta: IncidentMeta) {
@@ -167,7 +262,7 @@ class IncidentViewModel : ViewModel() {
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
         fetchRealtimeWeather()
-        updateRecommendations() // ✅ 현장 복구 시 추천 목록 업데이트
+        updateRecommendations()
     }
 
     private fun syncMetaAddressIfBlank() {
@@ -197,9 +292,14 @@ class IncidentViewModel : ViewModel() {
     fun clearIncident() {
         _incident.value = null
         _weatherData.value = WeatherData()
-        _recommendedDepartments.value = emptyList() // ✅ 추천 목록도 초기화
+        _recommendedDepartments.value = emptyList()
 
-        // ✅ [잔상 해결] 명시적 초기화 시에도 매트릭스 잔상을 완벽히 지웁니다.
+        // 특수 모드 초기화
+        _currentMode.value = DisasterMode.NORMAL
+        isBriefingLocked = false
+        _apartmentData.value = ApartmentData()
+        _waterData.value = WaterData()
+
         dispatchMatrix = emptyList()
         dispatchDepartments = emptyList()
         dispatchEquipments = emptyList()
@@ -284,7 +384,7 @@ class IncidentViewModel : ViewModel() {
                     syncMetaAddressIfBlank()
 
                     fetchRealtimeWeather()
-                    updateRecommendations() // ✅ 좌표가 바뀌었으니 거리순 추천 즉시 업데이트
+                    updateRecommendations()
                     onSuccess()
                 }
             }
@@ -295,7 +395,7 @@ class IncidentViewModel : ViewModel() {
         val cur = _incident.value ?: return
         _incident.value = cur.copy(latitude = latLng.latitude, longitude = latLng.longitude)
 
-        updateRecommendations() // ✅ 드래그로 핀 위치가 바뀔 때마다 실시간 거리순 재계산
+        updateRecommendations()
 
         viewModelScope.launch {
             when (val out = reverseRepo.reverse(latLng.latitude, latLng.longitude)) {
@@ -345,27 +445,20 @@ class IncidentViewModel : ViewModel() {
         return sum
     }
 
-    /**
-     * ✅ [Marthian 2.0] 동적 편성 엔진 (부서명 교정 로직 포함)
-     */
     fun setupDynamicDispatch(context: Context, stationName: String, incidentLatLng: LatLng) {
         val validStationName = if (stationName.isNotBlank()) stationName else "관할소방서"
         val shortStationName = validStationName.replace("소방서", "").trim()
         val operationalUnits = mutableListOf<Pair<String, String>>()
 
-        // 1. 관할 구조대 우선 추가
+        // ✅ 1. 관할 구조대 무조건 첫 번째 행으로 추가 (없어도 강제 생성)
         val rescue = FireStationCoords.getCentersForStation(validStationName).find { it.contains("구조대") }
-        if (rescue != null) {
-            // ✅ [핵심 수정] "119구조대"를 "화성119구조대"로 자동 교정해서 데이터 매칭 오류 해결!
-            val fixedRescueName = if (rescue == "119구조대" || rescue == "구조대") {
-                "${shortStationName}119구조대"
-            } else {
-                rescue
-            }
-            operationalUnits.add(validStationName to fixedRescueName)
+        val fixedRescueName = if (rescue != null) {
+            if (rescue == "119구조대" || rescue == "구조대") "${shortStationName}구조대" else rescue
+        } else {
+            "${shortStationName}구조대"
         }
+        operationalUnits.add(validStationName to fixedRescueName)
 
-        // 2. 행정/지휘 부서 제외 및 실전 부서 탐색
         val allOtherUnits = mutableListOf<Triple<String, String, Double>>()
         FireStationCoords.stationHqMap.keys.forEach { sName ->
             val shortSName = sName.replace("소방서", "").trim()
@@ -375,15 +468,13 @@ class IncidentViewModel : ViewModel() {
 
                 if (!isExcluded && (uName.contains("센터") || uName.contains("구조대") || uName.contains("지역대"))) {
 
-                    // ✅ [핵심 수정] 인근 타 소방서 구조대(예: 수원119구조대)도 이름 자동 교정
                     val fixedUName = if (uName == "119구조대" || uName == "구조대") {
-                        "${shortSName}119구조대"
+                        "${shortSName}구조대"
                     } else {
                         uName
                     }
 
                     if (!operationalUnits.any { it.first == sName && it.second == fixedUName }) {
-                        // 거리 계산은 기존 좌표록의 이름(uName)으로, 화면 표출은 교정된 이름(fixedUName)으로!
                         val unitLatLng = FireStationCoords.getCenterLatLng(uName, sName)
                         if (unitLatLng.latitude > 0.0) {
                             val dist = calculateDistance(incidentLatLng.latitude, incidentLatLng.longitude, unitLatLng.latitude, unitLatLng.longitude)
@@ -394,19 +485,17 @@ class IncidentViewModel : ViewModel() {
             }
         }
 
-        // 거리순으로 가까운 센터 7개 추가 (구조대 포함 총 8개 부서)
         val nearbyUnits = allOtherUnits.sortedBy { it.third }.take(7).map { it.first to it.second }
         val finalUnits = operationalUnits + nearbyUnits
         val finalDepts = finalUnits.map { it.second }.toMutableList()
 
-        // ✅ 항상 마지막에 '민간' 부서 강제 추가
         if (!finalDepts.contains("민간")) {
             finalDepts.add("민간")
         }
 
-        // 차량 기본 헤더
+        // ✅ 2. 생활안전 추가 및 현장 선호도에 맞게 장비 배열 순서 조정
         val fixedEquipments = listOf(
-            "펌프", "구조공작", "장비운반", "탱크", "화학", "굴절", "고가", "무인파괴", "내폭화학", "구급", "포크레인"
+            "펌프", "탱크", "구급", "구조공작", "장비운반", "생활안전", "화학", "굴절", "고가", "무인파괴", "내폭화학", "포크레인"
         )
 
         dispatchDepartments = finalDepts
@@ -444,6 +533,8 @@ class IncidentViewModel : ViewModel() {
         return placedVehicles.map { VehiclePlacement(it.id, it.department, it.equipment, it.position.latitude, it.position.longitude) }
     }
 
+    // 💡 참고: 추후 특수재난 데이터(ApartmentData, WaterData)를 내부 DB에 영구 저장하려면
+    // com.example.marthianclean.model.Incident 데이터 클래스 구조에도 해당 필드를 추가해주시면 됩니다.
     fun snapshotIncidentForSave(): Incident? {
         val cur = _incident.value ?: return null
         return cur.copy(
@@ -474,7 +565,6 @@ class IncidentViewModel : ViewModel() {
     fun buildStickerQueue(valueToInclude: Int = 1): List<StickerItem> {
         val out = ArrayList<StickerItem>(64)
 
-        // ✅ [고정] 선택된 소방서의 지휘차는 매트릭스 선택 여부와 무관하게 무조건 1번으로 추가
         val hqName = if (selectedStationName.isNotBlank()) selectedStationName else "관할소방서"
         val shortHqName = hqName.replace("소방서", "").trim()
         out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "${shortHqName}지휘"))
@@ -497,10 +587,6 @@ class IncidentViewModel : ViewModel() {
         }
         return out
     }
-
-    // =========================================================================
-    // ✅ [Marthian 2.0] JSON 데이터 로딩 및 파싱 (거리순 추천의 핵심)
-    // =========================================================================
 
     fun loadFireData(context: Context) {
         viewModelScope.launch {
@@ -550,7 +636,7 @@ class IncidentViewModel : ViewModel() {
                 }
 
                 _allDepartments.value = parsedList
-                updateRecommendations() // 데이터 로드 직후 1차 추천 계산
+                updateRecommendations()
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -608,20 +694,14 @@ class IncidentViewModel : ViewModel() {
         val currentLat = _incident.value?.latitude ?: return
         val currentLng = _incident.value?.longitude ?: return
 
-        // 1. 전체 부서 데이터에 현재 위치 기준 '거리'를 전부 계산해서 덮어씌웁니다 (검색 시 0.0km 문제 해결)
         val updatedAll = _allDepartments.value.map { dept ->
             val dist = calculateDistance(currentLat, currentLng, dept.lat, dept.lng) / 1000.0
             dept.copy(distance = dist)
         }
         _allDepartments.value = updatedAll
 
-        // 2. 추천 리스트 갱신 (UI에서 중복 제외 후 10개를 자를 수 있도록 정렬만 해둡니다)
         _recommendedDepartments.value = updatedAll.sortedBy { it.distance }
     }
-
-    // =========================================================================
-    // ✅ 실시간 기상 관측 데이터 연동 (수도권)
-    // =========================================================================
 
     private val stationList = listOf(
         WeatherStation(108, "서울", 37.5714, 126.9658),
@@ -670,7 +750,8 @@ class IncidentViewModel : ViewModel() {
             stationList.find { it.stnId == 119 } ?: stationList[0]
         }
 
-        viewModelScope.launch {
+        // ✅ Dispatchers.IO를 추가하여 백그라운드 스레드에서 네트워크 통신을 처리하도록 수정
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.HOUR_OF_DAY, -1)
@@ -682,6 +763,8 @@ class IncidentViewModel : ViewModel() {
                     stnId = targetStation.stnId,
                     help = 1
                 )
+
+                // 이제 백그라운드에서 실행되므로 에러 없이 안전하게 텍스트를 읽어옵니다.
                 val rawText = responseBody.string()
                 val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
 
