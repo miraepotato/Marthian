@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray // ✅ JSON 파싱용 Import 추가
+import java.io.InputStreamReader // ✅ 파일 읽기용 Import 추가
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.atan2
@@ -55,6 +57,25 @@ data class WeatherStation(
     val lng: Double
 )
 
+// =========================================================
+// ✅ [Marthian 2.0] 거리순 추천 및 차량 검색을 위한 데이터 모델
+// =========================================================
+data class MarthianVehicle(
+    val originalCallSign: String,
+    val marthianName: String,
+    val type: String,
+    val isLifeSafety: Boolean
+)
+
+data class MarthianDepartment(
+    val station: String,
+    val deptName: String,
+    val lat: Double,
+    val lng: Double,
+    val vehicles: List<MarthianVehicle>,
+    var distance: Double = 0.0
+)
+
 class IncidentViewModel : ViewModel() {
 
     var selectedStationName: String = ""
@@ -80,6 +101,15 @@ class IncidentViewModel : ViewModel() {
     var preferredMapZoom by mutableStateOf<Double?>(null)
         private set
 
+    // =========================================================
+    // ✅ [Marthian 2.0] 부서 거리순 추천 상태 관리 (StateFlow)
+    // =========================================================
+    private val _allDepartments = MutableStateFlow<List<MarthianDepartment>>(emptyList())
+    val allDepartments: StateFlow<List<MarthianDepartment>> = _allDepartments.asStateFlow()
+
+    private val _recommendedDepartments = MutableStateFlow<List<MarthianDepartment>>(emptyList())
+    val recommendedDepartments: StateFlow<List<MarthianDepartment>> = _recommendedDepartments.asStateFlow()
+
     fun setMapPreferredZoom(zoom: Double?) {
         preferredMapZoom = zoom
     }
@@ -101,6 +131,7 @@ class IncidentViewModel : ViewModel() {
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
         fetchRealtimeWeather()
+        updateRecommendations() // ✅ 좌표가 바뀌었으니 거리순 추천 즉시 업데이트
     }
 
     fun updateIncidentMeta(newMeta: IncidentMeta) {
@@ -136,6 +167,7 @@ class IncidentViewModel : ViewModel() {
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
         fetchRealtimeWeather()
+        updateRecommendations() // ✅ 현장 복구 시 추천 목록 업데이트
     }
 
     private fun syncMetaAddressIfBlank() {
@@ -165,6 +197,7 @@ class IncidentViewModel : ViewModel() {
     fun clearIncident() {
         _incident.value = null
         _weatherData.value = WeatherData()
+        _recommendedDepartments.value = emptyList() // ✅ 추천 목록도 초기화
 
         // ✅ [잔상 해결] 명시적 초기화 시에도 매트릭스 잔상을 완벽히 지웁니다.
         dispatchMatrix = emptyList()
@@ -251,6 +284,7 @@ class IncidentViewModel : ViewModel() {
                     syncMetaAddressIfBlank()
 
                     fetchRealtimeWeather()
+                    updateRecommendations() // ✅ 좌표가 바뀌었으니 거리순 추천 즉시 업데이트
                     onSuccess()
                 }
             }
@@ -260,6 +294,8 @@ class IncidentViewModel : ViewModel() {
     fun updateSceneLocationFromDrag(context: Context, latLng: LatLng) {
         val cur = _incident.value ?: return
         _incident.value = cur.copy(latitude = latLng.latitude, longitude = latLng.longitude)
+
+        updateRecommendations() // ✅ 드래그로 핀 위치가 바뀔 때마다 실시간 거리순 재계산
 
         viewModelScope.launch {
             when (val out = reverseRepo.reverse(latLng.latitude, latLng.longitude)) {
@@ -461,6 +497,131 @@ class IncidentViewModel : ViewModel() {
         }
         return out
     }
+
+    // =========================================================================
+    // ✅ [Marthian 2.0] JSON 데이터 로딩 및 파싱 (거리순 추천의 핵심)
+    // =========================================================================
+
+    fun loadFireData(context: Context) {
+        viewModelScope.launch {
+            try {
+                val inputStream = context.assets.open("fire_data.json")
+                val reader = InputStreamReader(inputStream)
+                val jsonString = reader.readText()
+                reader.close()
+
+                val jsonArray = JSONArray(jsonString)
+                val parsedList = mutableListOf<MarthianDepartment>()
+
+                for (i in 0 until jsonArray.length()) {
+                    val stationObj = jsonArray.getJSONObject(i)
+                    val stationName = stationObj.optString("name", "")
+                    val centersArray = stationObj.optJSONArray("centers") ?: continue
+
+                    for (j in 0 until centersArray.length()) {
+                        val centerObj = centersArray.getJSONObject(j)
+                        val rawDeptName = centerObj.optString("name", "")
+                        val deptLat = centerObj.optDouble("lat", 0.0)
+                        val deptLng = centerObj.optDouble("lng", 0.0)
+
+                        val marthianDeptName = formatDeptName(rawDeptName)
+                        val vehiclesArray = centerObj.optJSONArray("vehicles") ?: continue
+
+                        val vehicleList = mutableListOf<MarthianVehicle>()
+                        for (k in 0 until vehiclesArray.length()) {
+                            val vObj = vehiclesArray.getJSONObject(k)
+                            val type = vObj.optString("type", "")
+                            val callSign = vObj.optString("callSign", "")
+
+                            val (mName, isLifeSafety) = formatVehicleName(marthianDeptName, type, callSign)
+                            vehicleList.add(MarthianVehicle(callSign, mName, type, isLifeSafety))
+                        }
+
+                        parsedList.add(
+                            MarthianDepartment(
+                                station = stationName,
+                                deptName = marthianDeptName,
+                                lat = deptLat,
+                                lng = deptLng,
+                                vehicles = vehicleList
+                            )
+                        )
+                    }
+                }
+
+                _allDepartments.value = parsedList
+                updateRecommendations() // 데이터 로드 직후 1차 추천 계산
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun formatDeptName(rawName: String): String {
+        var name = rawName.replace("119안전센터", "센터")
+            .replace("119지역대", "지역대")
+            .replace("119출동대", "출동대")
+            .replace("안전센터", "센터")
+
+        if (name.contains("구조대")) {
+            val region = name.replace("구조대", "").replace("119", "").trim()
+            name = "${region}구조대"
+        }
+        return name
+    }
+
+    private fun formatVehicleName(deptName: String, vType: String, callSign: String): Pair<String, Boolean> {
+        val location = deptName.replace(Regex("센터|지역대|출동대|구조대"), "").trim()
+
+        if (vType.contains("생활구조") || callSign.contains("생활안전")) {
+            return Pair("${location}생활안전", true)
+        }
+
+        val mapping = mapOf(
+            "구조공작" to "구조공작",
+            "장비운반" to "장비운반",
+            "펌프" to "펌프",
+            "탱크" to "탱크",
+            "화학" to "화학",
+            "구급" to "구급",
+            "고가" to "고가",
+            "굴절" to "굴절",
+            "조명" to "조연",
+            "조연" to "조연",
+            "미니펌프" to "미니펌프"
+        )
+
+        var finalType = "기타"
+        for ((key, value) in mapping) {
+            if (callSign.contains(key) || vType.contains(key)) {
+                finalType = value
+                break
+            }
+        }
+
+        val number = callSign.firstOrNull { it.isDigit() }?.toString() ?: ""
+        return Pair("${location}${number}${finalType}", false)
+    }
+
+    private fun updateRecommendations() {
+        val currentLat = _incident.value?.latitude ?: return
+        val currentLng = _incident.value?.longitude ?: return
+
+        // 1. 전체 부서 데이터에 현재 위치 기준 '거리'를 전부 계산해서 덮어씌웁니다 (검색 시 0.0km 문제 해결)
+        val updatedAll = _allDepartments.value.map { dept ->
+            val dist = calculateDistance(currentLat, currentLng, dept.lat, dept.lng) / 1000.0
+            dept.copy(distance = dist)
+        }
+        _allDepartments.value = updatedAll
+
+        // 2. 추천 리스트 갱신 (UI에서 중복 제외 후 10개를 자를 수 있도록 정렬만 해둡니다)
+        _recommendedDepartments.value = updatedAll.sortedBy { it.distance }
+    }
+
+    // =========================================================================
+    // ✅ 실시간 기상 관측 데이터 연동 (수도권)
+    // =========================================================================
 
     private val stationList = listOf(
         WeatherStation(108, "서울", 37.5714, 126.9658),
