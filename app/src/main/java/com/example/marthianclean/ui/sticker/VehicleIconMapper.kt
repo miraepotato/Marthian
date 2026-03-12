@@ -3,7 +3,6 @@ package com.example.marthianclean.ui.sticker
 import com.example.marthianclean.R
 
 object VehicleIconMapper {
-
     fun iconResForEquip(equip: String): Int {
         val e = equip.trim().lowercase()
         return when {
@@ -17,7 +16,10 @@ object VehicleIconMapper {
             e.contains("제독") -> R.drawable.ic_vehicle_decontamination
             e.contains("굴삭") || e.contains("포크") || e.contains("excava") -> R.drawable.ic_vehicle_excavator
             e.contains("지휘") || e.contains("command") -> R.drawable.ic_vehicle_command
+
+            // 생활안전, 안전지원, 장비운반 -> 장비운반 아이콘
             e.contains("생활") || e.contains("안전지원") || e.contains("장비운반") -> R.drawable.ic_vehicle_equipment
+
             e.contains("펌프") -> R.drawable.ic_vehicle_pump
             e.contains("탱크") -> R.drawable.ic_vehicle_tank
             e.contains("화학") || e.contains("haz") -> R.drawable.ic_vehicle_hazmat
@@ -26,27 +28,25 @@ object VehicleIconMapper {
             e.contains("무인") || e.contains("방수") || e.contains("파괴") -> R.drawable.ic_vehicle_water_breaker
             e.contains("구급") || e.contains("ambul") -> R.drawable.ic_vehicle_ambulance
             e.contains("구조공작") || (e.contains("구조") && !e.contains("구조대") && !e.contains("생활구조")) || e.contains("rescue") -> R.drawable.ic_vehicle_rescue
-            e.contains("회복") || e.contains("버스") || e.contains("recovery") -> R.drawable.ic_vehicle_recovery_bus
+
+            // ✅ 버스 및 회복차 아이콘 명시
+            e.contains("버스") || e.contains("회복") || e.contains("recovery") -> R.drawable.ic_vehicle_recovery_bus
+
             else -> R.drawable.ic_vehicle_equipment
         }
     }
 
-    /**
-     * ✅ [개선] 부서 명칭에서 관할(송탄, 화성 등)을 추출하여 정확한 라벨 생성
-     */
     fun customVehicleLabel(
         callSign: String,
         stationName: String,
         department: String,
         equipment: String
     ): String {
-        if (callSign.isNotBlank()) return callSign.trim()
+        // ✅ 짬처리된 '기타' 데이터가 들어오면 무시하고 재조립
+        if (callSign.isNotBlank() && !callSign.contains("기타")) return callSign.trim()
 
-        // 1. 부서명(department)에서 실제 지역 명칭 추출 시도
-        val knownStations = listOf("송탄", "화성", "평택", "오산", "안성", "수원", "용인", "안산")
+        val knownStations = listOf("송탄", "화성", "평택", "오산", "안성", "수원", "용인", "안산", "시흥", "향남", "장안")
         val foundStation = knownStations.find { department.contains(it) }
-
-        // 2. 지역명이 있으면 그것을 쓰고, 없으면 기본 stationName 사용
         val sName = foundStation ?: stationName.replace("소방서", "").trim()
 
         val isHqUnit = department.contains("소방서") ||
@@ -63,15 +63,23 @@ object VehicleIconMapper {
                 .replace("센터", "")
                 .replace("지역대", "")
                 .trim()
-                .filterNot { it.isDigit() } // '향남1' -> '향남'
+                .filterNot { it.isDigit() }
         }
 
-        val equipShort = equipment.replace("차", "")
-            .replace("물탱크", "탱크")
-            .replace("구조대(기타)", "장비운반")
-            .replace("(기타)", "장비운반")
-            .replace("생활안전", "생활안전")
-            .trim()
+        var equipShort = equipment.replace("차", "").replace("물탱크", "탱크").trim()
+
+        // ✅ 정밀 텍스트 매칭 (우선순위 절대 엄수)
+        equipShort = when {
+            equipShort.contains("생활안전") -> "생활안전"
+            equipShort.contains("내폭화학") -> "내폭화학"
+            equipShort.contains("화학") -> "화학"
+            equipShort.contains("버스") -> "버스"
+            equipShort.contains("회복") -> "회복"
+            equipShort.contains("구조공작") -> "구조공작"
+            equipShort.contains("장비운반") -> "장비운반"
+            equipShort.contains("구조대(기타)") || equipShort.contains("(기타)") || equipShort.contains("기타") -> "장비운반"
+            else -> equipShort
+        }
 
         return "$prefix$equipShort"
     }

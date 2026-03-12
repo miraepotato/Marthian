@@ -99,7 +99,7 @@ private fun vehicleScaleFor(equipment: String): Float {
     val e = equipment.trim().lowercase()
     return when {
         e.contains("배연") -> 6.0f
-        e.contains("내폭") -> 2.4f
+        e.contains("내폭") -> 5.0f
         e.contains("조명") -> 7.0f
         e.contains("무인") || e.contains("방수") || e.contains("파괴") -> 6.24f
         e.contains("고가") || e.contains("사다리") || e.contains("ladder") -> 4.8f
@@ -107,10 +107,11 @@ private fun vehicleScaleFor(equipment: String): Float {
         e.contains("회복") || e.contains("버스") -> 4.8f
         e.contains("화학") -> 4.0f
         e.contains("포크") || e.contains("굴삭") -> 3.2f
-        e.contains("구조") -> 3.0f
+        // ✅ 생활안전, 장비운반, 구조공작차 크기를 기존 2.5f에서 3.0f로 통일
+        e.contains("구조") || e.contains("장비운반") || e.contains("생활") || e.contains("안전지원") -> 3.0f
         e.contains("탱크") || e.contains("급수") -> 2.66f
-        e.contains("펌프") -> 2.4f
-        e.contains("지휘") -> 2.4f
+        e.contains("펌프") -> 2.5f
+        e.contains("지휘") -> 2.1f
         e.contains("구급") -> 2.0f
         else -> 1.5f
     }
@@ -525,12 +526,26 @@ fun SituationBoardScreen(
                     }
                 }
 
-                Box(modifier = Modifier.align(Alignment.BottomStart).padding(bottom = if (showTray && !panelActive) 110.dp else 16.dp, start = 16.dp).background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp)).border(1.dp, BorderGray, RoundedCornerShape(8.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+                // ✅ 좌측 하단 기상 정보 (클릭 시 새로고침 기능 포함)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(bottom = if (showTray && !panelActive) 110.dp else 16.dp, start = 16.dp)
+                        .background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .border(1.dp, BorderGray, RoundedCornerShape(8.dp))
+                        .clickable {
+                            strongVibrate(context) // 진동 피드백
+                            incidentViewModel.fetchRealtimeWeather() // 새로고침 실행
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
                     val sky = if (weatherData.sky != "-") weatherData.sky else incident?.meta?.기상_날씨?.takeIf { it.isNotBlank() && it != "-" } ?: "맑음"
                     val temp = if (weatherData.temp != "-") "${weatherData.temp}℃" else incident?.meta?.기상_기온?.takeIf { it.isNotBlank() && it != "-" } ?: "기온-"
                     val windDir = if (weatherData.windDirStr != "-") weatherData.windDirStr else incident?.meta?.기상_풍향?.takeIf { it.isNotBlank() && it != "-" } ?: "풍향-"
                     val windSpeed = if (weatherData.windSpeed != "-") "${weatherData.windSpeed}m/s" else incident?.meta?.기상_풍속?.takeIf { it.isNotBlank() && it != "-" } ?: "풍속-"
-                    Text(text = "$sky / $temp / $windDir / $windSpeed", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                    // ↻ 기호를 텍스트 뒤에 붙여 새로고침이 가능함을 시각적으로 표시
+                    Text(text = "$sky / $temp / $windDir / $windSpeed ↻", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 
@@ -816,7 +831,6 @@ private fun LegendItem(status: SearchStatus) {
         Text(text, color = Color.LightGray, fontSize = 11.sp)
     }
 }
-
 
 @Composable
 private fun BriefingTile(title: String, value: String, modifier: Modifier = Modifier, valueColor: Color = TextPrimary) {

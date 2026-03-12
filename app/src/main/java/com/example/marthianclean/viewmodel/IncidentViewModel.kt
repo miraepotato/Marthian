@@ -216,12 +216,15 @@ class IncidentViewModel : ViewModel() {
     }
 
     fun setIncident(value: Incident) {
+        val isNewIncident = _incident.value?.id != value.id
         _incident.value = value
 
-        dispatchMatrix = emptyList()
-        dispatchDepartments = emptyList()
-        dispatchEquipments = emptyList()
-        placedVehicles = emptyList()
+        if (isNewIncident) {
+            dispatchMatrix = emptyList()
+            dispatchDepartments = emptyList()
+            dispatchEquipments = emptyList()
+            placedVehicles = emptyList()
+        }
 
         syncMetaAddressIfBlank()
         syncDefaultDatesIfBlank()
@@ -294,7 +297,6 @@ class IncidentViewModel : ViewModel() {
         _weatherData.value = WeatherData()
         _recommendedDepartments.value = emptyList()
 
-        // 특수 모드 초기화
         _currentMode.value = DisasterMode.NORMAL
         isBriefingLocked = false
         _apartmentData.value = ApartmentData()
@@ -450,7 +452,6 @@ class IncidentViewModel : ViewModel() {
         val shortStationName = validStationName.replace("소방서", "").trim()
         val operationalUnits = mutableListOf<Pair<String, String>>()
 
-        // ✅ 1. 관할 구조대 무조건 첫 번째 행으로 추가 (없어도 강제 생성)
         val rescue = FireStationCoords.getCentersForStation(validStationName).find { it.contains("구조대") }
         val fixedRescueName = if (rescue != null) {
             if (rescue == "119구조대" || rescue == "구조대") "${shortStationName}구조대" else rescue
@@ -486,21 +487,41 @@ class IncidentViewModel : ViewModel() {
         }
 
         val nearbyUnits = allOtherUnits.sortedBy { it.third }.take(7).map { it.first to it.second }
-        val finalUnits = operationalUnits + nearbyUnits
-        val finalDepts = finalUnits.map { it.second }.toMutableList()
+        val finalDepts = (operationalUnits + nearbyUnits).map { it.second }.toMutableList()
+        if (!finalDepts.contains("민간")) finalDepts.add("민간")
 
-        if (!finalDepts.contains("민간")) {
-            finalDepts.add("민간")
-        }
-
-        // ✅ 2. 생활안전 추가 및 현장 선호도에 맞게 장비 배열 순서 조정
         val fixedEquipments = listOf(
             "펌프", "탱크", "구급", "구조공작", "장비운반", "생활안전", "화학", "굴절", "고가", "무인파괴", "내폭화학", "포크레인"
         )
 
+        // ✅ [기억력 복원 로직] 이전 매트릭스 상태와 현재 배치된 차량을 모두 검사
+        val previousMatrix = dispatchMatrix
+        val previousDepts = dispatchDepartments
+        val previousEquips = dispatchEquipments
+
         dispatchDepartments = finalDepts
         dispatchEquipments = fixedEquipments
-        dispatchMatrix = List(finalDepts.size) { List(fixedEquipments.size) { 0 } }
+
+        val newMatrix = List(finalDepts.size) { r ->
+            List(fixedEquipments.size) { c ->
+                val currentDept = finalDepts[r]
+                val currentEquip = fixedEquipments[c]
+
+                // 1. 지도에 이미 꽂혀있는가?
+                val isPlaced = placedVehicles.any { it.department == currentDept && it.equipment == currentEquip }
+
+                // 2. 이전에 체크를 해두었는가?
+                val prevR = previousDepts.indexOf(currentDept)
+                val prevC = previousEquips.indexOf(currentEquip)
+                val wasSelected = if (prevR >= 0 && prevC >= 0 && previousMatrix.size > prevR && previousMatrix[prevR].size > prevC) {
+                    previousMatrix[prevR][prevC] == 1
+                } else false
+
+                if (isPlaced || wasSelected) 1 else 0
+            }
+        }
+
+        dispatchMatrix = newMatrix
     }
 
     var placedVehicles by mutableStateOf<List<PlacedVehicle>>(emptyList())
@@ -533,8 +554,6 @@ class IncidentViewModel : ViewModel() {
         return placedVehicles.map { VehiclePlacement(it.id, it.department, it.equipment, it.position.latitude, it.position.longitude) }
     }
 
-    // 💡 참고: 추후 특수재난 데이터(ApartmentData, WaterData)를 내부 DB에 영구 저장하려면
-    // com.example.marthianclean.model.Incident 데이터 클래스 구조에도 해당 필드를 추가해주시면 됩니다.
     fun snapshotIncidentForSave(): Incident? {
         val cur = _incident.value ?: return null
         return cur.copy(
@@ -657,32 +676,43 @@ class IncidentViewModel : ViewModel() {
         return name
     }
 
+    // ✅ [핵심 개선] 차량 데이터 짬처리 현상 완벽 차단. 각 장비의 타입을 놓치지 않고 추출합니다.
     private fun formatVehicleName(deptName: String, vType: String, callSign: String): Pair<String, Boolean> {
         val location = deptName.replace(Regex("센터|지역대|출동대|구조대"), "").trim()
+        val rawStr = "${vType}_${callSign}".lowercase()
 
-        if (vType.contains("생활구조") || callSign.contains("생활안전")) {
+        // 1. 생활안전/생활구조 최우선 매칭 (장비운반으로 넘어가지 못하게 방어)
+        if (rawStr.contains("생활구조") || rawStr.contains("생활안전")) {
             return Pair("${location}생활안전", true)
         }
 
-        val mapping = mapOf(
-            "구조공작" to "구조공작",
-            "장비운반" to "장비운반",
-            "펌프" to "펌프",
-            "탱크" to "탱크",
-            "화학" to "화학",
-            "구급" to "구급",
-            "고가" to "고가",
-            "굴절" to "굴절",
-            "조명" to "조연",
-            "조연" to "조연",
-            "미니펌프" to "미니펌프"
-        )
-
-        var finalType = "기타"
-        for ((key, value) in mapping) {
-            if (callSign.contains(key) || vType.contains(key)) {
-                finalType = value
-                break
+        // 2. 정확한 장비 타입 추출 (화학, 버스 등이 누락되는 현상 완벽 방지)
+        val finalType = when {
+            rawStr.contains("내폭") -> "내폭화학"
+            rawStr.contains("화학") -> "화학"
+            rawStr.contains("구조") -> "구조공작"
+            rawStr.contains("장비") -> "장비운반"
+            rawStr.contains("버스") -> "버스"
+            rawStr.contains("회복") -> "회복"
+            rawStr.contains("펌프") -> "펌프"
+            rawStr.contains("탱크") -> "탱크"
+            rawStr.contains("구급") -> "구급"
+            rawStr.contains("고가") || rawStr.contains("사다리") -> "고가"
+            rawStr.contains("굴절") -> "굴절"
+            rawStr.contains("조명") -> "조명"
+            rawStr.contains("조연") -> "조연"
+            rawStr.contains("배연") -> "배연"
+            rawStr.contains("미니펌프") -> "미니펌프"
+            rawStr.contains("무인파괴") -> "무인파괴"
+            rawStr.contains("포크레인") || rawStr.contains("굴삭") -> "포크레인"
+            rawStr.contains("지휘") -> "지휘"
+            rawStr.contains("산불") -> "산불"
+            rawStr.contains("험지") -> "험지"
+            rawStr.contains("조사") -> "조사"
+            else -> {
+                // 매칭 실패 시 원본 타입에서 불필요한 단어만 제거하여 고유 명칭 유지
+                val fallback = vType.replace("차", "").replace("소방", "").trim()
+                if (fallback.isBlank()) "기타" else fallback
             }
         }
 
@@ -750,70 +780,80 @@ class IncidentViewModel : ViewModel() {
             stationList.find { it.stnId == 119 } ?: stationList[0]
         }
 
-        // ✅ Dispatchers.IO를 추가하여 백그라운드 스레드에서 네트워크 통신을 처리하도록 수정
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val cal = Calendar.getInstance()
-                cal.add(Calendar.HOUR_OF_DAY, -1)
-                val tmFormat = SimpleDateFormat("yyyyMMddHH00", Locale.KOREA)
-                val tm = tmFormat.format(cal.time)
+            val cal = Calendar.getInstance()
+            var success = false
 
-                val responseBody = RetrofitClient.kmaService.getStationWeather(
-                    time = tm,
-                    stnId = targetStation.stnId,
-                    help = 1
-                )
+            for (i in 0 until 3) {
+                try {
+                    val tmFormat = SimpleDateFormat("yyyyMMddHH00", Locale.KOREA)
+                    val tm = tmFormat.format(cal.time)
 
-                // 이제 백그라운드에서 실행되므로 에러 없이 안전하게 텍스트를 읽어옵니다.
-                val rawText = responseBody.string()
-                val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
-
-                if (lines.isNotEmpty()) {
-                    val lastData = lines.last().trim().split(Regex("\\s+"))
-
-                    val wd = if (lastData.size > 2) lastData[2].toDoubleOrNull() ?: 0.0 else 0.0
-                    val ws = if (lastData.size > 3) lastData[3] else "-"
-                    val ta = if (lastData.size > 11) lastData[11] else "-"
-                    val caTotStr = if (lastData.size > 30) lastData[30] else "-9"
-
-                    val cloudCover = caTotStr.toDoubleOrNull()?.toInt() ?: -9
-                    val skyState = when {
-                        cloudCover in 0..2 -> "맑음"
-                        cloudCover in 3..5 -> "구름조금"
-                        cloudCover in 6..8 -> "구름많음"
-                        cloudCover in 9..10 -> "흐림"
-                        else -> "-"
-                    }
-
-                    val finalTa = if (ta.startsWith("-9") || ta == "-9.0") "-" else ta
-                    val finalWs = if (ws.startsWith("-9")) "-" else ws
-                    val finalWd = if (wd < 0.0 || wd > 360.0) 0.0 else wd
-                    val dirStr = if (finalWs == "-") "-" else convertWindDirToStr(finalWd)
-
-                    _weatherData.value = WeatherData(
-                        temp = finalTa,
-                        windSpeed = finalWs,
-                        windDir = finalWd,
-                        windDirStr = dirStr,
-                        sky = skyState,
-                        stationName = targetStation.name
+                    val responseBody = RetrofitClient.kmaService.getStationWeather(
+                        time = tm,
+                        stnId = targetStation.stnId,
+                        help = 1
                     )
+                    val rawText = responseBody.string()
+                    val lines = rawText.lines().filter { it.isNotBlank() && !it.startsWith("#") }
 
-                    if (curIncident != null) {
-                        val meta = curIncident.meta
-                        _incident.value = curIncident.copy(
-                            meta = meta.copy(
-                                기상_기온 = if (finalTa != "-") "${finalTa}℃" else meta.기상_기온,
-                                기상_풍속 = if (finalWs != "-") "${finalWs}m/s" else meta.기상_풍속,
-                                기상_풍향 = if (dirStr != "-") dirStr else meta.기상_풍향,
-                                기상_날씨 = if (skyState != "-") skyState else meta.기상_날씨
-                            )
-                        )
+                    if (lines.isNotEmpty()) {
+                        val lastData = lines.last().trim().split(Regex("\\s+"))
+                        val ta = if (lastData.size > 11) lastData[11] else "-9"
+
+                        if (ta != "-9" && ta != "-9.0" && !ta.startsWith("-99")) {
+                            parseAndApplyWeather(lastData, targetStation.name)
+                            success = true
+                            break
+                        }
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+                cal.add(Calendar.HOUR_OF_DAY, -1)
             }
+        }
+    }
+
+    private fun parseAndApplyWeather(data: List<String>, stnName: String) {
+        val curIncident = _incident.value
+        val wd = if (data.size > 2) data[2].toDoubleOrNull() ?: 0.0 else 0.0
+        val ws = if (data.size > 3) data[3] else "-"
+        val ta = if (data.size > 11) data[11] else "-"
+        val caTotStr = if (data.size > 30) data[30] else "-9"
+
+        val cloudCover = caTotStr.toDoubleOrNull()?.toInt() ?: -9
+        val skyState = when {
+            cloudCover in 0..2 -> "맑음"
+            cloudCover in 3..5 -> "구름조금"
+            cloudCover in 6..8 -> "구름많음"
+            cloudCover in 9..10 -> "흐림"
+            else -> "-"
+        }
+
+        val finalTa = if (ta.startsWith("-9") || ta == "-9.0") "-" else ta
+        val finalWs = if (ws.startsWith("-9")) "-" else ws
+        val dirStr = if (finalWs == "-") "-" else convertWindDirToStr(wd)
+
+        _weatherData.value = WeatherData(
+            temp = finalTa,
+            windSpeed = finalWs,
+            windDir = wd,
+            windDirStr = dirStr,
+            sky = skyState,
+            stationName = stnName
+        )
+
+        if (curIncident != null) {
+            val meta = curIncident.meta
+            _incident.value = curIncident.copy(
+                meta = meta.copy(
+                    기상_기온 = if (finalTa != "-") "${finalTa}℃" else meta.기상_기온,
+                    기상_풍속 = if (finalWs != "-") "${finalWs}m/s" else meta.기상_풍속,
+                    기상_풍향 = if (dirStr != "-") dirStr else meta.기상_풍향,
+                    기상_날씨 = if (skyState != "-") skyState else meta.기상_날씨
+                )
+            )
         }
     }
 }
