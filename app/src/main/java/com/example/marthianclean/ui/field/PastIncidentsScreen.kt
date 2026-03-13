@@ -18,8 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marthianclean.data.IncidentStore
 import com.example.marthianclean.model.Incident
+import com.example.marthianclean.viewmodel.HistoryViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -31,53 +33,41 @@ private val MarsOrange = Color(0xFFFF8C00)
 @Composable
 fun PastIncidentsScreen(
     onBack: () -> Unit,
-    onOpenIncident: (Incident) -> Unit
+    onOpenIncident: (Incident) -> Unit,
+    viewModel: HistoryViewModel = viewModel() // HistoryViewModel 주입
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var incidents by remember { mutableStateOf<List<Incident>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    // 선택 모드
-    val selectedIds = remember { mutableStateListOf<String>() }
+    // 뷰모델 상태 구독
+    val incidents by viewModel.incidents.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val selectedIds = viewModel.selectedIds
     val selectionMode = selectedIds.isNotEmpty()
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
+    // 파일 내보내기 런처
     val createDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             runCatching {
-                val selected = incidents.filter { selectedIds.contains(it.id) }
+                val selected = viewModel.getSelectedIncidents()
                 IncidentStore.exportToUri(context, uri, selected)
-                selectedIds.clear()
+                viewModel.clearSelection()
             }.onFailure {
-                error = "추출 실패: ${it.message ?: "unknown"}"
+                // 에러 발생 시 처리 (필요시 뷰모델에 에러 전달)
             }
         }
     }
 
-    fun reload() {
-        scope.launch {
-            loading = true
-            error = null
-            runCatching {
-                // 수정: createdAtMillis 대신 문자열인 신고접수일시(또는 startTime)로 내림차순 정렬
-                incidents = IncidentStore.loadAll(context)
-                    .sortedByDescending { it.meta.신고접수일시 }
-            }.onFailure {
-                error = "목록 불러오기 실패: ${it.message ?: "unknown"}"
-                incidents = emptyList()
-            }
-            loading = false
-        }
+    // 초기 데이터 로드
+    LaunchedEffect(Unit) {
+        viewModel.reload(context)
     }
-
-    LaunchedEffect(Unit) { reload() }
 
     Scaffold(
         topBar = {
@@ -90,21 +80,27 @@ fun PastIncidentsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (selectionMode) selectedIds.clear() else onBack()
-                    }) { Text("←", color = Color.White, fontWeight = FontWeight.Bold) }
+                        if (selectionMode) viewModel.clearSelection() else onBack()
+                    }) {
+                        Text("←", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 },
                 actions = {
                     if (selectionMode) {
+                        // 선택 모드일 때: 추출 및 삭제
                         TextButton(onClick = {
                             val ts = SimpleDateFormat("yyyyMMdd_HHmm", Locale.KOREA).format(Date())
                             createDocLauncher.launch("marthian_backup_$ts.json")
-                        }) { Text("추출", color = MarsOrange, fontWeight = FontWeight.Bold) }
+                        }) {
+                            Text("추출", color = MarsOrange, fontWeight = FontWeight.Bold)
+                        }
 
                         TextButton(onClick = { showDeleteConfirm = true }) {
                             Text("삭제", color = Color(0xFFFF6666), fontWeight = FontWeight.Bold)
                         }
                     } else {
-                        TextButton(onClick = { reload() }) {
+                        // 일반 모드일 때: 새로고침
+                        TextButton(onClick = { viewModel.reload(context) }) {
                             Text("새로고침", color = Color.White)
                         }
                     }
@@ -123,18 +119,31 @@ fun PastIncidentsScreen(
                 .padding(pad)
         ) {
             when {
-                loading -> Text("불러오는 중…", color = Color.White, modifier = Modifier.align(Alignment.Center))
-                error != null -> {
+                isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MarsOrange
+                    )
+                }
+                errorMessage != null -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(error ?: "", color = Color(0xFFFF8888))
+                        Text(errorMessage ?: "알 수 없는 에러", color = Color(0xFFFF8888))
                         Spacer(Modifier.height(10.dp))
-                        Button(onClick = { reload() }) { Text("다시 시도") }
+                        Button(onClick = { viewModel.reload(context) }) {
+                            Text("다시 시도")
+                        }
                     }
                 }
-                incidents.isEmpty() -> Text("저장된 지난 현장이 없습니다.", color = Color(0xFFBBBBBB), modifier = Modifier.align(Alignment.Center))
+                incidents.isEmpty() -> {
+                    Text(
+                        text = "저장된 지난 현장이 없습니다.",
+                        color = Color(0xFFBBBBBB),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -142,17 +151,15 @@ fun PastIncidentsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(incidents, key = { it.id }) { inc ->
-                            val selected = selectedIds.contains(inc.id)
+                            val isSelected = selectedIds.contains(inc.id)
 
                             PastIncidentRow(
                                 incident = inc,
-                                selected = selected,
-                                onToggleSelect = {
-                                    if (selected) selectedIds.remove(inc.id) else selectedIds.add(inc.id)
-                                },
+                                selected = isSelected,
+                                onToggleSelect = { viewModel.toggleSelection(inc.id) },
                                 onOpen = {
                                     if (selectionMode) {
-                                        if (selected) selectedIds.remove(inc.id) else selectedIds.add(inc.id)
+                                        viewModel.toggleSelection(inc.id)
                                     } else {
                                         onOpenIncident(inc)
                                     }
@@ -166,6 +173,7 @@ fun PastIncidentsScreen(
         }
     }
 
+    // 삭제 확인 다이얼로그
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -174,19 +182,15 @@ fun PastIncidentsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
-                    scope.launch {
-                        runCatching {
-                            IncidentStore.deleteMany(context, selectedIds.toList())
-                            selectedIds.clear()
-                            reload()
-                        }.onFailure {
-                            error = "삭제 실패: ${it.message ?: "unknown"}"
-                        }
-                    }
-                }) { Text("삭제", color = Color(0xFFFF6666), fontWeight = FontWeight.Bold) }
+                    viewModel.deleteSelected(context)
+                }) {
+                    Text("삭제", color = Color(0xFFFF6666), fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("취소") }
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("취소")
+                }
             }
         )
     }
@@ -203,7 +207,7 @@ private fun PastIncidentRow(
     val bg = if (selected) Color(0xFF2A2A2A) else Color(0xFF141414)
     val border = if (selected) MarsOrange else Color(0xFF2B2B2B)
 
-    // 수정: createdAtMillis를 문자열 포맷팅하는 로직 제거하고 meta.신고접수일시를 바로 사용
+    // 날짜 텍스트 결정
     val dt = incident.meta.신고접수일시.ifBlank { incident.startTime }
 
     Column(
@@ -222,7 +226,7 @@ private fun PastIncidentRow(
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(6.dp))
-        Text(text = dt, color = Color(0xFFB0B0B0)) // 날짜 텍스트 표시
+        Text(text = dt, color = Color(0xFFB0B0B0))
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier

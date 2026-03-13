@@ -13,13 +13,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +33,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.marthianclean.R
 import com.example.marthianclean.model.FireType
 import com.example.marthianclean.model.MarkerIconMapper
@@ -107,7 +112,6 @@ private fun vehicleScaleFor(equipment: String): Float {
         e.contains("회복") || e.contains("버스") -> 4.8f
         e.contains("화학") -> 4.0f
         e.contains("포크") || e.contains("굴삭") -> 3.2f
-        // ✅ 생활안전, 장비운반, 구조공작차 크기를 기존 2.5f에서 3.0f로 통일
         e.contains("구조") || e.contains("장비운반") || e.contains("생활") || e.contains("안전지원") -> 3.0f
         e.contains("탱크") || e.contains("급수") -> 2.66f
         e.contains("펌프") -> 2.5f
@@ -134,6 +138,7 @@ private fun strongVibrate(context: Context) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SituationBoardScreen(
     incidentViewModel: IncidentViewModel,
@@ -166,7 +171,24 @@ fun SituationBoardScreen(
     var isAreaCompleted by remember { mutableStateOf(false) }
     val areaResultText = if (isAreaCompleted) AreaCalculator.getFormattedArea(areaPoints) else "측정 대기 중"
 
+    // ✅ 수난구조 모드 관련 상태 변수
     var waterTargetLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var isDrawingSearchZone by remember { mutableStateOf(false) }
+    var currentSearchDay by remember { mutableIntStateOf(1) } // 롱터치/3연타로 변경되는 일차
+    var drawingCenter by remember { mutableStateOf<LatLng?>(null) }
+    var drawingRadius by remember { mutableDoubleStateOf(0.0) }
+
+    // ✅ 3연타 및 1터치 인식을 위한 클릭 카운터 로직
+    var searchZoneClickCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(searchZoneClickCount) {
+        if (searchZoneClickCount > 0) {
+            delay(350) // 0.35초 대기 후 연타가 없으면 1터치로 간주
+            if (searchZoneClickCount == 1) {
+                isDrawingSearchZone = !isDrawingSearchZone
+            }
+            searchZoneClickCount = 0
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val cameraPositionState = rememberCameraPositionState()
@@ -274,9 +296,43 @@ fun SituationBoardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coords -> mapRectInWindow = coords.boundsInWindow() }
-                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable, isMeasuringDistance, isMeasuringArea, isBriefingLocked) {
+                    .pointerInput(mapLoaded, incidentViewModel.placedVehicles, rightMode, isSectorMode, isMarkerLocked, isSceneMovable, isMeasuringDistance, isMeasuringArea, isBriefingLocked, isDrawingSearchZone) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
+                            val mapObj = naverMapObj
+                            val mapRect = mapRectInWindow
+
+                            // ✅ [수난구조] 그리기 모드일 때 터치 가로채기
+                            if (isDrawingSearchZone && !isBriefingLocked && mapObj != null && mapRect != null) {
+                                hapticArm()
+                                val startLocalX = (down.position.x).toFloat()
+                                val startLocalY = (down.position.y).toFloat()
+                                val startLatLng = mapObj.projection.fromScreenLocation(PointF(startLocalX, startLocalY))
+                                drawingCenter = startLatLng
+                                drawingRadius = 0.0
+
+                                while (true) {
+                                    val event = awaitPointerEvent(pass = PointerEventPass.Main)
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                                    if (change.changedToUp()) {
+                                        if (drawingRadius > 5.0) {
+                                            incidentViewModel.addWaterSearchZone(currentSearchDay, drawingCenter!!, drawingRadius)
+                                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                        }
+                                        drawingCenter = null
+                                        drawingRadius = 0.0
+                                        break
+                                    }
+                                    change.consumeAllChanges()
+                                    val currentLocalX = (change.position.x).toFloat()
+                                    val currentLocalY = (change.position.y).toFloat()
+                                    val currentLatLng = mapObj.projection.fromScreenLocation(PointF(currentLocalX, currentLocalY))
+                                    drawingRadius = startLatLng.distanceTo(currentLatLng)
+                                }
+                                return@awaitEachGesture
+                            }
+
                             val longPressChange = awaitLongPressOrCancellation(down.id)
 
                             if (longPressChange == null) {
@@ -294,10 +350,10 @@ fun SituationBoardScreen(
 
                             if (nearScene) {
                                 if (isSceneMovable) {
-                                    val mapRect = mapRectInWindow ?: return@awaitEachGesture
+                                    val mapRect2 = mapRectInWindow ?: return@awaitEachGesture
                                     hapticArm()
                                     sceneDragActive = true
-                                    sceneDragWindowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y)
+                                    sceneDragWindowPos = Offset(mapRect2.left + longPressChange.position.x, mapRect2.top + longPressChange.position.y)
                                     while (true) {
                                         val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -312,9 +368,9 @@ fun SituationBoardScreen(
 
                             if (canDragMarkers) {
                                 val payload = findNearestPlacedPayload(longPressChange.position) ?: return@awaitEachGesture
-                                val mapRect = mapRectInWindow ?: return@awaitEachGesture
+                                val mapRect2 = mapRectInWindow ?: return@awaitEachGesture
                                 hapticArm()
-                                dragState = DragState(active = true, payload = payload, windowPos = Offset(mapRect.left + longPressChange.position.x, mapRect.top + longPressChange.position.y), wobble = true)
+                                dragState = DragState(active = true, payload = payload, windowPos = Offset(mapRect2.left + longPressChange.position.x, mapRect2.top + longPressChange.position.y), wobble = true)
                                 while (true) {
                                     val event = awaitPointerEvent(pass = PointerEventPass.Main)
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -334,7 +390,7 @@ fun SituationBoardScreen(
                     uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false),
                     onMapLoaded = { mapLoaded = true },
                     onMapClick = { _, clickedLatLng ->
-                        if (!isBriefingLocked) {
+                        if (!isBriefingLocked && !isDrawingSearchZone) {
                             if (isMeasuringDistance) { measurePoints.add(clickedLatLng); strongVibrate(context) }
                             if (isMeasuringArea && !isAreaCompleted) { areaPoints = areaPoints.toList() + clickedLatLng; strongVibrate(context) }
                             if (currentMode == DisasterMode.WATER) { waterTargetLatLng = clickedLatLng; strongVibrate(context) }
@@ -345,14 +401,73 @@ fun SituationBoardScreen(
 
                     if (currentMode == DisasterMode.WATER) {
                         waterData.commandPost?.let { cp ->
-                            Marker(state = MarkerState(position = cp), icon = MarkerIcons.BLACK, iconTintColor = WaterCyan, captionText = "지휘소(CP)", captionColor = Color.White, captionHaloColor = Color.Black, captionTextSize = 16.sp, zIndex = 150)
+                            Marker(
+                                state = MarkerState(position = cp),
+                                icon = OverlayImage.fromResource(R.drawable.ic_water_command_post),
+                                width = 40.dp, height = 40.dp,
+                                captionText = "지휘소(CP)", captionColor = Color.White, captionHaloColor = Color.Black, captionTextSize = 16.sp, zIndex = 150
+                            )
                         }
+
+                        // 💡 당일=주황색, 직전일=연두색, 그 외 과거=하늘색 적용 로직
+                        val maxDay = waterData.searchZones.maxOfOrNull { it.day } ?: 1
+
                         waterData.searchZones.forEach { zone ->
-                            CircleOverlay(center = zone.center, radius = zone.radiusMeter, color = WaterCyan.copy(alpha = 0.15f), outlineWidth = 2.dp, outlineColor = WaterCyan)
-                            Marker(state = MarkerState(position = zone.center), icon = MarkerIcons.BLACK, iconTintColor = Color.Yellow, width = 14.dp, height = 14.dp, anchor = Offset(0.5f, 0.5f), captionText = "${zone.day}일차\n${zone.radiusMeter.toInt()}m", captionColor = Color.Yellow, captionHaloColor = Color.Black)
+                            val circleColor = when {
+                                zone.day == maxDay -> MarsOrange // 당일(최신) 수색범위는 항상 주황색 (1일차 시작부터)
+                                zone.day == maxDay - 1 -> CommandYellowGreen // 직전일은 형광연두색
+                                else -> WaterCyan // 3일 전 등 그 외 과거는 모두 하늘색
+                            }
+
+                            CircleOverlay(
+                                center = zone.center,
+                                radius = zone.radiusMeter,
+                                color = circleColor.copy(alpha = 0.15f),
+                                outlineWidth = 2.dp,
+                                outlineColor = circleColor
+                            )
+                            Marker(
+                                state = MarkerState(position = zone.center),
+                                icon = MarkerIcons.BLACK,
+                                iconTintColor = circleColor,
+                                width = 14.dp, height = 14.dp,
+                                anchor = Offset(0.5f, 0.5f),
+                                captionText = "${zone.day}일차 수색반경\n(${zone.radiusMeter.toInt()}m)",
+                                captionColor = circleColor,
+                                captionHaloColor = Color.Black
+                            )
                         }
+
+// 💡 드래그 중에 실시간으로 그려지는 임시 수색반경 렌더링 (이 부분도 일관성을 위해 주황색으로 맞춤)
+                        if (drawingCenter != null && drawingRadius > 0) {
+                            CircleOverlay(
+                                center = drawingCenter!!,
+                                radius = drawingRadius,
+                                color = MarsOrange.copy(alpha = 0.2f),
+                                outlineWidth = 2.dp,
+                                outlineColor = MarsOrange
+                            )
+                            Marker(
+                                state = MarkerState(position = drawingCenter!!),
+                                icon = MarkerIcons.BLACK,
+                                iconTintColor = MarsOrange,
+                                width = 14.dp, height = 14.dp,
+                                anchor = Offset(0.5f, 0.5f),
+                                captionText = "${currentSearchDay}일차\n${drawingRadius.toInt()}m",
+                                captionColor = MarsOrange,
+                                captionHaloColor = Color.Black
+                            )
+                        }
+
+                        if (drawingCenter != null && drawingRadius > 0) {
+                            CircleOverlay(center = drawingCenter!!, radius = drawingRadius, color = NeonRed.copy(alpha = 0.2f), outlineWidth = 2.dp, outlineColor = NeonRed)
+                            Marker(state = MarkerState(position = drawingCenter!!), icon = MarkerIcons.BLACK, iconTintColor = NeonRed, width = 14.dp, height = 14.dp, anchor = Offset(0.5f, 0.5f), captionText = "${currentSearchDay}일차\n${drawingRadius.toInt()}m", captionColor = NeonRed, captionHaloColor = Color.Black)
+                        }
+
                         waterTargetLatLng?.let { target ->
-                            Marker(state = MarkerState(position = target), icon = MarkerIcons.BLACK, iconTintColor = Color.Red, width = 20.dp, height = 20.dp, captionText = "목표 위치", captionColor = Color.Red, captionHaloColor = Color.Black)
+                            if(!isDrawingSearchZone) {
+                                Marker(state = MarkerState(position = target), icon = MarkerIcons.BLACK, iconTintColor = Color.Red, width = 20.dp, height = 20.dp, captionText = "목표 위치", captionColor = Color.Red, captionHaloColor = Color.Black)
+                            }
                         }
                     }
 
@@ -436,7 +551,6 @@ fun SituationBoardScreen(
                 }
             }
 
-            // ✅ 좌측: 공동주택(아파트) 인명수색 현황판
             if (currentMode == DisasterMode.APARTMENT) {
                 Box(modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp).width(300.dp).fillMaxHeight(0.7f).background(Color(0xEE1C1C1C), RoundedCornerShape(12.dp)).border(2.dp, BorderGray, RoundedCornerShape(12.dp)).padding(16.dp)) {
                     if (apartmentData.totalFloors == 0) {
@@ -447,7 +561,6 @@ fun SituationBoardScreen(
                 }
             }
 
-            // ✅ 좌측: 수난구조 개요도 패널 신설
             if (currentMode == DisasterMode.WATER && !isBriefingLocked) {
                 Box(modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp)) {
                     WaterRescueOverviewPanel(context = context)
@@ -491,7 +604,6 @@ fun SituationBoardScreen(
                 if (rightMode != RightPanelMode.BRIEFING) {
                     Column(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), horizontalAlignment = Alignment.End) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // ✅ 공동주택, 수난구조 버튼 좌측 배치
                             TopBarButton(text = "공동주택", isActive = currentMode == DisasterMode.APARTMENT, onClick = {
                                 incidentViewModel.setDisasterMode(if (currentMode == DisasterMode.APARTMENT) DisasterMode.NORMAL else DisasterMode.APARTMENT)
                             })
@@ -512,21 +624,51 @@ fun SituationBoardScreen(
                         Spacer(Modifier.height(10.dp))
                         TopBarButton(text = if (isMeasuringArea) "📐 면적 종료" else "📐 면적측정", isActive = isMeasuringArea, onClick = { isMeasuringArea = !isMeasuringArea; if (!isMeasuringArea) { areaPoints = emptyList(); isAreaCompleted = false }; if (isMeasuringArea) { isMeasuringDistance = false; measurePoints.clear() } })
 
-                        // ✅ 수난구조 활성화 시 우측 하단에 조작 버튼 노출
+                        // ✅ 수난구조 컨트롤 패널 (3연타 인식 로직 탑재)
                         if (currentMode == DisasterMode.WATER && !isBriefingLocked) {
                             Spacer(Modifier.height(16.dp))
                             Text("⚓ 수난구조 통제", color = WaterCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
                             TopBarButton(text = "📍 지휘소(CP) 지정", isActive = true, onClick = { waterTargetLatLng?.let { incidentViewModel.setWaterCommandPost(it) } })
                             Spacer(Modifier.height(10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                TopBarButton(text = "+ 50m 반경", isActive = true, onClick = { waterTargetLatLng?.let { incidentViewModel.addWaterSearchZone(1, 50.0, it) } })
-                                TopBarButton(text = "+ 100m 반경", isActive = true, onClick = { waterTargetLatLng?.let { incidentViewModel.addWaterSearchZone(2, 100.0, it) } })
+
+                            Box(
+                                modifier = Modifier
+                                    .background(if (isDrawingSearchZone) NeonRed else Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, if (isDrawingSearchZone) Color.White else BorderGray, RoundedCornerShape(8.dp))
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                strongVibrate(context)
+                                                currentSearchDay = if (currentSearchDay < 5) currentSearchDay + 1 else 1
+                                                searchZoneClickCount = 0
+                                            },
+                                            onTap = {
+                                                searchZoneClickCount++
+                                                if (searchZoneClickCount >= 3) {
+                                                    strongVibrate(context)
+                                                    // 3연타: 이전 일차로 이동
+                                                    currentSearchDay = if (currentSearchDay > 1) currentSearchDay - 1 else 5
+                                                    searchZoneClickCount = 0
+                                                }
+                                            }
+                                        )
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                            ) {
+                                val modeText = if (isDrawingSearchZone) "⭕ 그리기 켜짐 ($currentSearchDay 일차)" else "⭕ 수색반경 ($currentSearchDay 일차)"
+                                Text(text = modeText, color = if (isDrawingSearchZone) Color.White else WaterCyan, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+
+                            if (waterData.searchZones.isNotEmpty()) {
+                                Spacer(Modifier.height(10.dp))
+                                TopBarButton(text = "↩ 최근 반경 취소", isActive = false, onClick = { incidentViewModel.removeLastWaterSearchZone() })
+                                Spacer(Modifier.height(10.dp))
+                                TopBarButton(text = "초기화", isActive = false, onClick = { incidentViewModel.clearWaterSearchZones() })
                             }
                         }
                     }
                 }
 
-                // ✅ 좌측 하단 기상 정보 (클릭 시 새로고침 기능 포함)
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -534,8 +676,8 @@ fun SituationBoardScreen(
                         .background(Color(0xFF1C1C1C).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
                         .border(1.dp, BorderGray, RoundedCornerShape(8.dp))
                         .clickable {
-                            strongVibrate(context) // 진동 피드백
-                            incidentViewModel.fetchRealtimeWeather() // 새로고침 실행
+                            strongVibrate(context)
+                            incidentViewModel.fetchRealtimeWeather()
                         }
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
@@ -544,7 +686,6 @@ fun SituationBoardScreen(
                     val windDir = if (weatherData.windDirStr != "-") weatherData.windDirStr else incident?.meta?.기상_풍향?.takeIf { it.isNotBlank() && it != "-" } ?: "풍향-"
                     val windSpeed = if (weatherData.windSpeed != "-") "${weatherData.windSpeed}m/s" else incident?.meta?.기상_풍속?.takeIf { it.isNotBlank() && it != "-" } ?: "풍속-"
 
-                    // ↻ 기호를 텍스트 뒤에 붙여 새로고침이 가능함을 시각적으로 표시
                     Text(text = "$sky / $temp / $windDir / $windSpeed ↻", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
@@ -622,12 +763,113 @@ fun SituationBoardScreen(
     }
 }
 
-// ✅ 수난구조 현황판 컴포저블
+// ✅ 년/월/일/시/분 통합 Wheel 다이얼 피커 컴포넌트
+@Composable
+fun CustomWheelDateTimePicker(
+    initialDateTime: String,
+    onDateTimeSelected: (String) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    val parts = initialDateTime.split(" ", "-", ":")
+    val initialYear = parts.getOrNull(0)?.toIntOrNull() ?: 2026
+    val initialMonth = parts.getOrNull(1)?.toIntOrNull() ?: 1
+    val initialDay = parts.getOrNull(2)?.toIntOrNull() ?: 1
+    val initialHour = parts.getOrNull(3)?.toIntOrNull() ?: 12
+    val initialMinute = parts.getOrNull(4)?.toIntOrNull() ?: 0
+
+    val years = (2020..2030).toList()
+    val months = (1..12).toList()
+    val days = (1..31).toList()
+    val hours = (0..23).toList()
+    val minutes = (0..59).toList()
+
+    val yearState = rememberLazyListState(initialFirstVisibleItemIndex = years.indexOf(initialYear).coerceAtLeast(0))
+    val monthState = rememberLazyListState(initialFirstVisibleItemIndex = months.indexOf(initialMonth).coerceAtLeast(0))
+    val dayState = rememberLazyListState(initialFirstVisibleItemIndex = days.indexOf(initialDay).coerceAtLeast(0))
+    val hourState = rememberLazyListState(initialFirstVisibleItemIndex = hours.indexOf(initialHour).coerceAtLeast(0))
+    val minuteState = rememberLazyListState(initialFirstVisibleItemIndex = minutes.indexOf(initialMinute).coerceAtLeast(0))
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF1C1C1C),
+            modifier = Modifier.padding(8.dp).fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("날짜 및 시간 설정", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.height(150.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    @Composable
+                    fun WheelColumn(state: androidx.compose.foundation.lazy.LazyListState, items: List<Int>, format: String, width: Dp) {
+                        LazyColumn(
+                            state = state, modifier = Modifier.width(width), horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            items(items.size) { index ->
+                                val isSelected = index == remember { derivedStateOf { state.firstVisibleItemIndex } }.value
+                                Text(
+                                    text = String.format(format, items[index]),
+                                    fontSize = if (isSelected) 18.sp else 14.sp,
+                                    color = if (isSelected) MarsOrange else Color.Gray,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    WheelColumn(yearState, years, "%04d", 50.dp)
+                    Text("-", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 2.dp))
+                    WheelColumn(monthState, months, "%02d", 35.dp)
+                    Text("-", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 2.dp))
+                    WheelColumn(dayState, days, "%02d", 35.dp)
+
+                    Spacer(Modifier.width(10.dp))
+
+                    WheelColumn(hourState, hours, "%02d", 35.dp)
+                    Text(":", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 2.dp))
+                    WheelColumn(minuteState, minutes, "%02d", 35.dp)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = onDismissRequest, colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)) {
+                        Text("취소", color = Color.Gray)
+                    }
+                    Button(
+                        onClick = {
+                            val y = years[yearState.firstVisibleItemIndex]
+                            val M = months[monthState.firstVisibleItemIndex]
+                            val d = days[dayState.firstVisibleItemIndex]
+                            val h = hours[hourState.firstVisibleItemIndex]
+                            val m = minutes[minuteState.firstVisibleItemIndex]
+                            onDateTimeSelected(String.format("%04d-%02d-%02d %02d:%02d", y, M, d, h, m))
+                            onDismissRequest()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MarsOrange)
+                    ) { Text("확인", color = Color.White) }
+                }
+            }
+        }
+    }
+}
+
+// ✅ 수난구조 현황판 (년/월/일 지원)
 @Composable
 private fun WaterRescueOverviewPanel(context: Context) {
-    var reportTime by remember { mutableStateOf("00:00") }
-    var arrivalTime by remember { mutableStateOf("00:00") }
-    var entryTime by remember { mutableStateOf("00:00") }
+    val currentDateTime = remember { java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.KOREA).format(java.util.Date()) }
+
+    var reportTime by remember { mutableStateOf(currentDateTime) }
+    var arrivalTime by remember { mutableStateOf(currentDateTime) }
+    var entryTime by remember { mutableStateOf(currentDateTime) }
 
     var victimInfo by remember { mutableStateOf("성별 / 나이") }
     var showVictimDialog by remember { mutableStateOf(false) }
@@ -639,34 +881,69 @@ private fun WaterRescueOverviewPanel(context: Context) {
     var cityCount by remember { mutableStateOf(0) }
     var civilCount by remember { mutableStateOf(0) }
 
-    fun showTimePicker(initial: String, onTimeSelected: (String) -> Unit) {
-        val parts = initial.split(":")
-        val hour = parts.getOrNull(0)?.toIntOrNull() ?: 12
-        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        android.app.TimePickerDialog(context, { _, h, m ->
-            onTimeSelected(String.format("%02d:%02d", h, m))
-        }, hour, minute, true).show()
+    var showTimePickerFor by remember { mutableStateOf<String?>(null) } // "report", "arrival", "entry"
+
+    if (showTimePickerFor != null) {
+        val initialTime = when (showTimePickerFor) {
+            "report" -> reportTime
+            "arrival" -> arrivalTime
+            "entry" -> entryTime
+            else -> currentDateTime
+        }
+        CustomWheelDateTimePicker(
+            initialDateTime = initialTime,
+            onDateTimeSelected = { timeStr ->
+                when (showTimePickerFor) {
+                    "report" -> reportTime = timeStr
+                    "arrival" -> arrivalTime = timeStr
+                    "entry" -> entryTime = timeStr
+                }
+            },
+            onDismissRequest = { showTimePickerFor = null }
+        )
     }
 
+    // 💡 다크 테마와 오렌지 포인트가 적용된 커스텀 입력 다이얼로그
     if (showVictimDialog) {
         AlertDialog(
             onDismissRequest = { showVictimDialog = false },
-            title = { Text("구조대상자 정보") },
+            containerColor = Color(0xFF1C1C1C), // 다크 배경
+            titleContentColor = Color.White,
+            textContentColor = Color.White,
+            title = { Text("구조대상자 정보", fontWeight = FontWeight.Bold) },
             text = {
-                TextField(
+                androidx.compose.material3.OutlinedTextField(
                     value = victimInput,
                     onValueChange = { victimInput = it },
-                    placeholder = { Text("예: 남 / 40대") }
+                    placeholder = { Text("예: 남 / 40대", color = Color.Gray) },
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = MarsOrange,
+                        unfocusedBorderColor = BorderGray,
+                        cursorColor = MarsOrange
+                    ),
+                    singleLine = true
                 )
             },
-            confirmButton = { Button(onClick = { victimInfo = victimInput; showVictimDialog = false }) { Text("확인") } },
-            dismissButton = { Button(onClick = { showVictimDialog = false }) { Text("취소") } }
+            confirmButton = {
+                Button(
+                    onClick = { victimInfo = victimInput; showVictimDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = MarsOrange)
+                ) { Text("확인", color = Color.White, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showVictimDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333))
+                ) { Text("취소", color = Color.LightGray) }
+            }
         )
     }
 
     Column(
         modifier = Modifier
-            .width(320.dp)
+            .width(340.dp) // 날짜 텍스트를 위해 너비 살짝 늘림
             .background(Color(0xEE1C1C1C), RoundedCornerShape(12.dp))
             .border(2.dp, WaterCyan, RoundedCornerShape(12.dp))
             .padding(16.dp),
@@ -676,15 +953,15 @@ private fun WaterRescueOverviewPanel(context: Context) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("최초신고", color = Color.Gray, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-            Text(reportTime, color = Color.White, fontSize = 16.sp, modifier = Modifier.clickable { showTimePicker(reportTime) { reportTime = it } })
+            Text(reportTime.substring(2), color = Color.White, fontSize = 14.sp, modifier = Modifier.clickable { showTimePickerFor = "report" })
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("현장도착", color = Color.Gray, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-            Text(arrivalTime, color = Color.White, fontSize = 16.sp, modifier = Modifier.clickable { showTimePicker(arrivalTime) { arrivalTime = it } })
+            Text(arrivalTime.substring(2), color = Color.White, fontSize = 14.sp, modifier = Modifier.clickable { showTimePickerFor = "arrival" })
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("입수 추정 시간", color = Color.Gray, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-            Text(entryTime, color = Color.White, fontSize = 16.sp, modifier = Modifier.clickable { showTimePicker(entryTime) { entryTime = it } })
+            Text("입수 추정", color = Color.Gray, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            Text(entryTime.substring(2), color = Color.White, fontSize = 14.sp, modifier = Modifier.clickable { showTimePickerFor = "entry" })
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("구조대상자", color = Color.Gray, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)

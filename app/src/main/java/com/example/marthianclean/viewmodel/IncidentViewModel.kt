@@ -53,10 +53,12 @@ data class ApartmentData(
     val gridStatus: Map<String, SearchStatus> = emptyMap()
 )
 
+// 💡 일차(day) 관리 및 드래그 범위(타원/원) 대응 데이터 구조로 확장
 data class WaterSearchZone(
-    val day: Int,           // 수색 일차
-    val radiusMeter: Double, // 반경 (m)
-    val center: LatLng       // 중심점
+    val day: Int,               // 수색 일차 (1일차, 2일차...)
+    val center: LatLng,         // 수색 중심점 (드래그 시작 터치 지점)
+    val radiusMeter: Double,    // 원형 반경 (m)
+    val edgePoint: LatLng? = null // 타원/자유형 드래그 종료 지점 (추가 확장용)
 )
 
 data class WaterData(
@@ -195,11 +197,28 @@ class IncidentViewModel : ViewModel() {
         _waterData.value = _waterData.value.copy(commandPost = latLng)
     }
 
-    fun addWaterSearchZone(day: Int, radiusMeter: Double, center: LatLng) {
+    // 💡 변경: 드래그 방식(원/타원) 대응 및 파라미터 업데이트
+    fun addWaterSearchZone(day: Int, center: LatLng, radiusMeter: Double, edgePoint: LatLng? = null) {
         if (isBriefingLocked) return
         val currentZones = _waterData.value.searchZones.toMutableList()
-        currentZones.add(WaterSearchZone(day, radiusMeter, center))
+        currentZones.add(WaterSearchZone(day, center, radiusMeter, edgePoint))
         _waterData.value = _waterData.value.copy(searchZones = currentZones)
+    }
+
+    // 💡 추가: 드래그 잘못했을 때 되돌리기(Undo) 지원 함수
+    fun removeLastWaterSearchZone() {
+        if (isBriefingLocked) return
+        val currentZones = _waterData.value.searchZones.toMutableList()
+        if (currentZones.isNotEmpty()) {
+            currentZones.removeLast()
+            _waterData.value = _waterData.value.copy(searchZones = currentZones)
+        }
+    }
+
+    // 💡 추가: 구역 초기화
+    fun clearWaterSearchZones() {
+        if (isBriefingLocked) return
+        _waterData.value = _waterData.value.copy(searchZones = emptyList())
     }
 
     // =========================================================
@@ -578,6 +597,48 @@ class IncidentViewModel : ViewModel() {
     fun deletePastIncidents(context: Context, ids: List<String>, onDone: () -> Unit = {}) {
         viewModelScope.launch { IncidentStore.deleteMany(context, ids); onDone() }
     }
+// =========================================================
+    // ✅ [Marthian 2.0] 지난 현장 보기 (History) 복구 로직
+    // =========================================================
+
+    /**
+     * HistoryViewModel에서 선택한 과거 사건(Incident) 데이터를
+     * 현재 상황판의 라이브 데이터로 완벽하게 덮어씁니다.
+     */
+    fun restoreIncident(pastIncident: Incident) {
+        // 1. 기본 사건 정보, 중심 좌표 및 메타데이터 덮어쓰기
+        _incident.value = pastIncident
+
+        // 2. 지도 위 차량 배치 상태(마커) 복원
+        placedVehicles = pastIncident.placements.map { p ->
+            PlacedVehicle(
+                id = p.id,
+                department = p.department,
+                equipment = p.equipment,
+                position = LatLng(p.lat, p.lng)
+            )
+        }
+
+        // 3. 다중 차량 출동 편성표(Matrix) 복원
+        dispatchMatrix = pastIncident.dispatchPlan.matrix
+        dispatchDepartments = pastIncident.dispatchPlan.departments
+        dispatchEquipments = pastIncident.dispatchPlan.equipments
+
+        // 4. ✅ 기상 데이터 박제 (실시간 연동 차단)
+        val m = pastIncident.meta
+        _weatherData.value = WeatherData(
+            temp = m.기상_기온.replace("℃", ""),
+            windSpeed = m.기상_풍속.replace("m/s", ""),
+            windDirStr = m.기상_풍향,
+            sky = m.기상_날씨,
+            stationName = "기록된 기상"
+        )
+
+        // 5. 부가 상태 초기화 및 추천순위 갱신 (자동 시간 기입 로직은 절대 호출 안함)
+        _currentMode.value = DisasterMode.NORMAL
+        isBriefingLocked = false
+        updateRecommendations()
+    }
 
     data class StickerItem(val id: String, val department: String, val equipment: String)
 
@@ -586,7 +647,7 @@ class IncidentViewModel : ViewModel() {
 
         val hqName = if (selectedStationName.isNotBlank()) selectedStationName else "관할소방서"
         val shortHqName = hqName.replace("소방서", "").trim()
-        out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "${shortHqName}지휘"))
+        out.add(StickerItem(id = "auto_cmd", department = hqName, equipment = "${shortHqName}지휘차"))
 
         val depts = dispatchDepartments
         val equips = dispatchEquipments
@@ -681,43 +742,40 @@ class IncidentViewModel : ViewModel() {
         val location = deptName.replace(Regex("센터|지역대|출동대|구조대"), "").trim()
         val rawStr = "${vType}_${callSign}".lowercase()
 
-        // 1. 생활안전/생활구조 최우선 매칭 (장비운반으로 넘어가지 못하게 방어)
-        if (rawStr.contains("생활구조") || rawStr.contains("생활안전")) {
-            return Pair("${location}생활안전", true)
-        }
-
-        // 2. 정확한 장비 타입 추출 (화학, 버스 등이 누락되는 현상 완벽 방지)
+        // 19종 표준 리스트에 따른 분류 및 우선순위 조정
         val finalType = when {
-            rawStr.contains("내폭") -> "내폭화학"
-            rawStr.contains("화학") -> "화학"
-            rawStr.contains("구조") -> "구조공작"
-            rawStr.contains("장비") -> "장비운반"
-            rawStr.contains("버스") -> "버스"
-            rawStr.contains("회복") -> "회복"
-            rawStr.contains("펌프") -> "펌프"
-            rawStr.contains("탱크") -> "탱크"
-            rawStr.contains("구급") -> "구급"
-            rawStr.contains("고가") || rawStr.contains("사다리") -> "고가"
-            rawStr.contains("굴절") -> "굴절"
-            rawStr.contains("조명") -> "조명"
-            rawStr.contains("조연") -> "조연"
-            rawStr.contains("배연") -> "배연"
-            rawStr.contains("미니펌프") -> "미니펌프"
-            rawStr.contains("무인파괴") -> "무인파괴"
-            rawStr.contains("포크레인") || rawStr.contains("굴삭") -> "포크레인"
-            rawStr.contains("지휘") -> "지휘"
-            rawStr.contains("산불") -> "산불"
-            rawStr.contains("험지") -> "험지"
-            rawStr.contains("조사") -> "조사"
-            else -> {
-                // 매칭 실패 시 원본 타입에서 불필요한 단어만 제거하여 고유 명칭 유지
-                val fallback = vType.replace("차", "").replace("소방", "").trim()
-                if (fallback.isBlank()) "기타" else fallback
-            }
+            // 버스/회복차를 장비운반보다 상단에 배치하여 오분류 방지
+            rawStr.contains("회복") || rawStr.contains("버스") -> "회복지원버스"
+
+            // 특수 차량 우선 매칭
+            rawStr.contains("미니펌프") -> "미니펌프차"
+            rawStr.contains("험지") -> "험지펌프"
+            rawStr.contains("산불") -> "산불진화차"
+            rawStr.contains("무인") || rawStr.contains("방수") || rawStr.contains("파괴") -> "무인방수파괴차"
+            rawStr.contains("내폭") || rawStr.contains("화학") -> "화학차"
+
+            // 일반 차량 매칭
+            rawStr.contains("구조공작") -> "구조공작차"
+            rawStr.contains("생활안전") || rawStr.contains("생활구조") -> "생활안전차"
+            rawStr.contains("탱크") -> "탱크차"
+            rawStr.contains("고가") || rawStr.contains("사다리") -> "고가차"
+            rawStr.contains("굴절") -> "굴절차"
+            rawStr.contains("구급") -> "구급차"
+            rawStr.contains("조명") -> "조명차"
+            rawStr.contains("배연") || rawStr.contains("조연") -> "배연차"
+            rawStr.contains("지휘") -> "지휘차"
+            rawStr.contains("제독") -> "제독차"
+            rawStr.contains("장비") -> "장비운반차"
+            rawStr.contains("지원") -> "지원차"
+            rawStr.contains("펌프") -> "펌프차"
+
+            else -> "지원차" // 리스트에 없는 경우 기본값
         }
 
         val number = callSign.firstOrNull { it.isDigit() }?.toString() ?: ""
-        return Pair("${location}${number}${finalType}", false)
+        val isLifeSafety = (finalType == "생활안전차")
+
+        return Pair("${location}${number}${finalType}", isLifeSafety)
     }
 
     private fun updateRecommendations() {

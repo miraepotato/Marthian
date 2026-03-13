@@ -1,34 +1,4 @@
-.
- |-marthian_v1.3_20260213.bundle
- |-project_tree.txt
- |-filetree.txt
- |-app
- | |-proguard-rules.pro
- | |-build.gradle.kts
- | |-build
- | | |-generated
- | | |-kotlin
- | | |-intermediates
- | | |-tmp
- | | |-outputs
- | |-src
- | | |-androidTest
- | | |-test
- | | |-main
- |-SituationBoardScreen.kt
- |-IncidentViewModel.kt
- |-local.properties
- |-gradle
- | |-libs.versions.toml
- | |-wrapper
- | | |-gradle-wrapper.jar
- | | |-gradle-wrapper.properties
- |-gradlew
- |-build.gradle.kts
- |-settings.gradle.kts
- |-file_tree.txt
- |-gradle.properties
- |-build
- | |-reports
- | | |-problems
- |-gradlew.bat
+/F  [error opening dir]
+/A  [error opening dir]
+
+0 directories, 0 files

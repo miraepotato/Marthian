@@ -45,33 +45,38 @@ private val SurfaceDark = Color(0xFF1C1C1C)
 private val CellWidth = 150.dp
 
 // ✅ 차량의 실제 타입명(장비 배열 기준)을 추출하는 강력한 필터망
+// 형님이 정해주신 19종 표준 명칭과 우선순위를 적용했습니다.
 private fun getBaseEquipmentType(vType: String, callSign: String): String {
     val rawStr = "${vType}_${callSign}".lowercase().replace(" ", "")
     return when {
-        rawStr.contains("생활구조") || rawStr.contains("생활안전") -> "생활안전"
-        rawStr.contains("내폭") -> "내폭화학"
-        rawStr.contains("화학") -> "화학"
-        // '구조대(기타)'가 구조공작으로 빠지는 현상 차단 및 장비운반 우선 매칭
-        rawStr.contains("장비") || rawStr.contains("기타") -> "장비운반"
-        rawStr.contains("구조공작") || (rawStr.contains("구조") && !rawStr.contains("구조대")) -> "구조공작"
-        rawStr.contains("버스") -> "버스"
-        rawStr.contains("회복") -> "회복"
-        rawStr.contains("미니펌프") -> "미니펌프"
-        rawStr.contains("펌프") || rawStr.contains("펌") -> "펌프" // '펌2' 등 변칙 명칭 포획
-        rawStr.contains("물탱크") || rawStr.contains("탱크") || rawStr.contains("탱") -> "탱크"
-        rawStr.contains("구급") || rawStr.contains("급차") || rawStr.contains("앰불") -> "구급" // '1급차', '2급차' 완벽 포획
-        rawStr.contains("사다리") || rawStr.contains("고가") -> "고가"
-        rawStr.contains("굴절") -> "굴절"
-        rawStr.contains("조명") -> "조명"
-        rawStr.contains("조연") || rawStr.contains("배연") -> "조연"
-        rawStr.contains("무인파괴") || rawStr.contains("무파") -> "무인파괴"
-        rawStr.contains("포크레인") || rawStr.contains("굴삭") -> "포크레인"
-        rawStr.contains("지휘") -> "지휘"
-        rawStr.contains("산불") || rawStr.contains("험지") -> "산불"
-        rawStr.contains("조사") -> "조사"
+        // 1. 최우선 매칭 (오분류 방지)
+        rawStr.contains("회복") || rawStr.contains("버스") -> "회복지원버스"
+        rawStr.contains("미니펌프") -> "미니펌프차"
+        rawStr.contains("험지") -> "험지펌프"
+        rawStr.contains("산불") -> "산불진화차"
+
+        // 2. 특수 및 대형 차량
+        rawStr.contains("무인") || rawStr.contains("방수") || rawStr.contains("파괴") -> "무인방수파괴차"
+        rawStr.contains("내폭") || rawStr.contains("화학") -> "화학차"
+        rawStr.contains("구조공작") -> "구조공작차"
+        rawStr.contains("생활안전") || rawStr.contains("생활구조") -> "생활안전차"
+
+        // 3. 일반 차량 (넘버링 대응을 위해 정확한 명칭 반환)
+        rawStr.contains("물탱크") || rawStr.contains("탱크") || rawStr.contains("탱") -> "탱크차"
+        rawStr.contains("사다리") || rawStr.contains("고가") -> "고가차"
+        rawStr.contains("굴절") -> "굴절차"
+        rawStr.contains("구급") || rawStr.contains("급차") || rawStr.contains("앰불") -> "구급차"
+        rawStr.contains("조명") -> "조명차"
+        rawStr.contains("조연") || rawStr.contains("배연") -> "배연차"
+        rawStr.contains("지휘") -> "지휘차"
+        rawStr.contains("제독") -> "제독차"
+        rawStr.contains("장비") -> "장비운반차"
+        rawStr.contains("지원") -> "지원차"
+        rawStr.contains("펌프") || rawStr.contains("펌") -> "펌프차"
+
         else -> {
             val fallback = vType.replace("차", "").replace("소방", "").trim()
-            if (fallback.isBlank()) "장비운반" else fallback
+            if (fallback.isBlank()) "지원차" else "${fallback}차"
         }
     }
 }
