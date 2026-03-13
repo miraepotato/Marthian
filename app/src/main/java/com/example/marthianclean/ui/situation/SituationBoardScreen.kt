@@ -1109,12 +1109,15 @@ private fun LegendItem(status: SearchStatus) {
     }
 }
 
+
 @Composable
 private fun BriefingTile(title: String, value: String, modifier: Modifier = Modifier, valueColor: Color = TextPrimary) {
-    Column(modifier = modifier.fillMaxWidth().background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)).border(1.dp, BorderGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
-        Text(text = title, color = Color.Gray, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    // 내부 패딩 축소 (12.dp -> 8.dp)
+    Column(modifier = modifier.fillMaxWidth().background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)).border(1.dp, BorderGray, RoundedCornerShape(8.dp)).padding(8.dp)) {
+        Text(text = title, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold) // 폰트 1sp 축소
+        Spacer(modifier = Modifier.height(2.dp)) // 제목과 값 사이 여백 축소
+        // 텍스트가 너무 길면 자동으로 줄바꿈 되도록 설정
+        Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
     }
 }
 
@@ -1143,6 +1146,7 @@ private fun HubPanel(onBriefing: () -> Unit, onForceStatus: () -> Unit, onClose:
     }
 }
 
+
 @Composable
 private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () -> Unit, onClose: () -> Unit) {
     val incident by incidentViewModel.incident.collectAsState()
@@ -1150,71 +1154,76 @@ private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () 
     val meta = incident?.meta ?: IncidentMeta()
     val placed = incidentViewModel.getPlacedCount()
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+    // 1. 최외곽 패딩 축소 (12.dp)
+    Column(modifier = Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("현장 브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Text("현장 브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(Modifier.weight(1f))
             TopBarButton(text = "허브", onClick = onBackToHub)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(6.dp))
             TopBarButton(text = "닫기", onClick = onClose)
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
 
         val sky = if (weatherData.sky != "-") weatherData.sky else meta.기상_날씨.takeIf { it.isNotBlank() && it != "-" } ?: "맑음"
         val temp = if (weatherData.temp != "-") "${weatherData.temp}℃" else meta.기상_기온.takeIf { it.isNotBlank() && it != "-" }?.let { "${it}℃" } ?: "-"
         val windDir = if (weatherData.windDirStr != "-") weatherData.windDirStr else meta.기상_풍향.takeIf { it.isNotBlank() && it != "-" } ?: "-"
         val windSpeed = if (weatherData.windSpeed != "-") "${weatherData.windSpeed}m/s" else meta.기상_풍속.takeIf { it.isNotBlank() && it != "-" }?.let { "${it}m/s" } ?: "-"
 
-        Text("관측 기상 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("관측 기상 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BriefingTile("날씨", sky, Modifier.weight(1f))
             BriefingTile("기온", temp, Modifier.weight(1f))
             BriefingTile("풍향/풍속", "$windDir $windSpeed", Modifier.weight(1.5f))
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        Text("재난 발생 개요", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
+        Text("재난 발생 개요", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(4.dp))
         BriefingTile("발생 위치", incident?.address ?: "-", Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BriefingTile("처종", incident?.fireType ?: "-", Modifier.weight(1f))
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // ✅ [에러 해결!] 형님의 FireType 모델을 직접 사용하여 한글(label) 추출!
+            val fireTypeStr = incident?.fireType ?: "-"
+            val displayFireType = if (fireTypeStr == "-") "-" else FireType.from(fireTypeStr).label
+
+            BriefingTile("처종", displayFireType, Modifier.weight(1f))
             BriefingTile("대응 단계", incident?.대응단계 ?: "-", Modifier.weight(1f), valueColor = if(incident?.대응단계?.contains("단계") == true) NeonRed else TextPrimary)
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
         BriefingTile("화재 원인 추정", incident?.화재원인 ?: "-", Modifier.fillMaxWidth())
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        Text("주요 시간대별 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("주요 시간대별 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BriefingTile("신고 접수", incident?.신고접수일시 ?: "-", Modifier.weight(1f))
             BriefingTile("선착대 도착", incident?.선착대도착시간 ?: "-", Modifier.weight(1f))
         }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BriefingTile("초진 시간", incident?.초진시간 ?: "-", Modifier.weight(1f))
             BriefingTile("완진 시간", incident?.완진시간 ?: "-", Modifier.weight(1f))
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        Text("주요 피해 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("주요 피해 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BriefingTile("인명 피해", incident?.인명피해현황 ?: "-", Modifier.weight(1f), valueColor = NeonRed)
             BriefingTile("재산 피해", incident?.재산피해현황 ?: "-", Modifier.weight(1f), valueColor = NeonRed)
             BriefingTile("대원 피해", incident?.대원피해현황 ?: "-", Modifier.weight(1f), valueColor = NeonOrange)
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        Text("동원 소방력 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("동원 소방력 현황", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BriefingTile("소방력 인원", if (incident?.소방력_인원?.isNotBlank() == true) "${incident?.소방력_인원}명" else "-", Modifier.weight(1f))
             BriefingTile("차량(실제배치)", "${placed}대", Modifier.weight(1f))
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
         val relatedAgencies = listOf(
             "경찰" to incident?.유관기관_경찰,
@@ -1230,7 +1239,7 @@ private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () 
         } else {
             BriefingTile("유관기관 지원", "해당사항 없음", Modifier.fillMaxWidth())
         }
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 

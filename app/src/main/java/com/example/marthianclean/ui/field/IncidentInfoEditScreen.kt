@@ -26,7 +26,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.marthianclean.model.Incident
 import com.example.marthianclean.model.IncidentMeta
+import com.example.marthianclean.model.FireType
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -42,41 +44,41 @@ private val ResponseStages = listOf("해당 사항 없음", "1단계", "2단계"
 private val WeatherOptions = listOf("맑음", "비", "눈", "흐림")
 private val WindDirections = listOf("동", "서", "남", "북", "동남", "동북", "서북", "서남", "북서", "북동", "남서", "남동")
 
+// ✅ 글로벌 한글 변환 확장 함수 (영어로 저장되지만 화면엔 한글로!)
+fun String.toKoreanFireType(): String {
+    return when (this.uppercase()) {
+        "BUILDING" -> "건축물 화재"
+        "VEHICLE" -> "차량 화재"
+        "FOREST" -> "임야 화재"
+        "SHIP" -> "선박 화재"
+        "AIRCRAFT" -> "항공기 화재"
+        "HAZARD" -> "위험물 화재"
+        "ETC" -> "기타 화재"
+        else -> this
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IncidentInfoEditScreen(
-    initialMeta: IncidentMeta,
+    initialIncident: Incident, // ✅ IncidentMeta 대신 Incident 전체를 받음
     onBack: () -> Unit,
-    onSave: (IncidentMeta) -> Unit,
+    onSave: (Incident) -> Unit, // ✅ 저장 시 업데이트된 Incident 전체를 넘김
 ) {
-    // 기존 필수 메타 정보
-    var meta by remember(initialMeta) {
+    // 마스터 데이터 상태 관리
+    var incident by remember(initialIncident) {
         mutableStateOf(
-            initialMeta.copy(
-                신고접수일시 = if (initialMeta.신고접수일시.isBlank() || initialMeta.신고접수일시 == "-")
+            initialIncident.copy(
+                신고접수일시 = if (initialIncident.신고접수일시.isBlank() || initialIncident.신고접수일시 == "-")
                     SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA).format(Date())
-                else initialMeta.신고접수일시
+                else initialIncident.신고접수일시
             )
         )
     }
+    // 기상 정보 등이 들어있는 Meta 상태 관리
+    var meta by remember(initialIncident.meta) { mutableStateOf(initialIncident.meta) }
 
-    // --- 에러 방지용 로컬 임시 상태 변수들 ---
-    // (모델에 없어서 생기는 에러를 막기 위해 화면 자체에서 임시로 들고 있습니다)
-    var local대응단계 by remember { mutableStateOf("-") }
-    var local화재원인 by remember { mutableStateOf("-") }
-    var local초진시간 by remember { mutableStateOf("-") }
-    var local완진시간 by remember { mutableStateOf("-") }
-    var local선착대도착시간 by remember { mutableStateOf("-") }
-    var local인명피해 by remember { mutableStateOf("-") }
-    var local재산피해 by remember { mutableStateOf("-") }
-    var local대원피해 by remember { mutableStateOf("-") }
-    var local소방력인원 by remember { mutableStateOf("-") }
-    var local경찰 by remember { mutableStateOf("-") }
-    var local시청 by remember { mutableStateOf("-") }
-    var local한전 by remember { mutableStateOf("-") }
-    var local도시가스 by remember { mutableStateOf("-") }
-    var local산불대 by remember { mutableStateOf("-") }
-
+    var fireTypeExpanded by remember { mutableStateOf(false) }
     var stageExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var targetField by remember { mutableStateOf("") }
@@ -87,12 +89,12 @@ fun IncidentInfoEditScreen(
         containerColor = BgBlack,
         topBar = {
             TopAppBar(
-                title = { Text("재난 정보 입력", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                title = { Text("현장정보 수정", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BgBlack),
                 navigationIcon = { TextButton(onClick = onBack) { Text("나가기", color = TextPrimary) } },
                 actions = {
                     Button(
-                        onClick = { onSave(meta) }, // 실제 저장은 meta만!
+                        onClick = { onSave(incident.copy(meta = meta)) }, // ✅ Incident 모델에 최신 Meta를 합쳐서 저장!
                         colors = ButtonDefaults.buttonColors(containerColor = AccentOrange, contentColor = Color.Black)
                     ) { Text("저장", fontWeight = FontWeight.Bold) }
                     Spacer(Modifier.width(10.dp))
@@ -102,58 +104,85 @@ fun IncidentInfoEditScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scroll).padding(14.dp)) {
             MatrixCard {
-                TimeSelectRow(label = "신고접수 일시", value = meta.신고접수일시) {
-                    targetField = "신고"; showTimePicker = true
-                }
-                MatrixTextRow(label = "재난발생위치", value = meta.재난발생위치, onChange = { meta = meta.copy(재난발생위치 = it) })
-
-                MatrixRow(label = "대응단계") {
+                // 1. 화재 처종 (Incident 객체의 fireType 직접 수정)
+                MatrixRow(label = "화재 처종") {
                     Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = { stageExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(local대응단계.ifBlank { "해당 사항 없음" }, color = TextPrimary)
+                        OutlinedButton(onClick = { fireTypeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                            // ✅ 선택된 값이 없으면 '처종 선택', 있으면 형님이 정의한 '한글 라벨' 표출
+                            val currentFireType = incident.fireType
+                            val displayFireType = if (currentFireType.isBlank() || currentFireType == "-") "처종 선택" else FireType.from(currentFireType).label
+
+                            Text(displayFireType, color = TextPrimary)
                             Spacer(Modifier.weight(1f)); Text("▼", color = TextPrimary)
                         }
-                        ThemeedDropdownMenu(expanded = stageExpanded, onDismissRequest = { stageExpanded = false }) {
-                            ResponseStages.forEach { stage ->
+                        ThemeedDropdownMenu(expanded = fireTypeExpanded, onDismissRequest = { fireTypeExpanded = false }) {
+                            // ✅ values() 대신 entries를 사용하고, type.name 대신 type.label 표출
+                            FireType.entries.forEach { type ->
                                 DropdownMenuItem(
-                                    text = { Text(stage, color = TextPrimary) },
-                                    onClick = { local대응단계 = stage; stageExpanded = false }
+                                    text = { Text(type.label, color = TextPrimary) },
+                                    onClick = {
+                                        incident = incident.copy(fireType = type.name) // DB에는 이름(FACTORY 등) 저장
+                                        fireTypeExpanded = false
+                                    }
                                 )
                             }
                         }
                     }
                 }
 
-                MatrixTextRow(label = "화재 원인", value = local화재원인, onChange = { local화재원인 = it }, singleLine = false)
+                // 2. 시간 데이터들 (요청하신 순서대로 배치)
+                TimeSelectRow(label = "신고접수 일시", value = incident.신고접수일시) { targetField = "신고"; showTimePicker = true }
+                TimeSelectRow(label = "선착대 도착시간", value = incident.선착대도착시간) { targetField = "선착대"; showTimePicker = true }
 
-                TimeSelectRow(label = "초진시간", value = local초진시간) { targetField = "초진"; showTimePicker = true }
-                TimeSelectRow(label = "완진시간", value = local완진시간) { targetField = "완진"; showTimePicker = true }
+                MatrixTextRow(label = "재난발생위치", value = meta.재난발생위치, onChange = { meta = meta.copy(재난발생위치 = it) })
+
+                MatrixRow(label = "대응단계") {
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { stageExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text(incident.대응단계.ifBlank { "해당 사항 없음" }, color = TextPrimary)
+                            Spacer(Modifier.weight(1f)); Text("▼", color = TextPrimary)
+                        }
+                        ThemeedDropdownMenu(expanded = stageExpanded, onDismissRequest = { stageExpanded = false }) {
+                            ResponseStages.forEach { stage ->
+                                DropdownMenuItem(
+                                    text = { Text(stage, color = TextPrimary) },
+                                    onClick = { incident = incident.copy(대응단계 = stage); stageExpanded = false }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                MatrixTextRow(label = "화재 원인", value = incident.화재원인, onChange = { incident = incident.copy(화재원인 = it) }, singleLine = false)
+
+                // 3. 초진/완진 시간
+                TimeSelectRow(label = "초진시간", value = incident.초진시간) { targetField = "초진"; showTimePicker = true }
+                TimeSelectRow(label = "완진시간", value = incident.완진시간) { targetField = "완진"; showTimePicker = true }
 
                 DividerRow()
                 WeatherSection(meta = meta, onMetaChange = { meta = it })
                 DividerRow()
 
-                TimeSelectRow(label = "선착대 도착시간", value = local선착대도착시간) { targetField = "선착대"; showTimePicker = true }
-
-                MatrixTextRow(label = "인명피해", labelColor = NeonRed, valueColor = NeonRed, value = local인명피해, onChange = { local인명피해 = it })
-                MatrixTextRow(label = "재산피해", labelColor = NeonRed, valueColor = NeonRed, value = local재산피해, onChange = { local재산피해 = it })
-                MatrixTextRow(label = "대원피해", labelColor = NeonOrange, valueColor = NeonOrange, value = local대원피해, onChange = { local대원피해 = it })
+                // 형님의 모델 변수명에 정확히 맞춤
+                MatrixTextRow(label = "인명피해", labelColor = NeonRed, valueColor = NeonRed, value = incident.인명피해현황, onChange = { incident = incident.copy(인명피해현황 = it) })
+                MatrixTextRow(label = "재산피해", labelColor = NeonRed, valueColor = NeonRed, value = incident.재산피해현황, onChange = { incident = incident.copy(재산피해현황 = it) })
+                MatrixTextRow(label = "대원피해", labelColor = NeonOrange, valueColor = NeonOrange, value = incident.대원피해현황, onChange = { incident = incident.copy(대원피해현황 = it) })
 
                 DividerRow()
                 MatrixTextRow(
                     label = "소방력 인원(명)",
-                    value = local소방력인원,
-                    onChange = { local소방력인원 = it },
+                    value = incident.소방력_인원,
+                    onChange = { incident = incident.copy(소방력_인원 = it) },
                     keyboardType = KeyboardType.Number
                 )
                 DividerRow()
 
                 Text("유관기관 현황", color = TextPrimary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(vertical = 6.dp))
-                MatrixTextRow(label = "경찰", value = local경찰, onChange = { local경찰 = it })
-                MatrixTextRow(label = "시청", value = local시청, onChange = { local시청 = it })
-                MatrixTextRow(label = "한전", value = local한전, onChange = { local한전 = it })
-                MatrixTextRow(label = "도시가스", value = local도시가스, onChange = { local도시가스 = it })
-                MatrixTextRow(label = "산불진화대(화성시)", value = local산불대, onChange = { local산불대 = it })
+                MatrixTextRow(label = "경찰", value = incident.유관기관_경찰, onChange = { incident = incident.copy(유관기관_경찰 = it) })
+                MatrixTextRow(label = "시청", value = incident.유관기관_시청, onChange = { incident = incident.copy(유관기관_시청 = it) })
+                MatrixTextRow(label = "한전", value = incident.유관기관_한전, onChange = { incident = incident.copy(유관기관_한전 = it) })
+                MatrixTextRow(label = "도시가스", value = incident.유관기관_도시가스, onChange = { incident = incident.copy(유관기관_도시가스 = it) })
+                MatrixTextRow(label = "산불진화대(화성시)", value = incident.유관기관_산불진화대_화성시, onChange = { incident = incident.copy(유관기관_산불진화대_화성시 = it) })
             }
             Spacer(Modifier.height(40.dp))
         }
@@ -162,19 +191,20 @@ fun IncidentInfoEditScreen(
     if (showTimePicker) {
         WheelDateTimePickerDialog(
             initialValue = when(targetField) {
-                "신고" -> meta.신고접수일시
-                "초진" -> local초진시간
-                "완진" -> local완진시간
-                "선착대" -> local선착대도착시간
+                "신고" -> incident.신고접수일시
+                "초진" -> incident.초진시간
+                "완진" -> incident.완진시간
+                "선착대" -> incident.선착대도착시간
                 else -> ""
             },
             onDismiss = { showTimePicker = false },
             onConfirm = { pickedTime ->
+                // ✅ 형님의 마스터 모델에 다이렉트로 시간 저장!
                 when(targetField) {
-                    "신고" -> meta = meta.copy(신고접수일시 = pickedTime)
-                    "초진" -> local초진시간 = pickedTime
-                    "완진" -> local완진시간 = pickedTime
-                    "선착대" -> local선착대도착시간 = pickedTime
+                    "신고" -> incident = incident.copy(신고접수일시 = pickedTime)
+                    "초진" -> incident = incident.copy(초진시간 = pickedTime)
+                    "완진" -> incident = incident.copy(완진시간 = pickedTime)
+                    "선착대" -> incident = incident.copy(선착대도착시간 = pickedTime)
                 }
                 showTimePicker = false
             }
@@ -303,6 +333,7 @@ fun WheelDateTimePickerDialog(initialValue: String, onDismiss: () -> Unit, onCon
                 Spacer(Modifier.height(20.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("취소", color = Color.Gray) }
+                    // ✅ 형님께서 요청하신 포맷 (yyyy-MM-dd HH:mm) 확실하게 고정!
                     Button(onClick = { onConfirm("$y-$m-$d $h:$min") }, colors = ButtonDefaults.buttonColors(containerColor = AccentOrange)) { Text("확인", color = Color.Black) }
                 }
             }
@@ -335,11 +366,18 @@ fun SnappingWheelPicker(items: List<String>, initialItem: String, onItemSelected
     }
 }
 
+
 @Composable
 private fun TimeSelectRow(label: String, value: String, onClick: () -> Unit) {
     MatrixRow(label = label) {
-        Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray, RoundedCornerShape(4.dp)).clickable { onClick() }.padding(16.dp)) {
-            Text(text = value.ifBlank { "시간 선택" }.replace("-", "시간 선택"), color = if(value.isBlank() || value == "-") Color.Gray else TextPrimary, fontSize = 16.sp)
+        Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGray, RoundedCornerShape(4.dp)).clickable { onClick() }.padding(12.dp)) {
+            // ✅ 버그 원인이었던 replace 삭제 및 깔끔한 삼항 처리
+            val displayText = if (value.isBlank() || value == "-") "yyyy-MM-dd HH:mm" else value
+            Text(
+                text = displayText,
+                color = if(value.isBlank() || value == "-") Color.Gray else TextPrimary,
+                fontSize = 16.sp
+            )
         }
     }
 }

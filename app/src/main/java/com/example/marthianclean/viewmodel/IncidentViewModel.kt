@@ -214,6 +214,10 @@ class IncidentViewModel : ViewModel() {
             _waterData.value = _waterData.value.copy(searchZones = currentZones)
         }
     }
+    // IncidentViewModel.kt 안의 적당한 곳에 추가
+    fun updateFullIncident(newIncident: Incident) {
+        _incident.value = newIncident
+    }
 
     // 💡 추가: 구역 초기화
     fun clearWaterSearchZones() {
@@ -254,6 +258,12 @@ class IncidentViewModel : ViewModel() {
     fun updateIncidentMeta(newMeta: IncidentMeta) {
         val cur = _incident.value ?: return
         _incident.value = cur.copy(meta = newMeta)
+    }
+
+    // ✅ 여기에 붙여넣기!
+    fun updateFireType(newType: String) {
+        val cur = _incident.value ?: return
+        _incident.value = cur.copy(fireType = newType)
     }
 
     fun updateAddress(newAddress: String) {

@@ -23,6 +23,7 @@ import com.example.marthianclean.ui.situation.SituationBoardScreen
 import com.example.marthianclean.viewmodel.BlackboardViewModel
 import com.example.marthianclean.viewmodel.BlackboardViewModelFactory
 import com.example.marthianclean.viewmodel.IncidentViewModel
+import com.example.marthianclean.model.Incident
 
 object Routes {
     const val Banner = "banner"
@@ -137,13 +138,14 @@ fun MarthianNavHost() {
 
         composable(Routes.IncidentInfoEdit) {
             val inc by incidentViewModel.incident.collectAsState()
-            val initialMeta = inc?.meta ?: IncidentMeta()
+            val currentIncident = inc ?: Incident() // 현재 전체 데이터 불러오기
 
             IncidentInfoEditScreen(
-                initialMeta = initialMeta,
+                initialIncident = currentIncident, // 전체를 넘김
                 onBack = { navController.popBackStack() },
-                onSave = { newMeta ->
-                    incidentViewModel.updateIncidentMeta(newMeta)
+                onSave = { updatedIncident ->
+                    // ✅ 수정된 전체 데이터를 뷰모델에 덮어쓰고 저장!
+                    incidentViewModel.updateFullIncident(updatedIncident)
                     incidentViewModel.saveCurrentIncident(context)
                     navController.popBackStack()
                 }
