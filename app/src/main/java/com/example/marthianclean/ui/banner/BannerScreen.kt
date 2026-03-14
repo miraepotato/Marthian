@@ -75,7 +75,7 @@ fun BannerScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Marthian",
+                text = "Martian",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold,
                 color = MarsOrange
