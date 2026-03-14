@@ -32,7 +32,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,6 +78,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import com.naver.maps.map.overlay.OverlayImage
 import com.naver.maps.map.util.MarkerIcons
+import com.example.marthianclean.util.HydrantManager
+import com.example.marthianclean.model.Hydrant
 
 private val MarsOrange = Color(0xFFFF8C00)
 private val CommandYellowGreen = Color(0xFFD4FF00)
@@ -149,6 +150,9 @@ fun SituationBoardScreen(
     val view = LocalView.current
     val density = LocalDensity.current
 
+    // ✅ 화성시 소화전 데이터 최초 1회 로드
+    val hydrantList = remember { HydrantManager.loadHwaseongHydrants(context) }
+
     val incident by incidentViewModel.incident.collectAsState()
     val weatherData by incidentViewModel.weatherData.collectAsState()
 
@@ -171,18 +175,16 @@ fun SituationBoardScreen(
     var isAreaCompleted by remember { mutableStateOf(false) }
     val areaResultText = if (isAreaCompleted) AreaCalculator.getFormattedArea(areaPoints) else "측정 대기 중"
 
-    // ✅ 수난구조 모드 관련 상태 변수
     var waterTargetLatLng by remember { mutableStateOf<LatLng?>(null) }
     var isDrawingSearchZone by remember { mutableStateOf(false) }
-    var currentSearchDay by remember { mutableIntStateOf(1) } // 롱터치/3연타로 변경되는 일차
+    var currentSearchDay by remember { mutableIntStateOf(1) }
     var drawingCenter by remember { mutableStateOf<LatLng?>(null) }
     var drawingRadius by remember { mutableDoubleStateOf(0.0) }
 
-    // ✅ 3연타 및 1터치 인식을 위한 클릭 카운터 로직
     var searchZoneClickCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(searchZoneClickCount) {
         if (searchZoneClickCount > 0) {
-            delay(350) // 0.35초 대기 후 연타가 없으면 1터치로 간주
+            delay(350)
             if (searchZoneClickCount == 1) {
                 isDrawingSearchZone = !isDrawingSearchZone
             }
@@ -302,7 +304,6 @@ fun SituationBoardScreen(
                             val mapObj = naverMapObj
                             val mapRect = mapRectInWindow
 
-                            // ✅ [수난구조] 그리기 모드일 때 터치 가로채기
                             if (isDrawingSearchZone && !isBriefingLocked && mapObj != null && mapRect != null) {
                                 hapticArm()
                                 val startLocalX = (down.position.x).toFloat()
@@ -399,6 +400,27 @@ fun SituationBoardScreen(
                 ) {
                     MapEffect(Unit) { map -> naverMapObj = map }
 
+// ✅ [수정된 부분] 소화전 마커 실시간 필터링 렌더링
+                    val currentBounds = cameraPositionState.contentBounds // 현재 화면의 사각 영역
+
+// 줌 레벨이 14.0 이상(약 2km 반경 시야)이고 화면 영역 정보가 있을 때만 계산
+                    if (currentZoom >= 14.0 && currentBounds != null) {
+                        hydrantList
+                            .filter { hydrant ->
+                                // 1. 현재 화면 영역 안에 좌표가 포함되는 데이터만 추출
+                                currentBounds.contains(LatLng(hydrant.lat, hydrant.lng))
+                            }
+                            .forEach { hydrant ->
+                                Marker(
+                                    state = MarkerState(position = LatLng(hydrant.lat, hydrant.lng)),
+                                    icon = OverlayImage.fromResource(R.drawable.ic_hydrant),
+                                    iconTintColor = if (hydrant.type == "1") NeonRed else WaterCyan,
+                                    width = 36.dp,
+                                    height = 36.dp,
+                                    zIndex = 5 // 차량 마커(zIndex 10)보다 아래에 배치
+                                )
+                            }
+                    }
                     if (currentMode == DisasterMode.WATER) {
                         waterData.commandPost?.let { cp ->
                             Marker(
@@ -409,14 +431,13 @@ fun SituationBoardScreen(
                             )
                         }
 
-                        // 💡 당일=주황색, 직전일=연두색, 그 외 과거=하늘색 적용 로직
                         val maxDay = waterData.searchZones.maxOfOrNull { it.day } ?: 1
 
                         waterData.searchZones.forEach { zone ->
                             val circleColor = when {
-                                zone.day == maxDay -> MarsOrange // 당일(최신) 수색범위는 항상 주황색 (1일차 시작부터)
-                                zone.day == maxDay - 1 -> CommandYellowGreen // 직전일은 형광연두색
-                                else -> WaterCyan // 3일 전 등 그 외 과거는 모두 하늘색
+                                zone.day == maxDay -> MarsOrange
+                                zone.day == maxDay - 1 -> CommandYellowGreen
+                                else -> WaterCyan
                             }
 
                             CircleOverlay(
@@ -434,27 +455,6 @@ fun SituationBoardScreen(
                                 anchor = Offset(0.5f, 0.5f),
                                 captionText = "${zone.day}일차 수색반경\n(${zone.radiusMeter.toInt()}m)",
                                 captionColor = circleColor,
-                                captionHaloColor = Color.Black
-                            )
-                        }
-
-// 💡 드래그 중에 실시간으로 그려지는 임시 수색반경 렌더링 (이 부분도 일관성을 위해 주황색으로 맞춤)
-                        if (drawingCenter != null && drawingRadius > 0) {
-                            CircleOverlay(
-                                center = drawingCenter!!,
-                                radius = drawingRadius,
-                                color = MarsOrange.copy(alpha = 0.2f),
-                                outlineWidth = 2.dp,
-                                outlineColor = MarsOrange
-                            )
-                            Marker(
-                                state = MarkerState(position = drawingCenter!!),
-                                icon = MarkerIcons.BLACK,
-                                iconTintColor = MarsOrange,
-                                width = 14.dp, height = 14.dp,
-                                anchor = Offset(0.5f, 0.5f),
-                                captionText = "${currentSearchDay}일차\n${drawingRadius.toInt()}m",
-                                captionColor = MarsOrange,
                                 captionHaloColor = Color.Black
                             )
                         }
@@ -624,7 +624,6 @@ fun SituationBoardScreen(
                         Spacer(Modifier.height(10.dp))
                         TopBarButton(text = if (isMeasuringArea) "📐 면적 종료" else "📐 면적측정", isActive = isMeasuringArea, onClick = { isMeasuringArea = !isMeasuringArea; if (!isMeasuringArea) { areaPoints = emptyList(); isAreaCompleted = false }; if (isMeasuringArea) { isMeasuringDistance = false; measurePoints.clear() } })
 
-                        // ✅ 수난구조 컨트롤 패널 (3연타 인식 로직 탑재)
                         if (currentMode == DisasterMode.WATER && !isBriefingLocked) {
                             Spacer(Modifier.height(16.dp))
                             Text("⚓ 수난구조 통제", color = WaterCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
@@ -646,7 +645,6 @@ fun SituationBoardScreen(
                                                 searchZoneClickCount++
                                                 if (searchZoneClickCount >= 3) {
                                                     strongVibrate(context)
-                                                    // 3연타: 이전 일차로 이동
                                                     currentSearchDay = if (currentSearchDay > 1) currentSearchDay - 1 else 5
                                                     searchZoneClickCount = 0
                                                 }
@@ -763,7 +761,6 @@ fun SituationBoardScreen(
     }
 }
 
-// ✅ 년/월/일/시/분 통합 Wheel 다이얼 피커 컴포넌트
 @Composable
 fun CustomWheelDateTimePicker(
     initialDateTime: String,
@@ -862,7 +859,6 @@ fun CustomWheelDateTimePicker(
     }
 }
 
-// ✅ 수난구조 현황판 (년/월/일 지원)
 @Composable
 private fun WaterRescueOverviewPanel(context: Context) {
     val currentDateTime = remember { java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.KOREA).format(java.util.Date()) }
@@ -881,7 +877,7 @@ private fun WaterRescueOverviewPanel(context: Context) {
     var cityCount by remember { mutableStateOf(0) }
     var civilCount by remember { mutableStateOf(0) }
 
-    var showTimePickerFor by remember { mutableStateOf<String?>(null) } // "report", "arrival", "entry"
+    var showTimePickerFor by remember { mutableStateOf<String?>(null) }
 
     if (showTimePickerFor != null) {
         val initialTime = when (showTimePickerFor) {
@@ -903,11 +899,10 @@ private fun WaterRescueOverviewPanel(context: Context) {
         )
     }
 
-    // 💡 다크 테마와 오렌지 포인트가 적용된 커스텀 입력 다이얼로그
     if (showVictimDialog) {
         AlertDialog(
             onDismissRequest = { showVictimDialog = false },
-            containerColor = Color(0xFF1C1C1C), // 다크 배경
+            containerColor = Color(0xFF1C1C1C),
             titleContentColor = Color.White,
             textContentColor = Color.White,
             title = { Text("구조대상자 정보", fontWeight = FontWeight.Bold) },
@@ -943,7 +938,7 @@ private fun WaterRescueOverviewPanel(context: Context) {
 
     Column(
         modifier = Modifier
-            .width(340.dp) // 날짜 텍스트를 위해 너비 살짝 늘림
+            .width(340.dp)
             .background(Color(0xEE1C1C1C), RoundedCornerShape(12.dp))
             .border(2.dp, WaterCyan, RoundedCornerShape(12.dp))
             .padding(16.dp),
@@ -1109,14 +1104,11 @@ private fun LegendItem(status: SearchStatus) {
     }
 }
 
-
 @Composable
 private fun BriefingTile(title: String, value: String, modifier: Modifier = Modifier, valueColor: Color = TextPrimary) {
-    // 내부 패딩 축소 (12.dp -> 8.dp)
     Column(modifier = modifier.fillMaxWidth().background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)).border(1.dp, BorderGray, RoundedCornerShape(8.dp)).padding(8.dp)) {
-        Text(text = title, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold) // 폰트 1sp 축소
-        Spacer(modifier = Modifier.height(2.dp)) // 제목과 값 사이 여백 축소
-        // 텍스트가 너무 길면 자동으로 줄바꿈 되도록 설정
+        Text(text = title, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
         Text(text = value.ifBlank { "-" }, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
     }
 }
@@ -1146,7 +1138,6 @@ private fun HubPanel(onBriefing: () -> Unit, onForceStatus: () -> Unit, onClose:
     }
 }
 
-
 @Composable
 private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () -> Unit, onClose: () -> Unit) {
     val incident by incidentViewModel.incident.collectAsState()
@@ -1154,7 +1145,6 @@ private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () 
     val meta = incident?.meta ?: IncidentMeta()
     val placed = incidentViewModel.getPlacedCount()
 
-    // 1. 최외곽 패딩 축소 (12.dp)
     Column(modifier = Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("현장 브리핑", color = MarsOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
@@ -1184,7 +1174,6 @@ private fun BriefingPanel(incidentViewModel: IncidentViewModel, onBackToHub: () 
         BriefingTile("발생 위치", incident?.address ?: "-", Modifier.fillMaxWidth())
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            // ✅ [에러 해결!] 형님의 FireType 모델을 직접 사용하여 한글(label) 추출!
             val fireTypeStr = incident?.fireType ?: "-"
             val displayFireType = if (fireTypeStr == "-") "-" else FireType.from(fireTypeStr).label
 

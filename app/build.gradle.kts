@@ -24,7 +24,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.marthianclean"
+        applicationId = "com.example.Martian.v2"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

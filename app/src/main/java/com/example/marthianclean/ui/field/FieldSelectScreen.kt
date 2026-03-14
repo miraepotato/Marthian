@@ -43,7 +43,7 @@ fun FieldSelectScreen(
         containerColor = Color(0xFF0E0E0E),
         topBar = {
             TopAppBar(
-                title = { Text("Martian", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Martian. V2", color = Color.White, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0E0E0E)),
                 actions = {
                     // 우상단 설정 아이콘 추가
