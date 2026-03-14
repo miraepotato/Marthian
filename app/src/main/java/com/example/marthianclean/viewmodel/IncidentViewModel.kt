@@ -210,7 +210,8 @@ class IncidentViewModel : ViewModel() {
         if (isBriefingLocked) return
         val currentZones = _waterData.value.searchZones.toMutableList()
         if (currentZones.isNotEmpty()) {
-            currentZones.removeLast()
+            // ✅ API 35 충돌 해결 (안전한 삭제 방식)
+            currentZones.removeAt(currentZones.lastIndex)
             _waterData.value = _waterData.value.copy(searchZones = currentZones)
         }
     }
@@ -402,11 +403,10 @@ class IncidentViewModel : ViewModel() {
                 is GeocodingRepository.Outcome.Ok -> {
                     val data = out.data
                     val current = _incident.value
-                    val updated = current?.copy(
-                        address = data.resolvedAddress,
-                        latitude = data.latitude,
-                        longitude = data.longitude
-                    ) ?: Incident(
+
+                    // ✅ 주소를 새로 검색하면 '새로운 현장'이므로 id를 비워둡니다.
+                    val updated = Incident(
+                        id = "",
                         address = data.resolvedAddress,
                         latitude = data.latitude,
                         longitude = data.longitude
@@ -597,7 +597,20 @@ class IncidentViewModel : ViewModel() {
 
     fun saveCurrentIncident(context: Context) {
         val snap = snapshotIncidentForSave() ?: return
-        viewModelScope.launch { IncidentStore.upsert(context, snap) }
+
+        // ✅ 새 현장(ID가 빈칸)일 때만 현재 시간을 이용해 고유 ID(예: INC_170123...) 생성
+        val finalIncident = if (snap.id.isBlank()) {
+            snap.copy(id = "INC_${System.currentTimeMillis()}")
+        } else {
+            snap
+        }
+
+        // ✅ 뷰모델 상태 업데이트 (같은 현장에서 다시 누르면 덮어쓰기 되도록 유지)
+        _incident.value = finalIncident
+
+        viewModelScope.launch {
+            IncidentStore.upsert(context, finalIncident)
+        }
     }
 
     fun loadPastIncidents(context: Context, onLoaded: (List<Incident>) -> Unit) {
