@@ -150,7 +150,6 @@ fun SituationBoardScreen(
     val view = LocalView.current
     val density = LocalDensity.current
 
-    // ✅ 화성시 소화전 데이터 최초 1회 로드
     val hydrantList = remember { HydrantManager.loadHwaseongHydrants(context) }
 
     val incident by incidentViewModel.incident.collectAsState()
@@ -387,8 +386,14 @@ fun SituationBoardScreen(
                 NaverMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    properties = MapProperties(mapType = if (isSatellite) MapType.Satellite else MapType.Basic),
-                    uiSettings = MapUiSettings(isZoomControlEnabled = false, isCompassEnabled = false, isLocationButtonEnabled = false),
+                    properties = MapProperties(
+                        mapType = if (isSatellite) MapType.Hybrid else MapType.Basic
+                    ),
+                    uiSettings = MapUiSettings(
+                        isZoomControlEnabled = false,
+                        isCompassEnabled = false,
+                        isLocationButtonEnabled = false
+                    ),
                     onMapLoaded = { mapLoaded = true },
                     onMapClick = { _, clickedLatLng ->
                         if (!isBriefingLocked && !isDrawingSearchZone) {
@@ -398,16 +403,23 @@ fun SituationBoardScreen(
                         }
                     }
                 ) {
-                    MapEffect(Unit) { map -> naverMapObj = map }
+                    // ✅ 네이버 지도 기본 속성을 활용한 시인성 개선 작전
+                    MapEffect(isSatellite) { map ->
+                        naverMapObj = map
+                        if (isSatellite) {
+                            map.symbolScale = 0.75f // 글씨와 아이콘 크기를 줄여서 도로가 배경처럼 보이게 함
+                            map.lightness = -0.2f // 지도를 전체적으로 약간 어둡게 눌러 마커를 돋보이게 함
+                        } else {
+                            map.symbolScale = 1.0f
+                            map.lightness = 0f
+                        }
+                    }
 
-// ✅ [수정된 부분] 소화전 마커 실시간 필터링 렌더링
-                    val currentBounds = cameraPositionState.contentBounds // 현재 화면의 사각 영역
+                    val currentBounds = cameraPositionState.contentBounds
 
-// 줌 레벨이 14.0 이상(약 2km 반경 시야)이고 화면 영역 정보가 있을 때만 계산
                     if (currentZoom >= 14.0 && currentBounds != null) {
                         hydrantList
                             .filter { hydrant ->
-                                // 1. 현재 화면 영역 안에 좌표가 포함되는 데이터만 추출
                                 currentBounds.contains(LatLng(hydrant.lat, hydrant.lng))
                             }
                             .forEach { hydrant ->
@@ -417,7 +429,7 @@ fun SituationBoardScreen(
                                     iconTintColor = if (hydrant.type == "1") NeonRed else WaterCyan,
                                     width = 36.dp,
                                     height = 36.dp,
-                                    zIndex = 5 // 차량 마커(zIndex 10)보다 아래에 배치
+                                    zIndex = 5
                                 )
                             }
                     }

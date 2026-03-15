@@ -1,0 +1,16 @@
+[
+  {
+    "featureType": "road",
+    "element": "geometry",
+    "stylers": [
+      { "opacity": 0.3 }
+    ]
+  },
+  {
+    "featureType": "all",
+    "element": "labels",
+    "stylers": [
+      { "opacity": 0.5 }
+    ]
+  }
+]
